@@ -267,7 +267,7 @@ void CDspClientManager::handleToDispatcherPackage (
 		case PVE::DspCmdUserEasyLoginLocal:
 			{
 				m_rwLock.lockForRead();
-				bool cliExists = m_clients.contains(h) && !m_clients[h]->isAuthorizationInProgress();
+				bool cliExists = m_clients.contains(h) && !m_clients.value(h)->isAuthorizationInProgress();
 				m_rwLock.unlock();
 
 				if ( cliExists )
@@ -319,7 +319,7 @@ void CDspClientManager::handleToDispatcherPackage (
 
 	// Package should be authorized!
 	m_rwLock.lockForRead();
-	bool cliExists = m_clients.contains(h) && !m_clients[h]->isAuthorizationInProgress();
+	bool cliExists = m_clients.contains(h) && !m_clients.value(h)->isAuthorizationInProgress();
 	bool inPreAuthorizedHash = m_preAuthorizedSessions.contains(h);
 
 	// Check authorization
@@ -785,7 +785,7 @@ PRL_RESULT CDspClientManager::preAuthChecks(const IOSender::Handle& h)
 
 	{
 		QReadLocker locker(&m_rwLock);
-		bool cliExists = m_clients.contains(h) && !m_clients[h]->isAuthorizationInProgress();
+		bool cliExists = m_clients.contains(h) && !m_clients.value(h)->isAuthorizationInProgress();
 		if (cliExists)
 			return PRL_ERR_USER_IS_ALREADY_LOGGED;
 	}
