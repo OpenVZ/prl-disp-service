@@ -43,6 +43,7 @@
 #include <Tasks/Task_CloneVm.h>
 #include <Tasks/Task_CloneVm_p.h>
 #include "Libraries/Virtuozzo/CVzHelper.h"
+#include <Libraries/Transponster/Reverse_p.h>
 #include "CDspVmBackupInfrastructure.h"
 #include "CDspVmSnapshotInfrastructure.h"
 #include <prlxmlmodel/BackupActivity/BackupActivity.h>
@@ -1543,6 +1544,9 @@ componentList_type Model::getVmTibs() const
 	componentList_type output;
 	foreach (CVmHardDisk* h, m_object.getImages())
 	{
+		if (Transponster::Device::Clustered::Flavor<CVmHardDisk>::isRaw(h))
+			continue;
+
 		QString n = h->getSystemName();
 		// PSBM-133444
 		// Remove trailing slashes from path
