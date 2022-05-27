@@ -860,6 +860,7 @@ struct Bridge
 	{
 	}
 	Bridge(virInterfacePtr interface_, const CHwNetAdapter& master_);
+	Bridge(const QString& interfaceName_, const CHwNetAdapter& master_);
 
 	QString getName() const;
 	const CHwNetAdapter& getMaster() const
@@ -873,7 +874,7 @@ struct Bridge
 private:
 	CHwNetAdapter m_master;
 	QSharedPointer<virInterface> m_interface;
-	QString m_name;
+	boost::optional<QString> m_name;
 };
 
 namespace List
