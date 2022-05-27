@@ -3325,8 +3325,15 @@ Bridge::Bridge(virInterfacePtr interface_, const CHwNetAdapter& master_):
 {
 }
 
+Bridge::Bridge(const QString& interfaceName_, const CHwNetAdapter& master_):
+	m_master(master_), m_name(interfaceName_)
+{}
+
 QString Bridge::getName() const
 {
+	if (m_name.is_initialized())
+		return m_name.get();
+
 	const char* n = virInterfaceGetName(m_interface.data());
 	return QString(NULL == n ? "" : n);
 }
@@ -3363,56 +3370,61 @@ Backend& Backend::reload()
 	if (m_link.isNull())
 		return *this;
 
-	PrlNet::EthAdaptersList m;
-	PRL_RESULT e = PrlNet::makeBindableAdapterList(m, false, false);
+	PrlNet::EthAdaptersList allAdapters;
+	PRL_RESULT e = PrlNet::makeAdapterList(allAdapters, false, false);
 	if (PRL_FAILED(e))
 	{
 		m_all = Error::Simple(e);
 		return *this;
 	}
-	virInterfacePtr* a = NULL;
-	int z = virConnectListAllInterfaces(m_link.data(), &a, 0);
-	if (-1 == z)
+
+	// Bridge hash table includes bridge name and its mac
+	QHash<QString, QString> bridgeInfo;
+
+	for (const auto& adapter : allAdapters)
 	{
-		m_all = Error::Simple(PRL_ERR_FAILURE);
-		return *this;
+		if (adapter._nType == NIC_TYPE_BRIDGE)
+			bridgeInfo[adapter._name] = PrlNet::ethAddressToString(adapter._macAddr);
 	}
-	m_all = QList<Bridge>();
-	for (int i = 0; i < z; ++i)
+
+	// Interface hash table includes brirdge name and its master interface
+	QHash<QString, PrlNet::EthernetAdapter> bridgeSlavesMap;
+
+	for (const auto& adapter : allAdapters)
 	{
-		char* xml = virInterfaceGetXMLDesc(a[i], VIR_INTERFACE_XML_INACTIVE);
-		if (!QString::fromUtf8(xml).contains("type='bridge'"))
+		if (adapter._nType != NIC_TYPE_BRIDGE)
 		{
-			virInterfaceFree(a[i]);
-			free(xml);
-			continue;
-		}
-		Transponster::Interface::Bridge::Direct u(xml, 0 < virInterfaceIsActive(a[i]));
-		if (PRL_FAILED(Transponster::Director::bridge(u)))
-		{
-			virInterfaceFree(a[i]);
-			continue;
-		}
-		CHwNetAdapter h = u.getMaster();
-		if (h.getMacAddress().isEmpty())
-		{
-			PrlNet::EthAdaptersList::iterator e = m.end();
-			PrlNet::EthAdaptersList::iterator p =
-				std::find_if(m.begin(), e,
-					boost::bind(&PrlNet::EthAdaptersList::value_type::_name, _1)
-						== h.getDeviceName());
-			if (e == p)
-			{
-				virInterfaceFree(a[i]);
+			QString adapterMac = PrlNet::ethAddressToString(adapter._macAddr);
+			QString brName = PrlNet::getBridgeName(adapter._name);
+
+			if (bridgeInfo.find(brName) == bridgeInfo.end())
 				continue;
-			}
-			h.setMacAddress(PrlNet::ethAddressToString(p->_macAddr));
+
+			if (bridgeSlavesMap.find(brName) == bridgeSlavesMap.end() && bridgeInfo[brName] == adapterMac)
+				bridgeSlavesMap[brName] = adapter;
 		}
-		Bridge b(a[i], h);
+	}
+
+	m_all = QList<Bridge>();
+
+	for (auto bridgeIterator = bridgeInfo.begin(); bridgeIterator != bridgeInfo.end(); ++bridgeIterator)
+	{
+		QString currentBridge = bridgeIterator.key();
+		auto currentAdapterIterator = bridgeSlavesMap.find(currentBridge);
+		CHwNetAdapter h;
+
+		if (currentAdapterIterator != bridgeSlavesMap.end())
+		{
+			h.setDeviceName(currentAdapterIterator->_name);
+			h.setVLANTag(currentAdapterIterator->_vlanTag);
+		}
+
+		h.setMacAddress(bridgeIterator.value());
+
+		Bridge b(currentBridge, h);
 		if (!b.getName().startsWith("virbr"))
 			m_all.value() << b;
 	}
-	free(a);
 	return *this;
 }
 
