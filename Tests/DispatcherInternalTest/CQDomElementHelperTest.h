@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 ///
-/// Copyright (c) 2020 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2022 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -22,38 +22,33 @@
 /// Schaffhausen, Switzerland.
 ///
 /// @file
-///		CTransponsterNwfilterTest.h
+///		CQDomElementHelperTest.h
 ///
 /// @author
-///		alexander.alekseev
+///		aleksandr.leskin
 ///
 /// @brief
-///		Tests fixture class for testing nwfilter reverse transponster logic
+///		Tests fixture class for comparing two QT classes QDomElement
 ///
 /////////////////////////////////////////////////////////////////////////////
-#ifndef CTransponsterNwfilterTest_H
-#define CTransponsterNwfilterTest_H
+#ifndef CQDomElementHelperTest_H
+#define CQDomElementHelperTest_H
 
-#include <prlxmlmodel/VmConfig/CVmGenericNetworkAdapter.h>
-#include <prlcommon/Std/SmartPtr.h>
+#include <QDomElement>
 
-class CTransponsterNwfilterTest : public QObject
+class CQDomElementHelperTest
 {
-	Q_OBJECT
-
-private slots:
-	void init();
-	void cleanup();
-
-private slots:
-	void TestFilterref();
-	void TestFilter();
-
+public:
+	CQDomElementHelperTest(QString xmlFile) : mInfo(xmlFile) {};
+	void testElement(const QDomElement &xDoc, const QDomElement &yDoc);
+	static QString namesNE(const QString &x, const QString &y);
+	static QString listOfAllAttr(const QDomElement &x);
 private:
-	QList<QString> m_FixtureNames;
-	QList< SmartPtr<CVmGenericNetworkAdapter> > m_pAdapters;
-	QList<QByteArray> m_Filters;
-	QList<QByteArray> m_Filterref;
+	void testAttr(const QDomElement &x, const QDomElement &y);
+	void testChild(const QDomElement &x, const QDomElement &y);
+	QDomElement findChild(const QDomElement &xElement, const QDomElement &yDoc);
+	bool isAttrSame(const QDomElement &x, const QDomElement &y);
+	QString mInfo;
 };
 
-#endif // CTransponsterNwfilterTest
+#endif // CQDomElementHelperTest

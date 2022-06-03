@@ -1,4 +1,4 @@
-QT = xml network core http testlib
+QT = xml network core testlib
 
 INCLUDEPATH += /usr/share /usr/include/prlsdk
 DEFINES += BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS BOOST_MPL_LIMIT_VECTOR_SIZE=40 BOOST_SPIRIT_THREADSAFE
@@ -22,7 +22,8 @@ HEADERS += \
 	CProblemReportUtilsTest.h \
 	CXmlModelHelperTest.h \
 	CFeaturesMatrixTest.h \
-	CTransponsterNwfilterTest.h
+	CTransponsterNwfilterTest.h \
+	CQDomElementHelperTest.h
 
 SOURCES += \
 	Main.cpp\
@@ -33,7 +34,8 @@ SOURCES += \
 	CProblemReportUtilsTest.cpp \
 	CXmlModelHelperTest.cpp \
 	CFeaturesMatrixTest.cpp \
-	CTransponsterNwfilterTest.cpp
+	CTransponsterNwfilterTest.cpp \
+	CQDomElementHelperTest.cpp
 
 
 win32: SOURCES	+= $$SRC_LEVEL/Dispatcher/Dispatcher/Stat/CDspSystemInfo_win.cpp

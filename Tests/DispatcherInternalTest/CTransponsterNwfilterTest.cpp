@@ -32,6 +32,7 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 #include "CTransponsterNwfilterTest.h"
+#include "CQDomElementHelperTest.h"
 
 #include <QtTest/QtTest>
 
@@ -39,41 +40,43 @@
 #include "Libraries/Transponster/Reverse.h"
 #include "Libraries/Transponster/Reverse_p.h"
 
-const QString CTransponsterNwfilterTest::S_FIXTURE_PATH = "./TransponsterNwfilterTestFixtures/%1.xml";
-const QString CTransponsterNwfilterTest::S_FILTER_PATH = "./TransponsterNwfilterTestFixtures/%1_filter.xml";
-const QString CTransponsterNwfilterTest::S_FILTERREF_PATH = "./TransponsterNwfilterTestFixtures/%1_filterref.xml";
-	
 void CTransponsterNwfilterTest::init()
 {
-	m_FixtureNames.clear();
-	m_FixtureNames.append("fw_disabled");
-	m_FixtureNames.append("fw_disabled_with_pktfilters");
-	m_FixtureNames.append("fw_tcp_ipv4_in_only");
-	m_FixtureNames.append("fw_tcp_ipv4_out_only");
-	m_FixtureNames.append("fw_tcp_ipv6");
-	m_FixtureNames.append("fw_tcp_ipv6_ports");
-	m_FixtureNames.append("fw_tcp_ipv6_whitelist");
-	m_FixtureNames.append("fw_tcp_ipv6_with_pktfilters");
-	m_FixtureNames.append("fw_psbm_125586");
 
-	foreach(const QString& fixture, m_FixtureNames)
+	const QString FIXTURE_FOLDER	=	"./TransponsterNwfilterTestFixtures/";
+	const QString FIXTURE_PATH		=	FIXTURE_FOLDER + "%1.xml";
+	const QString FILTER_PATH		=	FIXTURE_FOLDER + "%1_filter.xml";
+	const QString FILTERREF_PATH	=	FIXTURE_FOLDER + "%1_filterref.xml";
+	const QString FILTERREF_SUFFIX	=	"_filterref.xml";
+
+	QDir directory(FIXTURE_FOLDER);
+	QStringList images = directory.entryList(QStringList() << QString("*" + FILTERREF_SUFFIX), QDir::Files);
+	foreach(QString filename, images)
 	{
+		QString fixture(QString(filename).remove(FILTERREF_SUFFIX));
+		m_FixtureNames.append(fixture);
+
 		// Loading adapter fixtures
-		QFile adapter_file(S_FIXTURE_PATH.arg(fixture));
-		QVERIFY(adapter_file.open(QIODevice::ReadOnly));
+		QFile adapter_file(FIXTURE_PATH.arg(fixture));
+		QVERIFY2(adapter_file.open(QIODevice::ReadOnly), QSTR2UTF8("Can't open file " + adapter_file.fileName()));
 		m_pAdapters.append(SmartPtr<CVmGenericNetworkAdapter>(
 						new CVmGenericNetworkAdapter(&adapter_file)));
 
 		// Loading expected nwfilters
-		QFile filter_file(S_FILTER_PATH.arg(fixture));
-		QVERIFY(filter_file.open(QIODevice::ReadOnly));
+		QFile filter_file(FILTER_PATH.arg(fixture));
+		QVERIFY2(filter_file.open(QIODevice::ReadOnly), QSTR2UTF8("Can't open file " + filter_file.fileName()));
 		m_Filters.append(filter_file.readAll());
 
 		// Loading expected filterref
-		QFile filterref_file(S_FILTERREF_PATH.arg(fixture));
-		QVERIFY(filterref_file.open(QIODevice::ReadOnly));
+		QFile filterref_file(FILTERREF_PATH.arg(fixture));
+		QVERIFY2(filterref_file.open(QIODevice::ReadOnly), QSTR2UTF8("Can't open file " + filterref_file.fileName()));
 		m_Filterref.append(filterref_file.readAll());
 	}
+
+	QVERIFY2(m_pAdapters.size() > 0, "There is no any adapter for test");
+	QCOMPARE(m_pAdapters.size(), m_Filters.size());
+	QCOMPARE(m_pAdapters.size(), m_Filterref.size());
+	QCOMPARE(m_pAdapters.size(), m_FixtureNames.size());
 }
 
 void CTransponsterNwfilterTest::cleanup()
@@ -81,45 +84,44 @@ void CTransponsterNwfilterTest::cleanup()
 
 }
 
-void CTransponsterNwfilterTest::TestFilterref()
-{
-	for (int i = 0; i < m_FixtureNames.size(); ++i)
-		TestSingleFixtureFilterref(i);
-}
-
 void CTransponsterNwfilterTest::TestFilter()
 {
-	for (int i = 0; i < m_FixtureNames.size(); ++i)
-		TestSingleFixtureFilter(i);
-}
-
-void CTransponsterNwfilterTest::TestSingleFixtureFilter(uint id)
-{
-	Transponster::Filter::Reverse u(*m_pAdapters[id]);
-	QString r = u.getResult();
-	if (!QTest::qCompare(r.toUtf8(), m_Filters[id],
-		QSTR2UTF8(S_FIXTURE_PATH.arg(m_FixtureNames[id])),
-		QSTR2UTF8(S_FILTER_PATH.arg(m_FixtureNames[id])),
-		__FILE__, __LINE__))
+	for (int i = 0; i < m_pAdapters.size(); ++i)
 	{
-		WRITE_TRACE(DBG_INFO, "result = %s", QSTR2UTF8(r));
-		WRITE_TRACE(DBG_INFO, "expected = %s", m_Filters[id].constData());
+		Transponster::Filter::Reverse u(*m_pAdapters[i]);
+		QDomDocument result;
+		result.setContent(u.getResult());
+		QDomDocument verifyWith;
+		verifyWith.setContent(m_Filters[i]);
+		CQDomElementHelperTest tester("Filter test: " + m_FixtureNames[i]);
+		tester.testElement(result.documentElement(), verifyWith.documentElement());
 	}
 }
 
 using Libvirt::Domain::Xml::FilterrefNodeAttributes;
-
-void CTransponsterNwfilterTest::TestSingleFixtureFilterref(uint id)
+void CTransponsterNwfilterTest::TestFilterref()
 {
-	boost::optional<FilterrefNodeAttributes> filter =
-		Transponster::Device::Network::View(*m_pAdapters[id]).getFilterref();
-
-	QByteArray filter_xml;
-	if (filter)
+	for (int i = 0; i < m_pAdapters.size(); ++i)
 	{
-		QDomDocument result;
-		filter->save(result);
-		filter_xml = result.toByteArray();
+		boost::optional<FilterrefNodeAttributes> filter =
+			Transponster::Device::Network::View(*m_pAdapters[i]).getFilterref();
+
+		QByteArray filter_xml;
+		if (filter)
+		{
+			QDomDocument resultTransposter;
+			filter->save(resultTransposter);
+
+			QDomDocument verifyWith;
+			verifyWith.setContent(m_Filterref[i]);
+
+			CQDomElementHelperTest tester("Filterref test: " + m_FixtureNames[i]);
+			tester.testElement(resultTransposter.documentElement(), verifyWith.documentElement());
+		}
+		else
+		{
+			QCOMPARE(m_Filterref[i].size(), 0);
+		}
+
 	}
-	QCOMPARE(filter_xml, m_Filterref[id]);
 }
