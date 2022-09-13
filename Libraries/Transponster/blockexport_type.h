@@ -89,14 +89,14 @@ private:
 } // namespace Blockexport
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice8894
+// struct VChoice8124
 
 namespace Blockexport
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Attribute<QString, Name::Strict<1180> >, Attribute<Blockexport::Xml::EVirYesNo, Name::Strict<1182> > > > VChoice8894Impl;
-typedef VChoice8894Impl::value_type VChoice8894;
+typedef Choice<mpl::vector<Attribute<QString, Name::Strict<1180> >, Attribute<Blockexport::Xml::EVirYesNo, Name::Strict<1182> > > > VChoice8124Impl;
+typedef VChoice8124Impl::value_type VChoice8124;
 
 } // namespace Xml
 } // namespace Blockexport
@@ -134,13 +134,13 @@ struct Disk
 	{
 		m_snapshot = value_;
 	}
-	const boost::optional<VChoice8894 >& getChoice8894() const
+	const boost::optional<VChoice8124 >& getChoice8124() const
 	{
-		return m_choice8894;
+		return m_choice8124;
 	}
-	void setChoice8894(const boost::optional<VChoice8894 >& value_)
+	void setChoice8124(const boost::optional<VChoice8124 >& value_)
 	{
-		m_choice8894 = value_;
+		m_choice8124 = value_;
 	}
 	const boost::optional<EVirYesNo >& getReadonly() const
 	{
@@ -158,7 +158,7 @@ private:
 	VName m_name;
 	boost::optional<QString > m_exportname;
 	boost::optional<QString > m_snapshot;
-	boost::optional<VChoice8894 > m_choice8894;
+	boost::optional<VChoice8124 > m_choice8124;
 	boost::optional<EVirYesNo > m_readonly;
 };
 
@@ -220,7 +220,7 @@ struct Traits<Blockexport::Xml::Address>
 template<>
 struct Traits<Blockexport::Xml::Disk>
 {
-	typedef Ordered<mpl::vector<Attribute<Blockexport::Xml::VName, Name::Strict<107> >, Optional<Attribute<QString, Name::Strict<1179> > >, Optional<Attribute<QString, Name::Strict<462> > >, Optional<Blockexport::Xml::VChoice8894Impl >, Optional<Attribute<Blockexport::Xml::EVirYesNo, Name::Strict<274> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Blockexport::Xml::VName, Name::Strict<107> >, Optional<Attribute<QString, Name::Strict<1179> > >, Optional<Attribute<QString, Name::Strict<462> > >, Optional<Blockexport::Xml::VChoice8124Impl >, Optional<Attribute<Blockexport::Xml::EVirYesNo, Name::Strict<274> > > > > marshal_type;
 
 	static int parse(Blockexport::Xml::Disk& , QStack<QDomElement>& );
 	static int generate(const Blockexport::Xml::Disk& , QDomElement& );

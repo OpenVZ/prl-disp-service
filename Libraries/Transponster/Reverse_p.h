@@ -510,7 +510,7 @@ void Ordinary<T>::setDriver()
 		mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type a;
 		a.setValue(Flavor<T>::getDriverFormat(getModel().isRaw()));
 		Libvirt::Domain::Xml::DriverFormat b;
-		b.setName("qemu");
+		b.setName(QString("qemu"));
 		b.setType(Libvirt::Domain::Xml::VType(a));
 		d.setDiscard(Libvirt::Domain::Xml::EDiscardUnmap);
 		d.setDriverFormat(b);
@@ -753,7 +753,7 @@ struct Factory
 class Moldy: Factory
 {
 public: 
-	result_type operator()(Libvirt::Domain::Xml::EType7 bus_, quint16 index_);
+	result_type operator()(Libvirt::Domain::Xml::EType8 bus_, quint16 index_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -993,7 +993,7 @@ private:
 	}
 
 	void craftController(Libvirt::Domain::Xml::EModel1 model_);
-	void add(Libvirt::Domain::Xml::EType11 type_);
+	void add(Libvirt::Domain::Xml::EType12 type_);
 
 	const CVmUsbController* m_settings;
 	deviceList_type m_deviceList;

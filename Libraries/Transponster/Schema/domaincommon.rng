@@ -48,9 +48,9 @@
         <optional>
           <ref name="guestcpu"/>
         </optional>
-        <optional>
+        <zeroOrMore>
           <ref name="sysinfo"/>
-        </optional>
+        </zeroOrMore>
         <ref name="os"/>
         <ref name="clock"/>
         <ref name="resources"/>
@@ -58,6 +58,9 @@
         <ref name="events"/>
         <optional>
           <ref name="vz-dns"/>
+        </optional>
+        <optional>
+          <ref name="vz-networkRates"/>
         </optional>
         <optional>
           <ref name="pm"/>
@@ -279,7 +282,9 @@
                 </choice>
               </attribute>
             </optional>
-            <ref name="absFilePath"/>
+            <optional>
+              <ref name="absFilePath"/>
+            </optional>
           </element>
         </optional>
         <optional>
@@ -570,12 +575,16 @@
         <value>sev</value>
       </attribute>
       <interleave>
+      <optional>
         <element name="cbitpos">
           <data type='unsignedInt'/>
         </element>
+      </optional>
+      <optional>
         <element name="reducedPhysBits">
           <data type='unsignedInt'/>
         </element>
+      </optional>
         <element name="policy">
           <ref name='hexuint'/>
         </element>
@@ -707,14 +716,16 @@
     -->
   <define name="resources">
     <interleave>
-      <element name="memory">
-        <ref name='scaledInteger'/>
-        <optional>
-          <attribute name="dumpCore">
-            <ref name="virOnOff"/>
-          </attribute>
-        </optional>
-      </element>
+      <optional>
+        <element name="memory">
+          <ref name="scaledInteger"/>
+          <optional>
+            <attribute name="dumpCore">
+              <ref name="virOnOff"/>
+            </attribute>
+          </optional>
+        </element>
+      </optional>
       <optional>
         <element name="maxMemory">
           <ref name="scaledInteger"/>
@@ -760,6 +771,42 @@
             </optional>
             <optional>
               <element name="locked">
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="source">
+                <attribute name="type">
+                  <choice>
+                    <value>file</value>
+                    <value>anonymous</value>
+                    <value>memfd</value>
+                  </choice>
+                </attribute>
+              </element>
+            </optional>
+            <optional>
+              <element name="access">
+                <attribute name="mode">
+                  <choice>
+                    <value>shared</value>
+                    <value>private</value>
+                  </choice>
+                </attribute>
+              </element>
+            </optional>
+            <optional>
+              <element name="allocation">
+                <attribute name="mode">
+                  <choice>
+                    <value>immediate</value>
+                    <value>ondemand</value>
+                  </choice>
+                </attribute>
+              </element>
+            </optional>
+            <optional>
+              <element name="discard">
                 <empty/>
               </element>
             </optional>
@@ -1070,9 +1117,11 @@
 
   <define name="respartition">
     <element name="resource">
-      <element name="partition">
-        <ref name="absFilePath"/>
-      </element>
+      <optional>
+        <element name="partition">
+          <ref name="absFilePath"/>
+        </element>
+      </optional>
     </element>
   </define>
 
@@ -1251,12 +1300,14 @@
     -->
   <define name="bootloader">
     <interleave>
-      <element name="bootloader">
-        <choice>
-          <ref name="absFilePath"/>
-          <empty/>
-        </choice>
-      </element>
+      <optional>
+        <element name="bootloader">
+          <choice>
+            <text/>
+            <empty/>
+          </choice>
+        </element>
+      </optional>
       <optional>
         <element name="bootloader_args">
           <text/>
@@ -1439,13 +1490,15 @@
     <element name="disk">
       <choice>
         <group>
-          <attribute name="device">
-            <choice>
-              <value>floppy</value>
-              <value>disk</value>
-              <value>cdrom</value>
-            </choice>
-          </attribute>
+          <optional>
+            <attribute name="device">
+              <choice>
+                <value>floppy</value>
+                <value>disk</value>
+                <value>cdrom</value>
+              </choice>
+            </attribute>
+          </optional>
         </group>
         <group>
           <attribute name="device">
@@ -1461,6 +1514,7 @@
               <choice>
                 <value>filtered</value>
                 <value>unfiltered</value>
+                <value>virtio-non-transitional</value>
               </choice>
             </attribute>
           </optional>
@@ -1559,53 +1613,55 @@
         <value>file</value>
       </attribute>
     </optional>
-    <interleave>
       <optional>
         <element name="source">
+        <interleave>
           <optional>
             <attribute name="file">
-              <ref name="absFilePath"/>
+                <ref name="absFilePath"/>
             </attribute>
           </optional>
           <optional>
             <ref name="storageStartupPolicy"/>
           </optional>
-          <optional>
-            <ref name='devSeclabel'/>
-          </optional>
-        </element>
-      </optional>
-    </interleave>
+          <zeroOrMore>
+            <ref name="devSeclabel"/>
+          </zeroOrMore>
+        </interleave>
+      </element>
+    </optional>
   </define>
 
   <define name="diskSourceBlock">
     <attribute name="type">
       <value>block</value>
     </attribute>
-    <interleave>
-      <optional>
-        <element name="source">
-          <attribute name="dev">
-            <ref name="absFilePath"/>
-          </attribute>
+    <optional>
+      <element name="source">
+        <interleave>
+          <optional>
+            <attribute name="dev">
+              <ref name="absFilePath"/>
+            </attribute>
+          </optional>
           <optional>
             <ref name="storageStartupPolicy"/>
           </optional>
-          <optional>
+          <zeroOrMore>
             <ref name='devSeclabel'/>
-          </optional>
-        </element>
-      </optional>
-    </interleave>
+          </zeroOrMore>
+        </interleave>
+      </element>
+    </optional>
   </define>
 
   <define name="diskSourceDir">
     <attribute name="type">
       <value>dir</value>
     </attribute>
-    <interleave>
-      <optional>
-        <element name="source">
+    <optional>
+      <element name="source">
+        <interleave>
           <attribute name="dir">
             <ref name="absFilePath"/>
           </attribute>
@@ -1613,9 +1669,9 @@
             <ref name="storageStartupPolicy"/>
           </optional>
           <empty/>
-        </element>
-      </optional>
-    </interleave>
+        </interleave>
+      </element>
+    </optional>
   </define>
 
   <define name="diskSourceNetwork">
@@ -1685,9 +1741,9 @@
     <attribute name="type">
       <value>volume</value>
     </attribute>
-    <interleave>
-      <optional>
-        <element name="source">
+    <optional>
+      <element name="source">
+        <interleave>
           <attribute name="pool">
             <ref name="genericName"/>
           </attribute>
@@ -1706,11 +1762,13 @@
             <ref name="storageStartupPolicy"/>
           </optional>
           <optional>
+          <zeroOrMore>
             <ref name='devSeclabel'/>
+          </zeroOrMore>
           </optional>
-        </element>
-      </optional>
-    </interleave>
+        </interleave>
+      </element>
+    </optional>
   </define>
 
   <define name="diskTarget">
@@ -1828,9 +1886,11 @@
     </element>
   </define>
   <define name="driverFormat">
-    <attribute name="name">
-      <ref name="genericName"/>
-    </attribute>
+    <optional>
+      <attribute name="name">
+        <ref name="genericName"/>
+      </attribute>
+    </optional>
     <optional>
       <attribute name='type'>
         <choice>
@@ -2341,8 +2401,17 @@
           <element name="space_soft_limit">
             <ref name='scaledInteger'/>
           </element>
+          </optional>
+        </interleave>
+        <optional>
+          <attribute name="model">
+            <choice>
+              <value>virtio</value>
+              <value>virtio-transitional</value>
+              <value>virtio-non-transitional</value>
+            </choice>
+          </attribute>
         </optional>
-      </interleave>
     </element>
   </define>
   <define name="fsDriver">
@@ -2371,6 +2440,9 @@
           <value>immediate</value>
         </attribute>
       </optional>
+      <attribute name="type">
+        <value>virtiofs</value>
+      </attribute>
       <empty/>
     </element>
   </define>
@@ -3225,6 +3297,20 @@
             </attribute>
           </optional>
         </group>
+        <group>
+          <attribute name="type">
+            <value>egl-headless</value>
+          </attribute>
+          <optional>
+            <element name="gl">
+              <optional>
+                <attribute name="rendernode">
+                  <ref name="absFilePath"/>
+                </attribute>
+              </optional>
+            </element>
+          </optional>
+        </group>
       </choice>
     </element>
   </define>
@@ -3516,18 +3602,16 @@
         <ref name="absFilePath"/>
       </attribute>
     </optional>
-    <interleave>
-      <ref name="qemucdevSrcDef"/>
-      <optional>
-        <ref name="qemucdevTgtDef"/>
-      </optional>
-      <optional>
-        <ref name="alias"/>
-      </optional>
-      <optional>
-        <ref name="address"/>
-      </optional>
-    </interleave>
+    <ref name="qemucdevSrcDef"/>
+    <optional>
+      <ref name="qemucdevTgtDef"/>
+    </optional>
+    <optional>
+      <ref name="alias"/>
+    </optional>
+    <optional>
+      <ref name="address"/>
+    </optional>
   </define>
 
   <define name="qemucdevConsoleTgtType">
@@ -3817,6 +3901,8 @@
       <attribute name="model">
         <choice>
           <value>virtio</value>
+          <value>virtio-transitional</value>
+          <value>virtio-non-transitional</value>
           <value>xen</value>
           <value>none</value>
         </choice>
@@ -3971,18 +4057,14 @@
           </attribute>
         </group>
       </choice>
-      <choice>
-        <group>
-          <optional>
-            <attribute name="version">
-              <choice>
-                <value>1.2</value>
-                <value>2.0</value>
-              </choice>
-           </attribute>
-          </optional>
-        </group>
-      </choice>
+      <optional>
+        <attribute name="version">
+          <choice>
+            <value>1.2</value>
+            <value>2.0</value>
+          </choice>
+       </attribute>
+      </optional>
     </element>
   </define>
 
@@ -4081,6 +4163,15 @@
         </attribute>
       </optional>
       <optional>
+        <optional>
+          <attribute name="model">
+            <choice>
+              <value>virtio</value>
+              <value>virtio-transitional</value>
+              <value>virtio-non-transitional</value>
+            </choice>
+          </attribute>
+        </optional>
         <ref name="alias"/>
       </optional>
       <optional>
@@ -4091,38 +4182,38 @@
   <define name="hub">
     <element name="hub">
       <attribute name="type">
-        <choice>
-          <value>usb</value>
-        </choice>
+        <value>usb</value>
       </attribute>
-      <optional>
-        <ref name="alias"/>
-      </optional>
-      <optional>
-        <ref name="address"/>
-      </optional>
+      <interleave>
+        <optional>
+          <ref name="alias"/>
+        </optional>
+        <optional>
+          <ref name="address"/>
+        </optional>
+      </interleave>
     </element>
   </define>
   <define name="redirdev">
     <element name="redirdev">
       <attribute name="bus">
-        <choice>
-          <value>usb</value>
-        </choice>
+        <value>usb</value>
       </attribute>
       <attribute name="type">
         <ref name="qemucdevSrcTypeChoice"/>
       </attribute>
-      <ref name="qemucdevSrcDef"/>
-      <optional>
-        <ref name="alias"/>
-      </optional>
-      <optional>
-        <ref name="address"/>
-      </optional>
-      <optional>
-        <ref name="deviceBoot"/>
-      </optional>
+      <interleave>
+        <ref name="qemucdevSrcDef"/>
+        <optional>
+          <ref name="alias"/>
+        </optional>
+        <optional>
+          <ref name="address"/>
+        </optional>
+        <optional>
+          <ref name="deviceBoot"/>
+        </optional>
+      </interleave>
     </element>
   </define>
   <define name="redirfilter">
@@ -4393,9 +4484,11 @@
     <attribute name="bus">
       <ref name="usbAddr"/>
     </attribute>
-    <attribute name="port">
-      <ref name="usbPort"/>
-    </attribute>
+    <optional>
+      <attribute name="port">
+        <ref name="usbPort"/>
+      </attribute>
+    </optional>
   </define>
   <define name="spaprvioaddress">
     <optional>
@@ -4947,6 +5040,8 @@
 
   <define name="memorydev-source">
     <element name="source">
+      <choice>
+        <group>
       <interleave>
         <optional>
           <element name="pagesize">
@@ -4959,6 +5054,8 @@
           </element>
         </optional>
       </interleave>
+        </group>
+      </choice>
     </element>
   </define>
 
@@ -4968,9 +5065,11 @@
         <element name="size">
           <ref name="scaledInteger"/>
         </element>
-        <element name="node">
-          <ref name="unsignedInt"/>
-        </element>
+        <optional>
+          <element name="node">
+            <ref name="unsignedInt"/>
+          </element>
+        </optional>
       </interleave>
     </element>
   </define>
@@ -4980,6 +5079,8 @@
       <attribute name="model">
         <choice>
           <value>virtio</value>
+          <value>virtio-transitional</value>
+          <value>virtio-non-transitional</value>
         </choice>
       </attribute>
       <interleave>
@@ -5015,6 +5116,12 @@
           </attribute>
           <ref name="qemucdevSrcType"/>
           <ref name="qemucdevSrcDef"/>
+        </group>
+        <group>
+          <attribute name="model">
+            <value>builtin</value>
+          </attribute>
+          <empty/>
         </group>
       </choice>
     </element>
@@ -5845,6 +5952,27 @@
       <zeroOrMore>
         <element name="search">
           <ref name="dnsName"/>
+        </element>
+      </zeroOrMore>
+    </element>
+  </define>
+
+  <define name="vz-networkRates">
+    <element name="vz-networkRates">
+      <optional>
+        <element name="rateBound">
+          <empty/>
+        </element>
+      </optional>
+      <zeroOrMore>
+        <element name="class">
+          <attribute name="id">
+            <ref name="unsignedInt"/>
+          </attribute>
+          <attribute name="rate">
+            <ref name="unsignedLong"/>
+          </attribute>
+          <empty/>
         </element>
       </zeroOrMore>
     </element>

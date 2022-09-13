@@ -250,8 +250,12 @@ struct Clustered: boost::static_visitor<bool>
 			return false;
 
 		getDevice().setEmulatedType(R);
-		getDevice().setSystemName(v->getDev());
-		getDevice().setUserFriendlyName(v->getDev());
+		if (v->getDev().is_initialized())
+		{
+			getDevice().setSystemName(v->getDev().get());
+			getDevice().setUserFriendlyName(v->getDev().get());
+		}
+
 
 		return true;
 	}

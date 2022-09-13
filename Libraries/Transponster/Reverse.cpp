@@ -712,7 +712,7 @@ void Hdd::setDriver()
 	mpl::at_c<Libvirt::Domain::Xml::VType::types, 1>::type a;
 	a.setValue(Libvirt::Domain::Xml::VStorageFormat(f));
 	Libvirt::Domain::Xml::DriverFormat b;
-	b.setName("qemu");
+	b.setName(QString("qemu"));
 	b.setType(Libvirt::Domain::Xml::VType(a));
 	d.setDriverFormat(b);
 
@@ -1265,7 +1265,7 @@ Factory::result_type Factory::wrap(const Libvirt::Domain::Xml::Controller& objec
 ///////////////////////////////////////////////////////////////////////////////
 // class Moldy
 
-Moldy::result_type Moldy::operator()(Libvirt::Domain::Xml::EType7 bus_, quint16 index_)
+Moldy::result_type Moldy::operator()(Libvirt::Domain::Xml::EType8 bus_, quint16 index_)
 {
 	mpl::at_c<Libvirt::Domain::Xml::VChoice5117::types, 0>::type b;
 	b.setValue(bus_);
@@ -1345,7 +1345,7 @@ Libvirt::Domain::Xml::VAddress Attachment::craftIde(quint32 index_)
 	quint16 u = index_ % IDE_UNITS;
 
 	if (c > 0 && u == 0 && b == 0)
-		m_controllers << m_moldy(Libvirt::Domain::Xml::EType7Ide, c);
+		m_controllers << m_moldy(Libvirt::Domain::Xml::EType8Ide, c);
 
 	return Address().setUnit(u).setBus(b)(c);
 }
@@ -1356,7 +1356,7 @@ Libvirt::Domain::Xml::VAddress Attachment::craftSata(quint32 index_)
 	quint16 u = index_ % SATA_UNITS;
 
 	if (c > 0 && u == 0)
-		m_controllers << m_moldy(Libvirt::Domain::Xml::EType7Sata, c);
+		m_controllers << m_moldy(Libvirt::Domain::Xml::EType8Sata, c);
 
 	return Address().setUnit(u)(c);
 }
@@ -1545,7 +1545,7 @@ void List::craftController(Libvirt::Domain::Xml::EModel1 model_)
 	add<1>(y);
 }
 
-void List::add(Libvirt::Domain::Xml::EType11 type_)
+void List::add(Libvirt::Domain::Xml::EType12 type_)
 {
 	Libvirt::Domain::Xml::Input x;
 	x.setType(type_);
@@ -1555,7 +1555,7 @@ void List::add(Libvirt::Domain::Xml::EType11 type_)
 
 void List::addKeyboard()
 {
-	add(Libvirt::Domain::Xml::EType11Keyboard);
+	add(Libvirt::Domain::Xml::EType12Keyboard);
 }
 
 void List::addMouse()
@@ -1563,9 +1563,9 @@ void List::addMouse()
 	// if a USB controller is present, then add a USB tablet device
 	// otherwise - add a ps/2 mouse
 	if (m_controller)
-		add(Libvirt::Domain::Xml::EType11Tablet);
+		add(Libvirt::Domain::Xml::EType12Tablet);
 	else
-		add(Libvirt::Domain::Xml::EType11Mouse);
+		add(Libvirt::Domain::Xml::EType12Mouse);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1597,11 +1597,11 @@ void List::add(quint32 os_)
 
 	if (IS_WINDOWS(os_) && os_ >= PVS_GUEST_VER_WIN_2012)
 	{
-		p.setModel(Libvirt::Domain::Xml::EModel12Hyperv);
+		p.setModel(Libvirt::Domain::Xml::EModel14Hyperv);
 	}
 	else
 	{
-		p.setModel(Libvirt::Domain::Xml::EModel12Isa);
+		p.setModel(Libvirt::Domain::Xml::EModel14Isa);
 		Libvirt::Domain::Xml::Isaaddress a;
 
 		// The only one right value.
@@ -1663,7 +1663,7 @@ PRL_RESULT Cpu::setNode()
 		return PRL_ERR_UNINITIALIZED;
 
 	Libvirt::Domain::Xml::Memory1 d;
-	d.setMode(Libvirt::Domain::Xml::EMode4Strict);
+	d.setMode(Libvirt::Domain::Xml::EMode6Strict);
 	mpl::at_c<Libvirt::Domain::Xml::VMemory::types, 0>::type v;
 	v.setValue(m);
 	d.setMemory(Libvirt::Domain::Xml::VMemory(v));
@@ -1818,7 +1818,7 @@ void CpuFeaturesMask::setDisabledFeatures(const Libvirt::Domain::Xml::Cpu &cpu)
 QString Device<Dimm>::getPlugXml(const Dimm& model_)
 {
 	Libvirt::Domain::Xml::Memory2 d;
-	d.setModel(Libvirt::Domain::Xml::EModel9Dimm);
+	d.setModel(Libvirt::Domain::Xml::EModel11Dimm);
 
 	Libvirt::Domain::Xml::Target5 t;
 	Libvirt::Domain::Xml::ScaledInteger v;
@@ -1937,7 +1937,7 @@ Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
 			a.setHost(u.host());
 			a.setService(QString::number(u.port()));
 			Libvirt::Domain::Xml::Protocol r;
-			r.setType(Libvirt::Domain::Xml::EType14Raw);
+			r.setType(Libvirt::Domain::Xml::EType15Raw);
 			b.setProtocol(r);
 		}
 		l << a;
@@ -1949,7 +1949,7 @@ Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
 			a.setHost(u.host());
 			a.setService(QString::number(u.port()));
 			Libvirt::Domain::Xml::Protocol r;
-			r.setType(Libvirt::Domain::Xml::EType14Raw);
+			r.setType(Libvirt::Domain::Xml::EType15Raw);
 			b.setProtocol(r);
 		}
 		// need sources in both modes
@@ -3283,7 +3283,7 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> External::operator()(const CVmHard
 	Libvirt::Snapshot::Xml::Disk x;
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	Libvirt::Snapshot::Xml::Source s;
-	Libvirt::Snapshot::Xml::Variant8131 o;
+	Libvirt::Snapshot::Xml::Variant8729 o;
 	mpl::at_c<Libvirt::Snapshot::Xml::VChoice8731::types, 0>::type p;
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 2>::type q;
 
@@ -3428,9 +3428,9 @@ PRL_RESULT Request::operator()(const object_type& object_)
 		n.setValue(d.get<1>());
 		y.setName(n);
 
-		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice8894::types, 1>::type c;
+		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice8124::types, 1>::type c;
 		c.setValue(Libvirt::Blockexport::Xml::EVirYesNoYes);
-		y.setChoice8894(Libvirt::Blockexport::Xml::VChoice8894(c));
+		y.setChoice8124(Libvirt::Blockexport::Xml::VChoice8124(c));
 
 		x << y;
 	}
@@ -3539,12 +3539,12 @@ Reverse::preparePort(unsigned int value)
 			Libvirt::Filter::Xml::VUint16range(port_holder));
 }
 
-Libvirt::Filter::Xml::VUint8range
+Libvirt::Filter::Xml::VUint8
 Reverse::prepareIcmpType(unsigned int value)
 {
-	mpl::at_c<Libvirt::Filter::Xml::VUint8range::types, 1>::type type_holder;
+	mpl::at_c<Libvirt::Filter::Xml::VUint8::types, 1>::type type_holder;
 	type_holder.setValue((quint32)value);
-	return Libvirt::Filter::Xml::VUint8range(type_holder);
+	return Libvirt::Filter::Xml::VUint8(type_holder);
 }
 
 static QString S_TCP = "tcp";

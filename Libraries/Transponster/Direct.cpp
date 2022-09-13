@@ -614,15 +614,19 @@ PRL_RESULT Unit::operator()(const mpl::at_c<Libvirt::Domain::Xml::VInterface::ty
 
 PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type& disk_) const
 {
-	switch (disk_.getValue())
+	if (disk_.getValue().is_initialized())
 	{
-	case Libvirt::Domain::Xml::EDeviceDisk:
-		return Disk(m_hardware, *m_clip)(m_disk);
-	case Libvirt::Domain::Xml::EDeviceCdrom:
-		return Cdrom(m_hardware, *m_clip)(m_disk);
-	case Libvirt::Domain::Xml::EDeviceFloppy:
-		return Floppy(m_hardware, *m_clip)(m_disk);
+		switch (disk_.getValue().get())
+		{
+		case Libvirt::Domain::Xml::EDeviceDisk:
+			return Disk(m_hardware, *m_clip)(m_disk);
+		case Libvirt::Domain::Xml::EDeviceCdrom:
+			return Cdrom(m_hardware, *m_clip)(m_disk);
+		case Libvirt::Domain::Xml::EDeviceFloppy:
+			return Floppy(m_hardware, *m_clip)(m_disk);
+		}
 	}
+
 	return PRL_ERR_UNIMPLEMENTED;
 }
 
@@ -1019,7 +1023,10 @@ void DiskForm::setDiskSource(const QList<T*> list_, uint index_) const
 
 PRL_RESULT DiskForm::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDisk::types, 0>::type& disk_) const
 {
-	const Libvirt::Domain::Xml::EDevice e = disk_.getValue();
+	if (!disk_.getValue().is_initialized())
+		return PRL_ERR_UNIMPLEMENTED;
+
+	const Libvirt::Domain::Xml::EDevice e = disk_.getValue().get();
 	QString dev = m_disk.getTarget().getDev();
 	if (dev.isEmpty())
 		return PRL_ERR_FAILURE;
@@ -1324,7 +1331,7 @@ PRL_RESULT Cpu::setNode()
 	if (!m && !m->getMode())
 		return PRL_ERR_SUCCESS;
 
-	if (m->getMode().get() == Libvirt::Domain::Xml::EMode4Strict)
+	if (m->getMode().get() == Libvirt::Domain::Xml::EMode6Strict)
 	{
 		m_result->setNodeMask(boost::apply_visitor(
 			Visitor::Numatune::Memory(), m->getMemory()));
@@ -1574,7 +1581,9 @@ PRL_RESULT Vm::setResources(const VtInfo& vt_)
 		return PRL_ERR_UNINITIALIZED;
 
 	Resources r(*m_result);
-	r.setMemory(m_input->getMemory());
+	if (m_input->getMemory().is_initialized())
+		r.setMemory(m_input->getMemory().get());
+
 	if (m_input->getCurrentMemory())
 		r.setCurrentMemory(m_input->getCurrentMemory().get());
 

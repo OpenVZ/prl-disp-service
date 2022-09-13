@@ -614,13 +614,13 @@ private:
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant8131
+// struct Variant8729
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct Variant8131
+struct Variant8729
 {
 	const boost::optional<Source >& getSource() const
 	{
@@ -703,13 +703,13 @@ private:
 } // namespace Snapshot
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant8729
+// struct Variant8730
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct Variant8729
+struct Variant8730
 {
 	const boost::optional<Source1 >& getSource() const
 	{
@@ -847,7 +847,7 @@ namespace Snapshot
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Variant8131, Variant8729, Ordered<mpl::vector<Attribute<mpl::int_<445>, Name::Strict<105> >, Element<Snapshot::Xml::Source2, Name::Strict<501> > > > > > VChoice8731Impl;
+typedef Choice<mpl::vector<Variant8729, Variant8730, Ordered<mpl::vector<Attribute<mpl::int_<445>, Name::Strict<105> >, Element<Snapshot::Xml::Source2, Name::Strict<501> > > > > > VChoice8731Impl;
 typedef VChoice8731Impl::value_type VChoice8731;
 
 } // namespace Xml
@@ -1236,15 +1236,15 @@ struct Traits<Snapshot::Xml::Driver>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant8131 traits
+// struct Variant8729 traits
 
 template<>
-struct Traits<Snapshot::Xml::Variant8131>
+struct Traits<Snapshot::Xml::Variant8729>
 {
 	typedef Ordered<mpl::vector<Optional<Attribute<mpl::int_<500>, Name::Strict<105> > >, Unordered<mpl::vector<Optional<Element<Snapshot::Xml::Source, Name::Strict<501> > >, Optional<Element<Snapshot::Xml::Driver, Name::Strict<546> > > > > > > marshal_type;
 
-	static int parse(Snapshot::Xml::Variant8131& , QStack<QDomElement>& );
-	static int generate(const Snapshot::Xml::Variant8131& , QDomElement& );
+	static int parse(Snapshot::Xml::Variant8729& , QStack<QDomElement>& );
+	static int generate(const Snapshot::Xml::Variant8729& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1260,15 +1260,15 @@ struct Traits<Snapshot::Xml::Source1>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant8729 traits
+// struct Variant8730 traits
 
 template<>
-struct Traits<Snapshot::Xml::Variant8729>
+struct Traits<Snapshot::Xml::Variant8730>
 {
 	typedef Ordered<mpl::vector<Attribute<mpl::int_<502>, Name::Strict<105> >, Unordered<mpl::vector<Optional<Element<Snapshot::Xml::Source1, Name::Strict<501> > >, Optional<Element<Snapshot::Xml::Driver, Name::Strict<546> > > > > > > marshal_type;
 
-	static int parse(Snapshot::Xml::Variant8729& , QStack<QDomElement>& );
-	static int generate(const Snapshot::Xml::Variant8729& , QDomElement& );
+	static int parse(Snapshot::Xml::Variant8730& , QStack<QDomElement>& );
+	static int generate(const Snapshot::Xml::Variant8730& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////

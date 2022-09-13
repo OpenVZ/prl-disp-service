@@ -2149,7 +2149,7 @@ bool Traits<Domain::Xml::VType>::parse(const QString& src_, Domain::Xml::VType& 
 {
 	int x;
 	mpl::at_c<Domain::Xml::VType::types, 0>::type a0;
-	x = Marshal<Domain::Xml::EType5>::setString(src_, a0);
+	x = Marshal<Domain::Xml::EType6>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
@@ -2171,7 +2171,7 @@ QString Traits<Domain::Xml::VType>::generate(const Domain::Xml::VType& src_)
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Domain::Xml::EType5>::getString(boost::get<mpl::at_c<Domain::Xml::VType::types, 0>::type>(src_));
+		return Marshal<Domain::Xml::EType6>::getString(boost::get<mpl::at_c<Domain::Xml::VType::types, 0>::type>(src_));
 	case 1:
 		return Marshal<Domain::Xml::VStorageFormat>::getString(boost::get<mpl::at_c<Domain::Xml::VType::types, 1>::type>(src_));
 	}

@@ -522,7 +522,7 @@ private:
 	static boost::optional <Libvirt::Filter::Xml::VUint16range>
 	preparePort(unsigned int value);
 
-	static Libvirt::Filter::Xml::VUint8range
+	static Libvirt::Filter::Xml::VUint8
 	prepareIcmpType(unsigned int value);
 
 	static Libvirt::Filter::Xml::VChoice8178

@@ -829,6 +829,45 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Tpm
+
+namespace Capability
+{
+namespace Xml
+{
+struct Tpm
+{
+	Tpm();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Devices
 
 namespace Capability
@@ -885,6 +924,14 @@ struct Devices
 	{
 		m_filesystem = value_;
 	}
+	const boost::optional<Tpm >& getTpm() const
+	{
+		return m_tpm;
+	}
+	void setTpm(const boost::optional<Tpm >& value_)
+	{
+		m_tpm = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
@@ -896,6 +943,7 @@ private:
 	boost::optional<Hostdev > m_hostdev;
 	boost::optional<Rng > m_rng;
 	boost::optional<Filesystem > m_filesystem;
+	boost::optional<Tpm > m_tpm;
 };
 
 } // namespace Xml
@@ -1446,12 +1494,24 @@ struct Traits<Capability::Xml::Filesystem>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Tpm traits
+
+template<>
+struct Traits<Capability::Xml::Tpm>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1882> > > > > marshal_type;
+
+	static int parse(Capability::Xml::Tpm& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Tpm& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Devices traits
 
 template<>
 struct Traits<Capability::Xml::Devices>
 {
-	typedef Ordered<mpl::vector<Optional<Element<Capability::Xml::Disk, Name::Strict<472> > >, Optional<Element<Capability::Xml::Graphics, Name::Strict<712> > >, Optional<Element<Capability::Xml::Video, Name::Strict<779> > >, Optional<Element<Capability::Xml::Hostdev, Name::Strict<676> > >, Optional<Element<Capability::Xml::Rng, Name::Strict<981> > >, Optional<Element<Capability::Xml::Filesystem, Name::Strict<630> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Element<Capability::Xml::Disk, Name::Strict<472> > >, Optional<Element<Capability::Xml::Graphics, Name::Strict<712> > >, Optional<Element<Capability::Xml::Video, Name::Strict<779> > >, Optional<Element<Capability::Xml::Hostdev, Name::Strict<676> > >, Optional<Element<Capability::Xml::Rng, Name::Strict<981> > >, Optional<Element<Capability::Xml::Filesystem, Name::Strict<630> > >, Optional<Element<Capability::Xml::Tpm, Name::Strict<902> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Devices& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Devices& , QDomElement& );

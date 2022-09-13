@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <grammar ns="" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <include href='basictypes.rng'/>
+  <include href="nwfilter_params.rng"/>
   <start>
     <ref name="filter"/>
   </start>
@@ -587,12 +588,12 @@
     <interleave>
       <optional>
         <attribute name="type">
-          <ref name="uint8range"/>
+          <ref name="uint8"/>
         </attribute>
       </optional>
       <optional>
         <attribute name="code">
-          <ref name="uint8range"/>
+          <ref name="uint8"/>
         </attribute>
       </optional>
     </interleave>
@@ -626,12 +627,12 @@
   <define name="stp-attributes">
     <optional>
       <attribute name="type">
-        <ref name="uint8range"/>
+        <ref name="uint8"/>
       </attribute>
     </optional>
     <optional>
       <attribute name="flags">
-        <ref name="uint8range"/>
+        <ref name="uint8"/>
       </attribute>
     </optional>
     <optional>

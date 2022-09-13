@@ -3273,7 +3273,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<EType5, VStorageFormat > > VTypeImpl;
+typedef Choice<mpl::vector<EType6, VStorageFormat > > VTypeImpl;
 typedef VTypeImpl::value_type VType;
 
 } // namespace Xml

@@ -783,9 +783,9 @@ int Traits<Snapshot::Xml::Driver>::generate(const Snapshot::Xml::Driver& src_, Q
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant8131
+// struct Variant8729
 
-int Traits<Snapshot::Xml::Variant8131>::parse(Snapshot::Xml::Variant8131& dst_, QStack<QDomElement>& stack_)
+int Traits<Snapshot::Xml::Variant8729>::parse(Snapshot::Xml::Variant8729& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -797,7 +797,7 @@ int Traits<Snapshot::Xml::Variant8131>::parse(Snapshot::Xml::Variant8131& dst_, 
 	return output;
 }
 
-int Traits<Snapshot::Xml::Variant8131>::generate(const Snapshot::Xml::Variant8131& src_, QDomElement& dst_)
+int Traits<Snapshot::Xml::Variant8729>::generate(const Snapshot::Xml::Variant8729& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))
@@ -875,9 +875,9 @@ int Traits<Snapshot::Xml::Source1>::generate(const Snapshot::Xml::Source1& src_,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant8729
+// struct Variant8730
 
-int Traits<Snapshot::Xml::Variant8729>::parse(Snapshot::Xml::Variant8729& dst_, QStack<QDomElement>& stack_)
+int Traits<Snapshot::Xml::Variant8730>::parse(Snapshot::Xml::Variant8730& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -889,7 +889,7 @@ int Traits<Snapshot::Xml::Variant8729>::parse(Snapshot::Xml::Variant8729& dst_, 
 	return output;
 }
 
-int Traits<Snapshot::Xml::Variant8729>::generate(const Snapshot::Xml::Variant8729& src_, QDomElement& dst_)
+int Traits<Snapshot::Xml::Variant8730>::generate(const Snapshot::Xml::Variant8730& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getSource(), m.get<1>().get<0>()))

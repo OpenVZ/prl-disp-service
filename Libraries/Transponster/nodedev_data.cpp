@@ -989,9 +989,9 @@ bool Validatable<Nodedev::Xml::PPath>::validate(const Nodedev::Xml::PPath::value
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8977
+// struct PData9326
 
-bool Validatable<Nodedev::Xml::PData8977>::validate(const Nodedev::Xml::PData8977::value_type& value_)
+bool Validatable<Nodedev::Xml::PData9326>::validate(const Nodedev::Xml::PData9326::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,4}");
 	if (!q.exactMatch(value_))
@@ -1001,21 +1001,21 @@ bool Validatable<Nodedev::Xml::PData8977>::validate(const Nodedev::Xml::PData897
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData8979
+// struct PData9328
 
-bool Traits<Nodedev::Xml::PData8979>::parse(const QString& src_, Nodedev::Xml::PData8979::value_type& dst_)
+bool Traits<Nodedev::Xml::PData9328>::parse(const QString& src_, Nodedev::Xml::PData9328::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Nodedev::Xml::PData8979>::generate(Nodedev::Xml::PData8979::value_type src_)
+QString Traits<Nodedev::Xml::PData9328>::generate(Nodedev::Xml::PData9328::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Nodedev::Xml::PData8979>::validate(Nodedev::Xml::PData8979::value_type value_)
+bool Validatable<Nodedev::Xml::PData9328>::validate(Nodedev::Xml::PData9328::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -1186,14 +1186,14 @@ bool Traits<Nodedev::Xml::VApDomainRange>::parse(const QString& src_, Nodedev::X
 {
 	int x;
 	mpl::at_c<Nodedev::Xml::VApDomainRange::types, 0>::type a0;
-	x = Marshal<Nodedev::Xml::PData8977>::setString(src_, a0);
+	x = Marshal<Nodedev::Xml::PData9326>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Nodedev::Xml::VApDomainRange::types, 1>::type a1;
-	x = Marshal<Nodedev::Xml::PData8979>::setString(src_, a1);
+	x = Marshal<Nodedev::Xml::PData9328>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -1208,9 +1208,9 @@ QString Traits<Nodedev::Xml::VApDomainRange>::generate(const Nodedev::Xml::VApDo
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Nodedev::Xml::PData8977>::getString(boost::get<mpl::at_c<Nodedev::Xml::VApDomainRange::types, 0>::type>(src_));
+		return Marshal<Nodedev::Xml::PData9326>::getString(boost::get<mpl::at_c<Nodedev::Xml::VApDomainRange::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Nodedev::Xml::PData8979>::getString(boost::get<mpl::at_c<Nodedev::Xml::VApDomainRange::types, 1>::type>(src_));
+		return Marshal<Nodedev::Xml::PData9328>::getString(boost::get<mpl::at_c<Nodedev::Xml::VApDomainRange::types, 1>::type>(src_));
 	}
 	return QString();
 }

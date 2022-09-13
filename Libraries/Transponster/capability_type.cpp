@@ -1235,6 +1235,70 @@ int Traits<Capability::Xml::Filesystem>::generate(const Capability::Xml::Filesys
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Tpm
+
+namespace Capability
+{
+namespace Xml
+{
+Tpm::Tpm(): m_supported()
+{
+}
+
+bool Tpm::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Tpm, Name::Strict<902> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Tpm::save(QDomElement& dst_) const
+{
+	Element<Tpm, Name::Strict<902> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Tpm::save(QDomDocument& dst_) const
+{
+	Element<Tpm, Name::Strict<902> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Capability
+
+int Traits<Capability::Xml::Tpm>::parse(Capability::Xml::Tpm& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setSupported(m.get<0>().getValue());
+		dst_.setEnumList(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Capability::Xml::Tpm>::generate(const Capability::Xml::Tpm& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getSupported(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getEnumList(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Devices
 
 namespace Capability
@@ -1283,6 +1347,7 @@ int Traits<Capability::Xml::Devices>::parse(Capability::Xml::Devices& dst_, QSta
 		dst_.setHostdev(m.get<3>().getValue());
 		dst_.setRng(m.get<4>().getValue());
 		dst_.setFilesystem(m.get<5>().getValue());
+		dst_.setTpm(m.get<6>().getValue());
 	}
 	return output;
 }
@@ -1301,6 +1366,8 @@ int Traits<Capability::Xml::Devices>::generate(const Capability::Xml::Devices& s
 	if (0 > Details::Marshal::assign(src_.getRng(), m.get<4>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getFilesystem(), m.get<5>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getTpm(), m.get<6>()))
 		return -1;
 
 	return m.produce(dst_);

@@ -453,19 +453,19 @@ namespace Xml
 {
 struct StpAttributes
 {
-	const boost::optional<VUint8range >& getType() const
+	const boost::optional<VUint8 >& getType() const
 	{
 		return m_type;
 	}
-	void setType(const boost::optional<VUint8range >& value_)
+	void setType(const boost::optional<VUint8 >& value_)
 	{
 		m_type = value_;
 	}
-	const boost::optional<VUint8range >& getFlags() const
+	const boost::optional<VUint8 >& getFlags() const
 	{
 		return m_flags;
 	}
-	void setFlags(const boost::optional<VUint8range >& value_)
+	void setFlags(const boost::optional<VUint8 >& value_)
 	{
 		m_flags = value_;
 	}
@@ -633,8 +633,8 @@ struct StpAttributes
 	bool save(QDomElement& ) const;
 
 private:
-	boost::optional<VUint8range > m_type;
-	boost::optional<VUint8range > m_flags;
+	boost::optional<VUint8 > m_type;
+	boost::optional<VUint8 > m_flags;
 	boost::optional<VUint16range > m_rootPriority;
 	boost::optional<VUint16range > m_rootPriorityHi;
 	boost::optional<VAddrMAC > m_rootAddress;
@@ -1613,19 +1613,19 @@ namespace Xml
 {
 struct IcmpAttributes
 {
-	const boost::optional<VUint8range >& getType() const
+	const boost::optional<VUint8 >& getType() const
 	{
 		return m_type;
 	}
-	void setType(const boost::optional<VUint8range >& value_)
+	void setType(const boost::optional<VUint8 >& value_)
 	{
 		m_type = value_;
 	}
-	const boost::optional<VUint8range >& getCode() const
+	const boost::optional<VUint8 >& getCode() const
 	{
 		return m_code;
 	}
-	void setCode(const boost::optional<VUint8range >& value_)
+	void setCode(const boost::optional<VUint8 >& value_)
 	{
 		m_code = value_;
 	}
@@ -1633,8 +1633,8 @@ struct IcmpAttributes
 	bool save(QDomElement& ) const;
 
 private:
-	boost::optional<VUint8range > m_type;
-	boost::optional<VUint8range > m_code;
+	boost::optional<VUint8 > m_type;
+	boost::optional<VUint8 > m_code;
 };
 
 } // namespace Xml
@@ -3070,7 +3070,7 @@ struct Traits<Filter::Xml::SrcmacandmaskAttributes>
 template<>
 struct Traits<Filter::Xml::StpAttributes>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Filter::Xml::VUint8range, Name::Strict<105> > >, Optional<Attribute<Filter::Xml::VUint8range, Name::Strict<5345> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5346> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5347> > >, Optional<Attribute<Filter::Xml::VAddrMAC, Name::Strict<5348> > >, Optional<Attribute<Filter::Xml::VAddrMAC, Name::Strict<5349> > >, Optional<Attribute<Filter::Xml::VUint32range, Name::Strict<5350> > >, Optional<Attribute<Filter::Xml::VUint32range, Name::Strict<5352> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5353> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5354> > >, Optional<Attribute<Filter::Xml::VAddrMAC, Name::Strict<5355> > >, Optional<Attribute<Filter::Xml::VAddrMAC, Name::Strict<5356> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<212> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5357> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5358> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5359> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5360> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5361> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5362> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5363> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5364> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5365> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Filter::Xml::VUint8, Name::Strict<105> > >, Optional<Attribute<Filter::Xml::VUint8, Name::Strict<5345> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5346> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5347> > >, Optional<Attribute<Filter::Xml::VAddrMAC, Name::Strict<5348> > >, Optional<Attribute<Filter::Xml::VAddrMAC, Name::Strict<5349> > >, Optional<Attribute<Filter::Xml::VUint32range, Name::Strict<5350> > >, Optional<Attribute<Filter::Xml::VUint32range, Name::Strict<5352> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5353> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5354> > >, Optional<Attribute<Filter::Xml::VAddrMAC, Name::Strict<5355> > >, Optional<Attribute<Filter::Xml::VAddrMAC, Name::Strict<5356> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<212> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5357> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5358> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5359> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5360> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5361> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5362> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5363> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5364> > >, Optional<Attribute<Filter::Xml::VUint16range, Name::Strict<5365> > > > > marshal_type;
 
 	static int parse(Filter::Xml::StpAttributes& , QStack<QDomElement>& );
 	static int generate(const Filter::Xml::StpAttributes& , QDomElement& );
@@ -3250,7 +3250,7 @@ struct Traits<Filter::Xml::Sctp>
 template<>
 struct Traits<Filter::Xml::IcmpAttributes>
 {
-	typedef Unordered<mpl::vector<Optional<Attribute<Filter::Xml::VUint8range, Name::Strict<105> > >, Optional<Attribute<Filter::Xml::VUint8range, Name::Strict<5339> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Attribute<Filter::Xml::VUint8, Name::Strict<105> > >, Optional<Attribute<Filter::Xml::VUint8, Name::Strict<5339> > > > > marshal_type;
 
 	static int parse(Filter::Xml::IcmpAttributes& , QStack<QDomElement>& );
 	static int generate(const Filter::Xml::IcmpAttributes& , QDomElement& );

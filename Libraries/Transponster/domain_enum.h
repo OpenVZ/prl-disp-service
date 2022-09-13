@@ -354,24 +354,43 @@ enum EName2
 	EName2Hypervclock
 };
 
+enum EType5
+{
+	EType5File,
+	EType5Anonymous,
+	EType5Memfd
+};
+
+enum EMode4
+{
+	EMode4Shared,
+	EMode4Private
+};
+
+enum EMode5
+{
+	EMode5Immediate,
+	EMode5Ondemand
+};
+
 enum EPlacement
 {
 	EPlacementStatic,
 	EPlacementAuto
 };
 
-enum EMode4
+enum EMode6
 {
-	EMode4Strict,
-	EMode4Preferred,
-	EMode4Interleave
+	EMode6Strict,
+	EMode6Preferred,
+	EMode6Interleave
 };
 
-enum EMode5
+enum EMode7
 {
-	EMode5Strict,
-	EMode5Preferred,
-	EMode5Interleave
+	EMode7Strict,
+	EMode7Preferred,
+	EMode7Interleave
 };
 
 enum EPolicy2
@@ -454,7 +473,8 @@ enum EDevice1
 enum ESgio
 {
 	ESgioFiltered,
-	ESgioUnfiltered
+	ESgioUnfiltered,
+	ESgioVirtioNonTransitional
 };
 
 enum ESnapshot
@@ -491,15 +511,15 @@ enum ETransport
 	ETransportRdma
 };
 
-enum EMode6
+enum EMode8
 {
-	EMode6Host,
-	EMode6Direct
+	EMode8Host,
+	EMode8Direct
 };
 
-enum EType5
+enum EType6
 {
-	EType5Aio
+	EType6Aio
 };
 
 enum EStorageFormat
@@ -581,10 +601,10 @@ enum EReady
 	EReadyPivot
 };
 
-enum EType6
+enum EType7
 {
-	EType6Ceph,
-	EType6Iscsi
+	EType7Ceph,
+	EType7Iscsi
 };
 
 enum EBus
@@ -620,12 +640,12 @@ enum ETrans
 	ETransLba
 };
 
-enum EType7
+enum EType8
 {
-	EType7Fdc,
-	EType7Ide,
-	EType7Sata,
-	EType7Ccid
+	EType8Fdc,
+	EType8Ide,
+	EType8Sata,
+	EType8Ccid
 };
 
 enum EModel
@@ -710,12 +730,12 @@ enum EModel5
 	EModel5VirtioNonTransitional
 };
 
-enum EType8
+enum EType9
 {
-	EType8Path,
-	EType8Handle,
-	EType8Loop,
-	EType8Nbd
+	EType9Path,
+	EType9Handle,
+	EType9Loop,
+	EType9Nbd
 };
 
 enum EAccessmode
@@ -723,6 +743,13 @@ enum EAccessmode
 	EAccessmodePassthrough,
 	EAccessmodeMapped,
 	EAccessmodeSquash
+};
+
+enum EModel6
+{
+	EModel6Virtio,
+	EModel6VirtioTransitional,
+	EModel6VirtioNonTransitional
 };
 
 enum EMacTableManager
@@ -761,28 +788,28 @@ enum ENativeMode
 	ENativeModeUntagged
 };
 
-enum EType9
-{
-	EType9Unix
-};
-
-enum EMode7
-{
-	EMode7Server,
-	EMode7Client
-};
-
 enum EType10
 {
-	EType10Mcast,
-	EType10Client
+	EType10Unix
+};
+
+enum EMode9
+{
+	EMode9Server,
+	EMode9Client
 };
 
 enum EType11
 {
-	EType11Tablet,
-	EType11Mouse,
-	EType11Keyboard
+	EType11Mcast,
+	EType11Client
+};
+
+enum EType12
+{
+	EType12Tablet,
+	EType12Mouse,
+	EType12Keyboard
 };
 
 enum EBus1
@@ -792,21 +819,28 @@ enum EBus1
 	EBus1Xen
 };
 
-enum EModel6
+enum EModel7
 {
-	EModel6Sb16,
-	EModel6Es1370,
-	EModel6Pcspk,
-	EModel6Ac97,
-	EModel6Ich6,
-	EModel6Ich9,
-	EModel6Usb
+	EModel7Virtio,
+	EModel7VirtioTransitional,
+	EModel7VirtioNonTransitional
 };
 
-enum EType12
+enum EModel8
 {
-	EType12Duplex,
-	EType12Micro
+	EModel8Sb16,
+	EModel8Es1370,
+	EModel8Pcspk,
+	EModel8Ac97,
+	EModel8Ich6,
+	EModel8Ich9,
+	EModel8Usb
+};
+
+enum EType13
+{
+	EType13Duplex,
+	EType13Micro
 };
 
 enum EName7
@@ -870,11 +904,11 @@ enum EName8
 	EName8Usbredir
 };
 
-enum EMode8
+enum EMode10
 {
-	EMode8Any,
-	EMode8Secure,
-	EMode8Insecure
+	EMode10Any,
+	EMode10Secure,
+	EMode10Insecure
 };
 
 enum ECompression
@@ -901,17 +935,17 @@ enum ECompression2
 	ECompression2Always
 };
 
-enum EMode9
+enum EMode11
 {
-	EMode9Filter,
-	EMode9All,
-	EMode9Off
+	EMode11Filter,
+	EMode11All,
+	EMode11Off
 };
 
-enum EMode10
+enum EMode12
 {
-	EMode10Server,
-	EMode10Client
+	EMode12Server,
+	EMode12Client
 };
 
 enum EName9
@@ -927,19 +961,19 @@ enum EVgaconf
 	EVgaconfOff
 };
 
-enum EType13
+enum EType14
 {
-	EType13Vga,
-	EType13Cirrus,
-	EType13Vmvga,
-	EType13Xen,
-	EType13Vbox,
-	EType13Virtio,
-	EType13Vzct,
-	EType13Gop,
-	EType13None,
-	EType13Bochs,
-	EType13Ramfb
+	EType14Vga,
+	EType14Cirrus,
+	EType14Vmvga,
+	EType14Xen,
+	EType14Vbox,
+	EType14Virtio,
+	EType14Vzct,
+	EType14Gop,
+	EType14None,
+	EType14Bochs,
+	EType14Ramfb
 };
 
 enum EQemucdevSrcTypeChoice
@@ -959,30 +993,30 @@ enum EQemucdevSrcTypeChoice
 	EQemucdevSrcTypeChoiceNmdm
 };
 
-enum EType14
-{
-	EType14Raw,
-	EType14Telnet,
-	EType14Telnets,
-	EType14Tls
-};
-
 enum EType15
 {
-	EType15Xen,
-	EType15Serial,
-	EType15Uml,
-	EType15Virtio,
-	EType15Lxc,
-	EType15Openvz,
-	EType15Sclp,
-	EType15Sclplm
+	EType15Raw,
+	EType15Telnet,
+	EType15Telnets,
+	EType15Tls
 };
 
 enum EType16
 {
-	EType16IsaSerial,
-	EType16UsbSerial
+	EType16Xen,
+	EType16Serial,
+	EType16Uml,
+	EType16Virtio,
+	EType16Lxc,
+	EType16Openvz,
+	EType16Sclp,
+	EType16Sclplm
+};
+
+enum EType17
+{
+	EType17IsaSerial,
+	EType17UsbSerial
 };
 
 enum EName10
@@ -996,25 +1030,17 @@ enum EName10
 	EName10Sclplmconsole
 };
 
-enum EType17
+enum EModel9
 {
-	EType17Usb
+	EModel9Virtio,
+	EModel9VirtioTransitional,
+	EModel9VirtioNonTransitional
 };
 
-enum EBus2
+enum EModel10
 {
-	EBus2Usb
-};
-
-enum EModel7
-{
-	EModel7Virtio
-};
-
-enum EModel8
-{
-	EModel8TpmTis,
-	EModel8TpmCrb
+	EModel10TpmTis,
+	EModel10TpmCrb
 };
 
 enum EVersion
@@ -1023,15 +1049,15 @@ enum EVersion
 	EVersion20
 };
 
-enum EModel9
+enum EModel11
 {
-	EModel9Dimm
+	EModel11Dimm
 };
 
-enum EModel10
+enum EModel12
 {
-	EModel10I6300esb,
-	EModel10Ib700
+	EModel12I6300esb,
+	EModel12Ib700
 };
 
 enum EAction
@@ -1044,18 +1070,20 @@ enum EAction
 	EActionDump
 };
 
-enum EModel11
+enum EModel13
 {
-	EModel11Virtio,
-	EModel11Xen,
-	EModel11None
+	EModel13Virtio,
+	EModel13VirtioTransitional,
+	EModel13VirtioNonTransitional,
+	EModel13Xen,
+	EModel13None
 };
 
-enum EModel12
+enum EModel14
 {
-	EModel12Isa,
-	EModel12Pseries,
-	EModel12Hyperv
+	EModel14Isa,
+	EModel14Pseries,
+	EModel14Hyperv
 };
 
 enum EName11

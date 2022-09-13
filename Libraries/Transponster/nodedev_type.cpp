@@ -27,9 +27,9 @@
 namespace Libvirt
 {
 ///////////////////////////////////////////////////////////////////////////////
-// struct Parent8947
+// struct Parent9296
 
-int Traits<Nodedev::Xml::Parent8947>::parse(Nodedev::Xml::Parent8947& dst_, QStack<QDomElement>& stack_)
+int Traits<Nodedev::Xml::Parent9296>::parse(Nodedev::Xml::Parent9296& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -41,7 +41,7 @@ int Traits<Nodedev::Xml::Parent8947>::parse(Nodedev::Xml::Parent8947& dst_, QSta
 	return output;
 }
 
-int Traits<Nodedev::Xml::Parent8947>::generate(const Nodedev::Xml::Parent8947& src_, QDomElement& dst_)
+int Traits<Nodedev::Xml::Parent9296>::generate(const Nodedev::Xml::Parent9296& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getWwnn(), m.get<0>()))
@@ -1063,30 +1063,30 @@ int Traits<Nodedev::Xml::Link1>::generate(const Nodedev::Xml::Link1& src_, QDomE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability8981
+// struct Capability9330
 
-int Traits<Nodedev::Xml::Capability8981>::parse(Nodedev::Xml::Capability8981& , QStack<QDomElement>& stack_)
+int Traits<Nodedev::Xml::Capability9330>::parse(Nodedev::Xml::Capability9330& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Nodedev::Xml::Capability8981>::generate(const Nodedev::Xml::Capability8981& , QDomElement& dst_)
+int Traits<Nodedev::Xml::Capability9330>::generate(const Nodedev::Xml::Capability9330& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability8982
+// struct Capability9331
 
-int Traits<Nodedev::Xml::Capability8982>::parse(Nodedev::Xml::Capability8982& , QStack<QDomElement>& stack_)
+int Traits<Nodedev::Xml::Capability9331>::parse(Nodedev::Xml::Capability9331& , QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	return m.consume(stack_);
 }
 
-int Traits<Nodedev::Xml::Capability8982>::generate(const Nodedev::Xml::Capability8982& , QDomElement& dst_)
+int Traits<Nodedev::Xml::Capability9331>::generate(const Nodedev::Xml::Capability9331& , QDomElement& dst_)
 {
 	marshal_type m;
 	return m.produce(dst_);
