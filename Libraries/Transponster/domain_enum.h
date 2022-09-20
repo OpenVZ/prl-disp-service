@@ -379,6 +379,25 @@ enum EPlacement
 	EPlacementAuto
 };
 
+enum EScheduler
+{
+	ESchedulerBatch,
+	ESchedulerIdle
+};
+
+enum EScheduler1
+{
+	EScheduler1Fifo,
+	EScheduler1Rr
+};
+
+enum EType6
+{
+	EType6Both,
+	EType6Code,
+	EType6Data
+};
+
 enum EMode6
 {
 	EMode6Strict,
@@ -404,6 +423,42 @@ enum EDriver
 {
 	EDriverQemu,
 	EDriverKvm
+};
+
+enum EResizing
+{
+	EResizingEnabled,
+	EResizingDisabled,
+	EResizingRequired
+};
+
+enum EUnknown
+{
+	EUnknownIgnore,
+	EUnknownFault
+};
+
+enum EValue
+{
+	EValueBroken,
+	EValueWorkaround,
+	EValueFixed
+};
+
+enum EValue1
+{
+	EValue1Broken,
+	EValue1Workaround,
+	EValue1Fixed
+};
+
+enum EValue2
+{
+	EValue2Broken,
+	EValue2Workaround,
+	EValue2FixedIbs,
+	EValue2FixedCcd,
+	EValue2FixedNa
 };
 
 enum EOffOptions
@@ -491,6 +546,13 @@ enum EStartupPolicy
 	EStartupPolicyOptional
 };
 
+enum EFormat1
+{
+	EFormat1Default,
+	EFormat1Qcow,
+	EFormat1Luks
+};
+
 enum EProtocol
 {
 	EProtocolNbd,
@@ -517,9 +579,9 @@ enum EMode8
 	EMode8Direct
 };
 
-enum EType6
+enum EType7
 {
-	EType6Aio
+	EType7Aio
 };
 
 enum EStorageFormat
@@ -583,6 +645,13 @@ enum EDiscard
 	EDiscardIgnore
 };
 
+enum EDetectZeroes
+{
+	EDetectZeroesOff,
+	EDetectZeroesOn,
+	EDetectZeroesUnmap
+};
+
 enum EJob
 {
 	EJobCopy
@@ -601,10 +670,10 @@ enum EReady
 	EReadyPivot
 };
 
-enum EType7
+enum EType8
 {
-	EType7Ceph,
-	EType7Iscsi
+	EType8Ceph,
+	EType8Iscsi
 };
 
 enum EBus
@@ -626,13 +695,6 @@ enum ETray
 	ETrayClosed
 };
 
-enum EFormat1
-{
-	EFormat1Default,
-	EFormat1Qcow,
-	EFormat1Luks
-};
-
 enum ETrans
 {
 	ETransAuto,
@@ -640,12 +702,12 @@ enum ETrans
 	ETransLba
 };
 
-enum EType8
+enum EType9
 {
-	EType8Fdc,
-	EType8Ide,
-	EType8Sata,
-	EType8Ccid
+	EType9Fdc,
+	EType9Ide,
+	EType9Sata,
+	EType9Ccid
 };
 
 enum EModel
@@ -730,12 +792,13 @@ enum EModel5
 	EModel5VirtioNonTransitional
 };
 
-enum EType9
+enum EType10
 {
-	EType9Path,
-	EType9Handle,
-	EType9Loop,
-	EType9Nbd
+	EType10Path,
+	EType10Handle,
+	EType10Loop,
+	EType10Nbd,
+	EType10Ploop
 };
 
 enum EAccessmode
@@ -743,6 +806,14 @@ enum EAccessmode
 	EAccessmodePassthrough,
 	EAccessmodeMapped,
 	EAccessmodeSquash
+};
+
+enum EMultidevs
+{
+	EMultidevsDefault,
+	EMultidevsRemap,
+	EMultidevsForbid,
+	EMultidevsWarn
 };
 
 enum EModel6
@@ -788,9 +859,9 @@ enum ENativeMode
 	ENativeModeUntagged
 };
 
-enum EType10
+enum EType11
 {
-	EType10Unix
+	EType11Unix
 };
 
 enum EMode9
@@ -799,17 +870,17 @@ enum EMode9
 	EMode9Client
 };
 
-enum EType11
-{
-	EType11Mcast,
-	EType11Client
-};
-
 enum EType12
 {
-	EType12Tablet,
-	EType12Mouse,
-	EType12Keyboard
+	EType12Mcast,
+	EType12Client
+};
+
+enum EType13
+{
+	EType13Tablet,
+	EType13Mouse,
+	EType13Keyboard
 };
 
 enum EBus1
@@ -837,10 +908,10 @@ enum EModel8
 	EModel8Usb
 };
 
-enum EType13
+enum EType14
 {
-	EType13Duplex,
-	EType13Micro
+	EType14Duplex,
+	EType14Micro
 };
 
 enum EName7
@@ -961,19 +1032,19 @@ enum EVgaconf
 	EVgaconfOff
 };
 
-enum EType14
+enum EType15
 {
-	EType14Vga,
-	EType14Cirrus,
-	EType14Vmvga,
-	EType14Xen,
-	EType14Vbox,
-	EType14Virtio,
-	EType14Vzct,
-	EType14Gop,
-	EType14None,
-	EType14Bochs,
-	EType14Ramfb
+	EType15Vga,
+	EType15Cirrus,
+	EType15Vmvga,
+	EType15Xen,
+	EType15Vbox,
+	EType15Virtio,
+	EType15Vzct,
+	EType15Gop,
+	EType15None,
+	EType15Bochs,
+	EType15Ramfb
 };
 
 enum EQemucdevSrcTypeChoice
@@ -993,30 +1064,30 @@ enum EQemucdevSrcTypeChoice
 	EQemucdevSrcTypeChoiceNmdm
 };
 
-enum EType15
-{
-	EType15Raw,
-	EType15Telnet,
-	EType15Telnets,
-	EType15Tls
-};
-
 enum EType16
 {
-	EType16Xen,
-	EType16Serial,
-	EType16Uml,
-	EType16Virtio,
-	EType16Lxc,
-	EType16Openvz,
-	EType16Sclp,
-	EType16Sclplm
+	EType16Raw,
+	EType16Telnet,
+	EType16Telnets,
+	EType16Tls
 };
 
 enum EType17
 {
-	EType17IsaSerial,
-	EType17UsbSerial
+	EType17Xen,
+	EType17Serial,
+	EType17Uml,
+	EType17Virtio,
+	EType17Lxc,
+	EType17Openvz,
+	EType17Sclp,
+	EType17Sclplm
+};
+
+enum EType18
+{
+	EType18IsaSerial,
+	EType18UsbSerial
 };
 
 enum EName10
@@ -1028,6 +1099,12 @@ enum EName10
 	EName10Pl011,
 	EName10Sclpconsole,
 	EName10Sclplmconsole
+};
+
+enum EState1
+{
+	EState1Connected,
+	EState1Disconnected
 };
 
 enum EModel9
@@ -1052,6 +1129,12 @@ enum EVersion
 enum EModel11
 {
 	EModel11Dimm
+};
+
+enum EAccess
+{
+	EAccessShared,
+	EAccessPrivate
 };
 
 enum EModel12

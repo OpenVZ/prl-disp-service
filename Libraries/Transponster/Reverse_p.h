@@ -486,9 +486,15 @@ void Ordinary<T>::setDisk()
 template<class T>
 void Ordinary<T>::setFlags()
 {
-	// boot
-	m_result.setBoot(m_boot);
-	// readonly
+
+	if (m_boot.is_initialized())
+	{
+		// boot
+		Libvirt::Domain::Xml::Boot b;
+		b.setOrder(m_boot.get());
+		m_result.setBoot(b);
+		// readonly
+	}
 
 	m_result.setReadonly(getModel().isReadOnly());
 	// snapshot
@@ -743,7 +749,7 @@ struct Factory
 {
 	typedef Libvirt::Domain::Xml::VChoice7097 result_type;
 	Libvirt::Domain::Xml::Controller craft
-		(const Libvirt::Domain::Xml::VChoice5117& bus_, quint16 index_);
+		(const Libvirt::Domain::Xml::VChoice5123& bus_, quint16 index_);
 	result_type wrap(const Libvirt::Domain::Xml::Controller& object_);
 };
 
@@ -753,7 +759,7 @@ struct Factory
 class Moldy: Factory
 {
 public: 
-	result_type operator()(Libvirt::Domain::Xml::EType8 bus_, quint16 index_);
+	result_type operator()(Libvirt::Domain::Xml::EType9 bus_, quint16 index_);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -993,7 +999,7 @@ private:
 	}
 
 	void craftController(Libvirt::Domain::Xml::EModel1 model_);
-	void add(Libvirt::Domain::Xml::EType12 type_);
+	void add(Libvirt::Domain::Xml::EType13 type_);
 
 	const CVmUsbController* m_settings;
 	deviceList_type m_deviceList;

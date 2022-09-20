@@ -1223,6 +1223,18 @@ QString Traits<Domain::Xml::PReducedPhysBits>::generate(Domain::Xml::PReducedPhy
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PAppid
+
+bool Validatable<Domain::Xml::PAppid>::validate(const Domain::Xml::PAppid::value_type& value_)
+{
+	QRegExp q("[ -~]{1,128}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 bool Traits<Domain::Xml::PReadIopsSec>::parse(const QString& src_, Domain::Xml::PReadIopsSec::value_type& dst_)
@@ -1448,6 +1460,18 @@ QString Traits<Domain::Xml::PPasswdValidTo>::generate(const Domain::Xml::PPasswd
 bool Validatable<Domain::Xml::PSysinfoValue>::validate(const Domain::Xml::PSysinfoValue::value_type& value_)
 {
 	QRegExp q("[a-zA-Z0-9/\\-_\\. \\(\\)]+");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PLoadparm
+
+bool Validatable<Domain::Xml::PLoadparm>::validate(const Domain::Xml::PLoadparm::value_type& value_)
+{
+	QRegExp q("[a-zA-Z0-9.\\s]{1,8}");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -2149,7 +2173,7 @@ bool Traits<Domain::Xml::VType>::parse(const QString& src_, Domain::Xml::VType& 
 {
 	int x;
 	mpl::at_c<Domain::Xml::VType::types, 0>::type a0;
-	x = Marshal<Domain::Xml::EType6>::setString(src_, a0);
+	x = Marshal<Domain::Xml::EType7>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
@@ -2171,7 +2195,7 @@ QString Traits<Domain::Xml::VType>::generate(const Domain::Xml::VType& src_)
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Domain::Xml::EType6>::getString(boost::get<mpl::at_c<Domain::Xml::VType::types, 0>::type>(src_));
+		return Marshal<Domain::Xml::EType7>::getString(boost::get<mpl::at_c<Domain::Xml::VType::types, 0>::type>(src_));
 	case 1:
 		return Marshal<Domain::Xml::VStorageFormat>::getString(boost::get<mpl::at_c<Domain::Xml::VType::types, 1>::type>(src_));
 	}

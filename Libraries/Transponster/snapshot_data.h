@@ -1968,6 +1968,28 @@ struct PSession
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PAppid
+
+namespace Snapshot
+{
+namespace Xml
+{
+struct PAppid
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Snapshot
+
+template<>
+struct Validatable<Snapshot::Xml::PAppid>: mpl::true_
+{
+	static bool validate(const Snapshot::Xml::PAppid::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 namespace Snapshot
@@ -2097,6 +2119,22 @@ struct Validatable<Snapshot::Xml::PVzRelative>: mpl::true_
 	static bool validate(Snapshot::Xml::PVzRelative::value_type value_);
 
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PId1
+
+namespace Snapshot
+{
+namespace Xml
+{
+struct PId1
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Snapshot
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct PVendor
@@ -2355,6 +2393,28 @@ template<>
 struct Validatable<Snapshot::Xml::PSysinfoValue>: mpl::true_
 {
 	static bool validate(const Snapshot::Xml::PSysinfoValue::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PLoadparm
+
+namespace Snapshot
+{
+namespace Xml
+{
+struct PLoadparm
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Snapshot
+
+template<>
+struct Validatable<Snapshot::Xml::PLoadparm>: mpl::true_
+{
+	static bool validate(const Snapshot::Xml::PLoadparm::value_type& value_);
 
 };
 

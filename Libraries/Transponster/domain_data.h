@@ -1968,6 +1968,28 @@ struct PSession
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PAppid
+
+namespace Domain
+{
+namespace Xml
+{
+struct PAppid
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+template<>
+struct Validatable<Domain::Xml::PAppid>: mpl::true_
+{
+	static bool validate(const Domain::Xml::PAppid::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 namespace Domain
@@ -2097,6 +2119,22 @@ struct Validatable<Domain::Xml::PVzRelative>: mpl::true_
 	static bool validate(Domain::Xml::PVzRelative::value_type value_);
 
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PId1
+
+namespace Domain
+{
+namespace Xml
+{
+struct PId1
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Domain
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct PVendor
@@ -2355,6 +2393,28 @@ template<>
 struct Validatable<Domain::Xml::PSysinfoValue>: mpl::true_
 {
 	static bool validate(const Domain::Xml::PSysinfoValue::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PLoadparm
+
+namespace Domain
+{
+namespace Xml
+{
+struct PLoadparm
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+template<>
+struct Validatable<Domain::Xml::PLoadparm>: mpl::true_
+{
+	static bool validate(const Domain::Xml::PLoadparm::value_type& value_);
 
 };
 
@@ -3273,7 +3333,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<EType6, VStorageFormat > > VTypeImpl;
+typedef Choice<mpl::vector<EType7, VStorageFormat > > VTypeImpl;
 typedef VTypeImpl::value_type VType;
 
 } // namespace Xml

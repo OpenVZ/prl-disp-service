@@ -34,13 +34,13 @@ namespace Libvirt
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Parent9296
+// struct Parent9130
 
 namespace Nodedev
 {
 namespace Xml
 {
-struct Parent9296
+struct Parent9130
 {
 	const PWwn::value_type& getWwnn() const
 	{
@@ -74,7 +74,7 @@ namespace Nodedev
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Parent9296, Attribute<Nodedev::Xml::PWwn, Name::Strict<3469> >, Text<QString > > > VParentImpl;
+typedef Choice<mpl::vector<Parent9130, Attribute<Nodedev::Xml::PWwn, Name::Strict<3469> >, Text<QString > > > VParentImpl;
 typedef VParentImpl::value_type VParent;
 
 } // namespace Xml
@@ -944,13 +944,13 @@ private:
 } // namespace Nodedev
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability9330
+// struct Capability9164
 
 namespace Nodedev
 {
 namespace Xml
 {
-struct Capability9330
+struct Capability9164
 {
 };
 
@@ -958,13 +958,13 @@ struct Capability9330
 } // namespace Nodedev
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability9331
+// struct Capability9165
 
 namespace Nodedev
 {
 namespace Xml
 {
-struct Capability9331
+struct Capability9165
 {
 };
 
@@ -978,7 +978,7 @@ namespace Nodedev
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Capability9330, Capability9331 > > VCapability1Impl;
+typedef Choice<mpl::vector<Capability9164, Capability9165 > > VCapability1Impl;
 typedef VCapability1Impl::value_type VCapability1;
 
 } // namespace Xml
@@ -1853,15 +1853,15 @@ private:
 } // namespace Nodedev
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Parent9296 traits
+// struct Parent9130 traits
 
 template<>
-struct Traits<Nodedev::Xml::Parent9296>
+struct Traits<Nodedev::Xml::Parent9130>
 {
 	typedef Ordered<mpl::vector<Attribute<Nodedev::Xml::PWwn, Name::Strict<117> >, Attribute<Nodedev::Xml::PWwn, Name::Strict<118> > > > marshal_type;
 
-	static int parse(Nodedev::Xml::Parent9296& , QStack<QDomElement>& );
-	static int generate(const Nodedev::Xml::Parent9296& , QDomElement& );
+	static int parse(Nodedev::Xml::Parent9130& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Parent9130& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2069,27 +2069,27 @@ struct Traits<Nodedev::Xml::Link1>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability9330 traits
+// struct Capability9164 traits
 
 template<>
-struct Traits<Nodedev::Xml::Capability9330>
+struct Traits<Nodedev::Xml::Capability9164>
 {
 	typedef Attribute<mpl::int_<3526>, Name::Strict<105> > marshal_type;
 
-	static int parse(Nodedev::Xml::Capability9330& , QStack<QDomElement>& );
-	static int generate(const Nodedev::Xml::Capability9330& , QDomElement& );
+	static int parse(Nodedev::Xml::Capability9164& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Capability9164& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability9331 traits
+// struct Capability9165 traits
 
 template<>
-struct Traits<Nodedev::Xml::Capability9331>
+struct Traits<Nodedev::Xml::Capability9165>
 {
 	typedef Attribute<mpl::int_<3527>, Name::Strict<105> > marshal_type;
 
-	static int parse(Nodedev::Xml::Capability9331& , QStack<QDomElement>& );
-	static int generate(const Nodedev::Xml::Capability9331& , QDomElement& );
+	static int parse(Nodedev::Xml::Capability9165& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Capability9165& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////

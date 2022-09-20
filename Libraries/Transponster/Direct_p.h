@@ -831,7 +831,7 @@ struct Scsi: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5117::types, 1>::type& model_) const
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5123::types, 1>::type& model_) const
 	{
 		if (!model_.getValue())
 			return;
@@ -877,7 +877,7 @@ struct Usb: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5117::types, 2>::type& usb_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5123::types, 2>::type& usb_) const;
 private:
 	CVmUsbController *m_settings;
 	CVmHardware *m_hardware;
