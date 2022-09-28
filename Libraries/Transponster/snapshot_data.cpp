@@ -1223,6 +1223,18 @@ QString Traits<Snapshot::Xml::PReducedPhysBits>::generate(Snapshot::Xml::PReduce
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PAppid
+
+bool Validatable<Snapshot::Xml::PAppid>::validate(const Snapshot::Xml::PAppid::value_type& value_)
+{
+	QRegExp q("[ -~]{1,128}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 bool Traits<Snapshot::Xml::PReadIopsSec>::parse(const QString& src_, Snapshot::Xml::PReadIopsSec::value_type& dst_)
@@ -1448,6 +1460,18 @@ QString Traits<Snapshot::Xml::PPasswdValidTo>::generate(const Snapshot::Xml::PPa
 bool Validatable<Snapshot::Xml::PSysinfoValue>::validate(const Snapshot::Xml::PSysinfoValue::value_type& value_)
 {
 	QRegExp q("[a-zA-Z0-9/\\-_\\. \\(\\)]+");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PLoadparm
+
+bool Validatable<Snapshot::Xml::PLoadparm>::validate(const Snapshot::Xml::PLoadparm::value_type& value_)
+{
+	QRegExp q("[a-zA-Z0-9.\\s]{1,8}");
 	if (!q.exactMatch(value_))
 		return false;
 

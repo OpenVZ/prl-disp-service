@@ -1968,6 +1968,28 @@ struct PSession
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PAppid
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PAppid
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+template<>
+struct Validatable<Blockexport::Xml::PAppid>: mpl::true_
+{
+	static bool validate(const Blockexport::Xml::PAppid::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 namespace Blockexport
@@ -2097,6 +2119,22 @@ struct Validatable<Blockexport::Xml::PVzRelative>: mpl::true_
 	static bool validate(Blockexport::Xml::PVzRelative::value_type value_);
 
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PId1
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PId1
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct PVendor
@@ -2355,6 +2393,28 @@ template<>
 struct Validatable<Blockexport::Xml::PSysinfoValue>: mpl::true_
 {
 	static bool validate(const Blockexport::Xml::PSysinfoValue::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PLoadparm
+
+namespace Blockexport
+{
+namespace Xml
+{
+struct PLoadparm
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Blockexport
+
+template<>
+struct Validatable<Blockexport::Xml::PLoadparm>: mpl::true_
+{
+	static bool validate(const Blockexport::Xml::PLoadparm::value_type& value_);
 
 };
 

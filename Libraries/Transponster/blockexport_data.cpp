@@ -1223,6 +1223,18 @@ QString Traits<Blockexport::Xml::PReducedPhysBits>::generate(Blockexport::Xml::P
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PAppid
+
+bool Validatable<Blockexport::Xml::PAppid>::validate(const Blockexport::Xml::PAppid::value_type& value_)
+{
+	QRegExp q("[ -~]{1,128}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct PReadIopsSec
 
 bool Traits<Blockexport::Xml::PReadIopsSec>::parse(const QString& src_, Blockexport::Xml::PReadIopsSec::value_type& dst_)
@@ -1448,6 +1460,18 @@ QString Traits<Blockexport::Xml::PPasswdValidTo>::generate(const Blockexport::Xm
 bool Validatable<Blockexport::Xml::PSysinfoValue>::validate(const Blockexport::Xml::PSysinfoValue::value_type& value_)
 {
 	QRegExp q("[a-zA-Z0-9/\\-_\\. \\(\\)]+");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PLoadparm
+
+bool Validatable<Blockexport::Xml::PLoadparm>::validate(const Blockexport::Xml::PLoadparm::value_type& value_)
+{
+	QRegExp q("[a-zA-Z0-9.\\s]{1,8}");
 	if (!q.exactMatch(value_))
 		return false;
 
