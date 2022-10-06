@@ -1058,13 +1058,6 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 
 		// DISK
 		conf_get_disk(pConfig, env_param);
-		// IP_ADDRESS
-		QList<QString> ips;
-		vzctl_ip_iterator it = NULL;
-		while ((it = vzctl2_env_get_ipaddress(env_param, it)) != NULL) {
-			if (vzctl2_env_get_ipstr(it, buf, sizeof(buf)) == 0)
-				ips += QString(buf);
-		}
 
 		// SEARCHDOMAIN
 		QList<QString> searchdomains;
@@ -1084,29 +1077,20 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 		if (vzctl2_env_get_apply_iponly(env_param, &val) == 0)
 			pConfig->getVmSettings()->getGlobalNetwork()->setAutoApplyIpOnly(!!val);
 
-		CVmGenericNetworkAdapter *pVenet = new CVmGenericNetworkAdapter;
-
-		/* venet device always exists, add it with -1 idx */
-		pVenet->setIndex((unsigned int) -1);
-		pVenet->setSystemName(QString("venet0"));
-		pVenet->setHostInterfaceName(QString("venet0"));
-		pVenet->setEnabled(true);
-		pVenet->setNetAddresses(ips);
-		pVenet->setEmulatedType(PNA_ROUTED);
-		pVenet->setDnsIPAddresses(nameservers);
-		pVenet->setSearchDomains(searchdomains);
-
-		pConfig->getVmHardwareList()->addNetworkAdapter(pVenet);
-
 		// NETIF
 		vzctl_veth_dev_iterator itdev = NULL;
 		struct vzctl_veth_dev_param dev;
 
+		bool venetAdded = false;
+
 		while ((itdev = vzctl2_env_get_veth(env_param, itdev)) != NULL) {
-			int idx;
+			unsigned int idx;
 
 			bzero(&dev, sizeof(dev));
 			vzctl2_env_get_veth_param(itdev, &dev, sizeof(dev));
+
+			if (dev.nettype == VZCTL_NETTYPE_ROUTED && venetAdded)
+				continue;
 
 			if (dev.dev_name_ve == NULL) {
 				WRITE_TRACE(DBG_FATAL, "vzctl2_env_get_veth_param: Unable to get veth device name");
@@ -1120,13 +1104,29 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 					ips += QString(buf);
 			}
 
-			if (sscanf(dev.dev_name_ve , "%*[^0-9]%d", &idx) != 1) {
-				WRITE_TRACE(DBG_FATAL, "Unable to get veth index from '%s'",
-						dev.dev_name_ve );
-				continue;
-			}
-
 			CVmGenericNetworkAdapter *pNet = new CVmGenericNetworkAdapter;
+
+			if (dev.nettype == VZCTL_NETTYPE_ROUTED)
+			{
+				// We can add only one routed interface
+				venetAdded = true;
+
+				idx = UINT_MAX;
+				pNet->setEmulatedType(PNA_ROUTED);
+			}
+			else
+			{
+				if (sscanf(dev.dev_name_ve , "%*[^0-9]%d", &idx) != 1)
+				{
+					WRITE_TRACE(DBG_FATAL, "Unable to get veth index from '%s'", dev.dev_name_ve );
+					continue;
+				}
+
+				if (dev.nettype == VZCTL_NETTYPE_BRIDGE)
+					pNet->setEmulatedType(PNA_BRIDGE);
+				else
+					pNet->setEmulatedType(PNA_BRIDGED_NETWORK);
+			}
 
 			pNet->setIndex(idx);
 			pNet->setSystemName(QString(dev.dev_name_ve));
@@ -1137,9 +1137,6 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 			if (dev.network != NULL)
 				pNet->setVirtualNetworkID(QString(dev.network));
 
-			pNet->setEmulatedType(
-				dev.nettype == VZCTL_NETTYPE_BRIDGE ?
-					PNA_BRIDGE : PNA_BRIDGED_NETWORK);
 			QString mac;
 			if (dev.mac_ve != NULL) {
 				mac = QString(dev.mac_ve).remove(QChar(':'));
@@ -1356,16 +1353,6 @@ SmartPtr<CVmConfiguration> CVzHelper::get_env_config_sample(const QString &name,
 			get_configsample_file_name(name.isEmpty() ? QString("vswap.512MB") : name), err, Ct::Config::LoadOps());
 }
 
-static CVmGenericNetworkAdapter *get_venet_device(SmartPtr<CVmConfiguration> &pConfig)
-{
-	QList<CVmGenericNetworkAdapter* > lstNet = pConfig->getVmHardwareList()->m_lstNetworkAdapters;
-	foreach(CVmGenericNetworkAdapter* pNet, lstNet) {
-		if (pNet->isVenetDevice())
-			return pNet;
-	}
-	return NULL;
-}
-
 int CVzOperationHelper::set_env_name(const QString &uuid, const QString &name)
 {
 	int ret;
@@ -1395,7 +1382,10 @@ int CVzOperationHelper::set_env_name(const QString &uuid, const QString &name)
 
 static const char *get_veth_ifname(CVmGenericNetworkAdapter *pAdapter, char *buf, int len)
 {
-	if (pAdapter->getSystemName().isEmpty())
+	if (pAdapter->getEmulatedType() == PNA_ROUTED) {
+		strcpy(buf, "venet0");
+	}
+	else if (pAdapter->getSystemName().isEmpty())
 		snprintf(buf, len, "eth%d",
 				pAdapter->getIndex());
 	else
@@ -1411,7 +1401,7 @@ static CVmGenericNetworkAdapter* findNetAdapter(QList<CVmGenericNetworkAdapter* 
 	QString ifname = get_veth_ifname(pAdapter, buf, sizeof(buf));
 
 	foreach(CVmGenericNetworkAdapter* p, lstAdapters) {
-		if (!p->isVenetDevice() && ifname == p->getSystemName())
+		if (ifname == p->getSystemName())
 			return p;
 	}
 	return NULL;
@@ -1621,8 +1611,7 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	{
 		get_veth_ifname(pAdapter, ifname, sizeof(ifname));
 
-		if (pAdapter->getSystemName().isEmpty())
-			pAdapter->setSystemName(ifname);
+		pAdapter->setSystemName(ifname);
 
 		CVmGenericNetworkAdapter *pOldAdapter = findNetAdapter(lstOldAdapters, pAdapter);
 
@@ -1637,8 +1626,6 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 			lstNameserver += pAdapter->getDnsIPAddresses();
 			lstSearchdomain += pAdapter->getSearchDomains();
 		}
-		if (pAdapter->isVenetDevice())
-			continue;
 
 		if (pOldAdapter != NULL &&
 				pAdapter->getVirtualNetworkID() == pOldAdapter->getVirtualNetworkID() &&
@@ -1702,8 +1689,11 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 
 		QByteArray gw6(pAdapter->getDefaultGatewayIPv6().toUtf8());
 		dev.gw6 = gw6.data();
+
 		if (pAdapter->getEmulatedType() == PNA_BRIDGE)
 			dev.nettype = VZCTL_NETTYPE_BRIDGE;
+		else if (pAdapter->getEmulatedType() == PNA_ROUTED)
+			dev.nettype = VZCTL_NETTYPE_ROUTED;
 
 		itdev = vzctl2_create_veth_dev(&dev, sizeof(dev));
 		if (itdev == NULL) {
@@ -1725,12 +1715,8 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	// Del veth device
 	foreach(CVmGenericNetworkAdapter* pOldAdapter, lstOldAdapters)
 	{
-		if (pOldAdapter->isVenetDevice())
-			continue;
-
 		get_veth_ifname(pOldAdapter, ifname, sizeof(ifname));
-		if (pOldAdapter->getSystemName().isEmpty())
-			pOldAdapter->setSystemName(ifname);
+		pOldAdapter->setSystemName(ifname);
 
 		if (findNetAdapter(lstAdapters, pOldAdapter))
 			continue;
@@ -1827,27 +1813,6 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	} else if (pRates->isRateBound() !=  pOldRates->isRateBound())
 		// RATEBOUND
 		vzctl2_env_set_ratebound(new_param, (pRates->isRateBound() ? 1 : 0));
-
-	CVmGenericNetworkAdapter *pVenet = get_venet_device(pConfig);
-	CVmGenericNetworkAdapter *pOldVenet = get_venet_device(pOldConfig);
-	QList<QString> lstIps;
-	QList<QString> lstOldIps;
-
-	if (pVenet != NULL)
-		lstIps = pVenet->getNetAddresses();
-	if (pOldVenet != NULL)
-		lstOldIps = pOldVenet->getNetAddresses();
-
-	// IP_ADDRESS
-	if (!(lstIps == lstOldIps)) {
-		vzctl2_env_del_ipaddress(new_param, "all");
-		foreach(QString ip, lstIps) {
-			ret = vzctl2_env_add_ipaddress(new_param, QSTR2UTF8(ip));
-			if (ret)
-				WRITE_TRACE(DBG_FATAL, "vzctl2_env_add_ipaddress(%s): %s",
-					QSTR2UTF8(ip), vzctl2_get_last_error());
-		}
-	}
 
 	// SEARCHDOMAIN
 	if (!lstSearchdomain.isEmpty() || !lstDelSearchdomain.isEmpty()) {
