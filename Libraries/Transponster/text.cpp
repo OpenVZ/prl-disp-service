@@ -9524,7 +9524,10 @@ static QString g_text[] = {
 	QString("listen9496"),
 	QString("listen9497"),
 	QString("backend9498"),
-	QString("backend9499")
+	QString("backend9499"),
+	QString(""),
+	QString("maxGuests"),
+	QString("maxESGuests")
 };
 
 const QString& getText(quint32 index_)

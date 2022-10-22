@@ -1444,7 +1444,7 @@ namespace Capability
 {
 namespace Xml
 {
-Anonymous5138::Anonymous5138(): m_cbitpos(), m_reducedPhysBits()
+Anonymous5138::Anonymous5138(): m_cbitpos(), m_reducedPhysBits(), m_maxGuests(), m_maxESGuests()
 {
 }
 
@@ -1473,6 +1473,8 @@ int Traits<Capability::Xml::Anonymous5138>::parse(Capability::Xml::Anonymous5138
 	{
 		dst_.setCbitpos(m.get<0>().getValue());
 		dst_.setReducedPhysBits(m.get<1>().getValue());
+		dst_.setMaxGuests(m.get<2>().getValue());
+		dst_.setMaxESGuests(m.get<3>().getValue());
 	}
 	return output;
 }
@@ -1483,6 +1485,10 @@ int Traits<Capability::Xml::Anonymous5138>::generate(const Capability::Xml::Anon
 	if (0 > Details::Marshal::assign(src_.getCbitpos(), m.get<0>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getReducedPhysBits(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getMaxGuests(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getMaxESGuests(), m.get<3>()))
 		return -1;
 
 	return m.produce(dst_);

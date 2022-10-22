@@ -1015,12 +1015,30 @@ struct Anonymous5138
 	{
 		m_reducedPhysBits = value_;
 	}
+	PMaxGuests::value_type getMaxGuests() const
+	{
+		return m_maxGuests;
+	}
+	void setMaxGuests(PMaxGuests::value_type value_)
+	{
+		m_maxGuests = value_;
+	}
+	PMaxESGuests::value_type getMaxESGuests() const
+	{
+		return m_maxESGuests;
+	}
+	void setMaxESGuests(PMaxESGuests::value_type value_)
+	{
+		m_maxESGuests = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 
 private:
 	PCbitpos::value_type m_cbitpos;
 	PReducedPhysBits::value_type m_reducedPhysBits;
+	PMaxGuests::value_type m_maxGuests;
+	PMaxESGuests::value_type m_maxESGuests;
 };
 
 } // namespace Xml
@@ -1535,7 +1553,7 @@ struct Traits<Capability::Xml::Gic>
 template<>
 struct Traits<Capability::Xml::Anonymous5138>
 {
-	typedef Ordered<mpl::vector<Element<Text<Capability::Xml::PCbitpos >, Name::Strict<3564> >, Element<Text<Capability::Xml::PReducedPhysBits >, Name::Strict<3565> > > > marshal_type;
+	typedef Ordered<mpl::vector<Element<Text<Capability::Xml::PCbitpos >, Name::Strict<3564> >, Element<Text<Capability::Xml::PReducedPhysBits >, Name::Strict<3565> >, Element<Text<Capability::Xml::PMaxGuests >, Name::Strict<9502> >, Element<Text<Capability::Xml::PMaxESGuests >, Name::Strict<9503> > > > marshal_type;
 
 	static int parse(Capability::Xml::Anonymous5138& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Anonymous5138& , QDomElement& );

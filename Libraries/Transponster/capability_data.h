@@ -1585,6 +1585,56 @@ struct Traits<Capability::Xml::PReducedPhysBits>
 };
 
 
+///////////////////////////////////////////////////////////////////////////////
+// struct PMaxGuests
+
+namespace Capability
+{
+namespace Xml
+{
+struct PMaxGuests
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+template<>
+struct Traits<Capability::Xml::PMaxGuests>
+{
+	static bool parse(const QString& src_, Capability::Xml::PMaxGuests::value_type& dst_);
+
+	static QString generate(Capability::Xml::PMaxGuests::value_type src_);
+
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PMaxESGuests
+
+namespace Capability
+{
+namespace Xml
+{
+struct PMaxESGuests
+{
+	typedef quint32 value_type;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+template<>
+struct Traits<Capability::Xml::PMaxESGuests>
+{
+	static bool parse(const QString& src_, Capability::Xml::PMaxESGuests::value_type& dst_);
+
+	static QString generate(Capability::Xml::PMaxESGuests::value_type src_);
+
+};
+
+
 } // namespace Libvirt
 
 #endif // __CAPABILITY_DATA_H__

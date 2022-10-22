@@ -994,4 +994,34 @@ QString Traits<Capability::Xml::PReducedPhysBits>::generate(Capability::Xml::PRe
 	return QString::number(src_);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// struct PMaxGuests
+
+bool Traits<Capability::Xml::PMaxGuests>::parse(const QString& src_, Capability::Xml::PMaxGuests::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Capability::Xml::PMaxGuests>::generate(Capability::Xml::PMaxGuests::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PMaxESGuests
+
+bool Traits<Capability::Xml::PMaxESGuests>::parse(const QString& src_, Capability::Xml::PMaxESGuests::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Capability::Xml::PMaxESGuests>::generate(Capability::Xml::PMaxESGuests::value_type src_)
+{
+	return QString::number(src_);
+}
+
 } // namespace Libvirt
