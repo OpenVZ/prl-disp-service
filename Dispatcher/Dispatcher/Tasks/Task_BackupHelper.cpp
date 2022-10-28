@@ -548,6 +548,7 @@ QStringList Vm::craftProlog(Task_BackupMixin& context_)
 				d = context_.getVmHomePath();
 
 			a << "--cached" << "--backup-dir" << d;
+			a << "--ownerid" << QString::number(context_.getTask().getClient()->getAuthHelper().GetAuth()->GetUserId());
 		}
 	}
 
