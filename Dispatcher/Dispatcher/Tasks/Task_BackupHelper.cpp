@@ -1552,7 +1552,7 @@ namespace Target
 
 void Connector::reactReceive(const SmartPtr<IOPackage>& package_)
 {
-	WRITE_TRACE(DBG_FATAL, "react package %d.", package_->header.type);
+	WRITE_TRACE(DBG_DEBUG, "react package %d.", package_->header.type);
 	switch (package_->header.type)
 	{
 	case Virtuozzo::VmMigrateConnectQemuDiskCmd:
