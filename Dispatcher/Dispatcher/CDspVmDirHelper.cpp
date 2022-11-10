@@ -202,11 +202,12 @@ struct ToolVersionStorage
 {
 	ToolVersionStorage():
 		m_winver("/usr/share/vz-guest-tools/vz-guest-tools-win.ver"),
+		m_bsdver("/usr/share/vz-guest-tools/vz-guest-tools-bsd.ver"),
 		m_linver("/usr/share/vz-guest-tools/vz-guest-tools-lin.ver") {};
 	QString getHostToolsVersion(int osVersion);
 
 private:
-	ToolVerCache m_winver, m_linver;
+	ToolVerCache m_winver, m_bsdver, m_linver;
 };
 
 /**
@@ -216,7 +217,11 @@ private:
 */
 QString ToolVersionStorage::getHostToolsVersion(int osVersion)
 {
-	return (IS_WINDOWS(osVersion) ? m_winver : m_linver).getVersion();
+	if (IS_WINDOWS(osVersion))
+		return m_winver.getVersion();
+	if (IS_FREEBSD(osVersion))
+		return m_bsdver.getVersion();
+	return m_linver.getVersion();
 }
 
 Q_GLOBAL_STATIC(ToolVersionStorage, getToolVersionStorage);
