@@ -526,6 +526,17 @@ void MigrateVmTarget::finalizeTask()
 		CVmEvent cEvent(PET_DSP_EVT_VM_MIGRATE_FINISHED, m_sOriginVmUuid, PIE_DISPATCHER);
 		pPackage = DispatcherPackage::createInstance(PVE::DspVmEvent, cEvent.toString());
 		CDspService::instance()->getClientManager().sendPackageToVmClients(pPackage, m_sVmDirUuid, m_sOriginVmUuid);
+
+		if (m_tempVncEnabled)
+		{
+			disableTempVncServer();
+			saveVmConfig();
+
+			CVmEvent e;
+			e.addEventParameter(new CVmEventParameter(PVE::String,"0", EVT_PARAM_VMCFG_REMOTE_DISPLAY_PORT));
+
+			Task_EditVm::atomicEditVmConfigByVm(m_sVmDirUuid, m_sVmUuid, e, CDspClient::makeServiceUser(m_sVmDirUuid));
+		}
 	}
 	else
 	{
@@ -573,17 +584,6 @@ void MigrateVmTarget::finalizeTask()
 			hJob = m_pCheckDispConnection->sendResponseError(getLastError(), getRequestPackage());
 
 		CDspService::instance()->getIOServer().waitForSend(hJob, m_nTimeout);
-	}
-
-	if (m_tempVncEnabled)
-	{
-		disableTempVncServer();
-		saveVmConfig();
-
-		CVmEvent e;
-		e.addEventParameter(new CVmEventParameter(PVE::String,"0", EVT_PARAM_VMCFG_REMOTE_DISPLAY_PORT));
-
-		Task_EditVm::atomicEditVmConfigByVm(m_sVmDirUuid, m_sVmUuid, e, CDspClient::makeServiceUser(m_sVmDirUuid));
 	}
 }
 
