@@ -31,6 +31,8 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 
+CVmMigrateTargetServer CVmMigrateTargetServer::g_targetServer;
+
 int main(int argc, char** argv)
 {
 	QCoreApplication app(argc, argv);
@@ -42,9 +44,8 @@ int main(int argc, char** argv)
 	if (c.getDispatcherSettings()->getCommonPreferences()->getDebug()->isVerboseLogEnabled())
 		SetLogLevel(DBG_DEBUG);	
 	
-	CVmMigrateTargetServer s;
 	int r = -1;
-	if (s.connectToDisp())
+	if (CVmMigrateTargetServer::getInstance().connectToDisp())
 		r = app.exec();
 
 	// sleep is required because Vz6 vm_app doesn't instantly

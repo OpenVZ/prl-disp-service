@@ -74,6 +74,14 @@ public:
 	{
 		return !m_subject.isNull();
 	}
+	void resetSubject()
+	{
+		m_subject.reset();
+	}
+	static CVmMigrateTargetServer &getInstance()
+	{
+		return g_targetServer;
+	}
 
 signals:
 	void finished(int);
@@ -112,6 +120,9 @@ private:
 	/* partial Vm initialization for hot-mode migration */
 	bool partialVmStart();
 	bool send(const SmartPtr<IOPackage>&);
+
+protected:
+	static CVmMigrateTargetServer g_targetServer;
 
 private:
 	QString m_sVmUuid;
