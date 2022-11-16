@@ -142,6 +142,7 @@ void NotifyClientWithCancel(
 		const QString &sVmUuid)
 {
 	WRITE_TRACE(DBG_DEBUG, "VM %s migration cancelled (notifier)", qPrintable(sVmUuid));
+	CVmMigrateTargetServer::getInstance().resetSubject();
 	QCoreApplication::exit(-1);
 }
 
