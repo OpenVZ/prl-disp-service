@@ -451,7 +451,7 @@ private:
 
 struct Feedback: QObject
 {
-	void generate(Tunnel* result_);
+	void generate(Tunnel* result_, const QString &reason_);
 
 signals:
 	void abort();

@@ -267,11 +267,17 @@ Launcher& Launcher::setTarget(const QHostAddress& address_, quint16 port_)
 PRL_RESULT Launcher::operator()(quint16 accept_, QProcess& process_)
 {
 	if (m_target.isEmpty())
+	{
+		WRITE_TRACE(DBG_FATAL, "Error: socat target is empty");
 		return PRL_ERR_UNINITIALIZED;
+	}
 
 	Visitor::result_type a = boost::apply_visitor(Visitor(accept_), m_mode);
 	if (a.isFailed())
+	{
+		WRITE_TRACE(DBG_FATAL, "Error: socat failed apply mode");
 		return a.error();
+	}
 
 	process_.start("/usr/bin/socat", QStringList() << "-d" << "-d"
 		<< "-lyuser" << a.value() << m_target);
@@ -401,11 +407,11 @@ Tunnel* Subject::getResult()
 ///////////////////////////////////////////////////////////////////////////////
 // struct Feedback
 
-void Feedback::generate(Tunnel* result_)
+void Feedback::generate(Tunnel* result_, const QString &reason_)
 {
 	if (NULL == result_)
 	{
-		WRITE_TRACE(DBG_FATAL, "cannot start a VNC tunnel: feedback is negative");
+		WRITE_TRACE(DBG_FATAL, "cannot start a VNC tunnel: feedback is negative - %s", QSTR2UTF8(reason_));
 		emit abort();
 	}
 	else
@@ -425,14 +431,14 @@ void Script::operator()(Feedback& feedback_)
 	quint16 p = m_setup.first, e = m_setup.second;
 
 	if (PRL_FAILED(s->startStunnel(p, e)))
-		return feedback_.generate(NULL);
+		return feedback_.generate(NULL, QString("Can't start Stunnel [%1:%2]").arg(p).arg(e));
 
 	if (PRL_FAILED(s->bringUpKeepAlive()))
-		return feedback_.generate(NULL);
+		return feedback_.generate(NULL, "Can't connect to dispatcher");
 
 	Tunnel* t = s->getResult();
 	if (NULL == t)
-		return feedback_.generate(NULL);
+		return feedback_.generate(NULL, "Cannot create a Tunnel");
 
 	if (PRD_AUTO == m_sweepMode)
 	{
@@ -441,7 +447,7 @@ void Script::operator()(Feedback& feedback_)
 		w->connect(t, SIGNAL(closed()), SLOT(reactRipped()));
 	}
 	p = t->getPort();
-	feedback_.generate(t);
+	feedback_.generate(t, "Success");
 	m_commit(p);
 }
 
