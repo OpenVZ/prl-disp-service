@@ -1234,12 +1234,17 @@ struct Subject: Shedable
 	}
 	PRL_RESULT create(Task::Workbench& task_)
 	{
+		Q_UNUSED(task_);
+
 		if (!m_flavor.getUuid().isEmpty())
 			return PRL_ERR_DOUBLE_INIT;
 
 		PRL_RESULT e;
-		if (PRL_FAILED(e = task_.openTmp(m_tmp)))
-			return e;
+
+		// #PSBM-143462 Do not open useless tmp folder for container.
+		// Restore functionality later if it will be required.
+		// if (PRL_FAILED(e = task_.openTmp(m_tmp)))
+		//	return e;
 
 		if (PRL_FAILED(e = m_flavor.begin(m_tmp)))
 		{
