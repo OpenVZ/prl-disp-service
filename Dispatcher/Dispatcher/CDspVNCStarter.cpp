@@ -384,7 +384,11 @@ PRL_RESULT Subject::bringUpKeepAlive()
 	m_keepAlive->connectToHost(m_launcher.getServer().first,
 		m_launcher.getServer().second);
 	if (!m_keepAlive->waitForConnected(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
+	{
+		WRITE_TRACE(DBG_FATAL, "Error [%d]: can't connect to dispatcher %s; process state %d",
+				m_keepAlive->error(), QSTR2UTF8(m_keepAlive->errorString()), m_stunnel->state());
 		return PRL_ERR_CANT_CONNECT_TO_DISPATCHER;
+	}
 
 	return PRL_ERR_SUCCESS;
 }
