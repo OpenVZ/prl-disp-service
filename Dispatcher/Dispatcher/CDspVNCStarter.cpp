@@ -288,7 +288,7 @@ PRL_RESULT Launcher::operator()(quint16 accept_, QProcess& process_)
 	}
 	if (process_.waitForFinished(WAIT_TO_EXIT_VNC_SERVER_AFTER_START))
 	{
-		WRITE_TRACE(DBG_FATAL, "Error: the socat has quitted unexectedly");
+		WRITE_TRACE(DBG_FATAL, "Error: the socat has quieted unexpectedly");
 		return PRL_ERR_UNEXPECTED;
 	}
 	return PRL_ERR_SUCCESS;
@@ -1025,7 +1025,7 @@ PRL_RESULT Stunnel::do_(QProcess& process_)
 	process_.closeWriteChannel();
 	if (process_.waitForFinished(WAIT_TO_EXIT_VNC_SERVER_AFTER_START))
 	{
-		WRITE_TRACE(DBG_FATAL, "Error: the stunnel has quitted unexectedly");
+		WRITE_TRACE(DBG_FATAL, "Error: the stunnel has quieted unexpectedly");
 		return PRL_ERR_UNEXPECTED;
 	}
 	return PRL_ERR_SUCCESS;
