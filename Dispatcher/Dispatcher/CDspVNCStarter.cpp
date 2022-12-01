@@ -278,9 +278,11 @@ PRL_RESULT Launcher::operator()(quint16 accept_, QProcess& process_)
 		WRITE_TRACE(DBG_FATAL, "Error: socat failed apply mode");
 		return a.error();
 	}
-
-	process_.start("/usr/bin/socat", QStringList() << "-d" << "-d"
-		<< "-lyuser" << a.value() << m_target);
+	QStringList args;
+	args << "-d" << "-d" << "-lyuser" << a.value() << m_target;
+	process_.start("/usr/bin/socat", args);
+	WRITE_TRACE(DBG_INFO, "Try to start socat CMD with args: '%s'",
+		QSTR2UTF8(args.join(" ")));
 	if (!process_.waitForStarted(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
 	{
 		WRITE_TRACE(DBG_FATAL, "Error: can't start socat");
@@ -288,7 +290,7 @@ PRL_RESULT Launcher::operator()(quint16 accept_, QProcess& process_)
 	}
 	if (process_.waitForFinished(WAIT_TO_EXIT_VNC_SERVER_AFTER_START))
 	{
-		WRITE_TRACE(DBG_FATAL, "Error: the socat has quitted unexectedly");
+		WRITE_TRACE(DBG_FATAL, "Error: the socat has quieted unexpectedly");
 		return PRL_ERR_UNEXPECTED;
 	}
 	return PRL_ERR_SUCCESS;
@@ -384,7 +386,11 @@ PRL_RESULT Subject::bringUpKeepAlive()
 	m_keepAlive->connectToHost(m_launcher.getServer().first,
 		m_launcher.getServer().second);
 	if (!m_keepAlive->waitForConnected(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
+	{
+		WRITE_TRACE(DBG_FATAL, "Error [%d]: can't connect to dispatcher %s; process state %d",
+				m_keepAlive->error(), QSTR2UTF8(m_keepAlive->errorString()), m_stunnel->state());
 		return PRL_ERR_CANT_CONNECT_TO_DISPATCHER;
+	}
 
 	return PRL_ERR_SUCCESS;
 }
@@ -1034,7 +1040,7 @@ PRL_RESULT Stunnel::do_(QProcess& process_)
 	process_.closeWriteChannel();
 	if (process_.waitForFinished(WAIT_TO_EXIT_VNC_SERVER_AFTER_START))
 	{
-		WRITE_TRACE(DBG_FATAL, "Error: the stunnel has quitted unexectedly");
+		WRITE_TRACE(DBG_FATAL, "Error: the stunnel has quieted unexpectedly");
 		return PRL_ERR_UNEXPECTED;
 	}
 	return PRL_ERR_SUCCESS;
