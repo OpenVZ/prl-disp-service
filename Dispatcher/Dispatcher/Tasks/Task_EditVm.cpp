@@ -1106,6 +1106,7 @@ PRL_RESULT Task_EditVm::editVm()
 	PRL_RESULT ret = PRL_ERR_SUCCESS;
 	bool bNeedVNCStart = false;
 	bool bNeedVNCStop = false;
+	bool bNeedVNCReload = false;
 	bool cloudCdRemoved = false;
 
 	QString qsOldDirName;
@@ -1837,6 +1838,10 @@ PRL_RESULT Task_EditVm::editVm()
 				}
 			}
 
+			if (newRemDisplay->getPortNumber() != oldRemDisplay.getPortNumber() &&
+					newRemDisplay->getMode() != PRD_DISABLED && oldRemDisplay.getMode() != PRD_DISABLED)
+				bNeedVNCReload = true;
+
 			if (nState != VMS_STOPPED)
 			{
 				if (bVmWasRenamed)
@@ -2009,6 +2014,10 @@ PRL_RESULT Task_EditVm::editVm()
 				ident.second, ident.first);
 		}
 	}
+
+	//send signal about updated QEMU scheme for FRONTEND
+	if (bNeedVNCReload)
+		Libvirt::Kit.vms().at(vm_uuid).getMaintenance().emitQemuUpdated();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Notify users that VM configuration was changed
@@ -2927,9 +2936,6 @@ Action* RemoteDesktop::operator()(const Request& input_) const
 	a->setNext(output);
 	output = a;
 	
-	//send signal about updated QEMU scheme for FRONTEND
-	Libvirt::Kit.vms().at(input_.getObject().first).getMaintenance().emitQemuUpdated();
-
 	return output;
 }
 
