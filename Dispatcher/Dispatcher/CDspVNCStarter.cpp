@@ -278,9 +278,11 @@ PRL_RESULT Launcher::operator()(quint16 accept_, QProcess& process_)
 		WRITE_TRACE(DBG_FATAL, "Error: socat failed apply mode");
 		return a.error();
 	}
-
-	process_.start("/usr/bin/socat", QStringList() << "-d" << "-d"
-		<< "-lyuser" << a.value() << m_target);
+	QStringList args;
+	args << "-d" << "-d" << "-lyuser" << a.value() << m_target;
+	process_.start("/usr/bin/socat", args);
+	WRITE_TRACE(DBG_INFO, "Try to start socat CMD with args: '%s'",
+		QSTR2UTF8(args.join(" ")));
 	if (!process_.waitForStarted(WAIT_VNC_SERVER_TO_START_OR_STOP_PROCESS))
 	{
 		WRITE_TRACE(DBG_FATAL, "Error: can't start socat");
