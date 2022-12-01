@@ -638,7 +638,16 @@ void Frontend::draw(CVmRemoteDisplay& object_, const CVmRemoteDisplay* runtime_,
 		return;
 
 	Scope s(*m_service);
-	Socat::Launcher u(object_.getHostName());
+
+	QString currentHost = object_.getHostName();
+
+	CDispRemoteDisplayPreferences* RemotePrefsPtr =
+			CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getRemoteDisplayPreferences();
+
+	if (currentHost == "0.0.0.0")
+		currentHost = RemotePrefsPtr->getBaseHostName();
+
+	Socat::Launcher u(currentHost);
 	boost::optional<Vnc::Api::Stunnel> e = s.getEncryption();
 	if (e)
 	{
@@ -1190,6 +1199,13 @@ PRL_RESULT CDspVNCStarter::Start (
 
 	PRL_RESULT e;
 	Vnc::Api::Server a(app, sID, *remDisplay);
+
+	CDispRemoteDisplayPreferences* RemotePrefsPtr =
+			CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getRemoteDisplayPreferences();
+
+	if (remDisplay->getHostName() == "0.0.0.0")
+		a.hostname(QHostAddress(RemotePrefsPtr->getBaseHostName()));
+
 	std::auto_ptr<Vnc::Starter::Unit> x(new Vnc::Starter::Raw(a, *this));
 	{
 		QByteArray c, k;
