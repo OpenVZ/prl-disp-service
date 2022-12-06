@@ -49,7 +49,7 @@ namespace
 enum {V2V_RUN_TIMEOUT = 60 * 60 * 1000};
 enum {MAX_IDE = PRL_MAX_IDE_DEVICES_NUM - 1}; // 1 for tools cd
 
-const char VIRT_V2V[] = "/usr/bin/virt-v2v";
+const char VIRT_V2V[] = "/usr/bin/virt-v2v-in-place";
 
 QString getHostOnlyBridge()
 {
@@ -472,7 +472,7 @@ PRL_RESULT V2V::do_() const
 	QStringList cmdline = QStringList()
 		<< VIRT_V2V
 		<< "-i" << "libvirt"
-		<< "--in-place" << "-v" << "-x";
+		<< "-v" << "-x";
 
 	cmdline << ::Uuid(m_cfg.getVmIdentification()->getVmUuid()).toStringWithoutBrackets();
 
