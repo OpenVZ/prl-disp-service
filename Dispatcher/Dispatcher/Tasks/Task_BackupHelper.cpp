@@ -668,6 +668,12 @@ PRL_RESULT Visitor::operator()(const boost::blank&) const
 		a[0] = "abort_ct";
 		a.prepend(VZ_BACKUP_CLIENT);
 		
+		//enable debug log for libvirt
+		bool bVerbose = CDspService::instance()->getDispConfigGuard()
+				.getDispCommonPrefs()->getDebug()->isVerboseLogEnabled();
+		if (bVerbose)
+			a << "--verbose" << "5";
+
 		WRITE_TRACE(DBG_FATAL, "Run cmd: %s", QSTR2UTF8(a.join(" ")));
 		QProcess p;
 		DefaultExecHandler h(p, a.join(" "));
@@ -903,6 +909,12 @@ Prl::Expected<QStringList, PRL_RESULT> Getter::operator()(
 	QStringList a = boost::apply_visitor(Builder(m_config,
 			activity_.getSnapshot().getComponents()), variant_);
 	a.prepend(VZ_BACKUP_CLIENT);
+
+	//enable debug log for libvirt 
+	bool bVerbose = CDspService::instance()->getDispConfigGuard()
+				.getDispCommonPrefs()->getDebug()->isVerboseLogEnabled();
+	if (bVerbose)
+		a << "--verbose" << "5";
 
 	QString out;
 	PRL_RESULT e = boost::apply_visitor(Worker(
@@ -1888,9 +1900,19 @@ PRL_RESULT Task_BackupMixin::startABackupClient(const QString& sVmName_, const Q
 	y = SmartPtr<Chain>(b);
 
 	QStringList a(args_);
-	a.prepend((BACKUP_PROTO_V4 > m_nRemoteVersion) ?
-                        QString(PRL_ABACKUP_CLIENT) : QString(VZ_BACKUP_CLIENT));
+	if (BACKUP_PROTO_V4 > m_nRemoteVersion)
+		a.prepend(QString(PRL_ABACKUP_CLIENT));
+	else
+	{
+		a.prepend(QString(VZ_BACKUP_CLIENT));
+		//enable debug log for libvirt
+		bool bVerbose = CDspService::instance()->getDispConfigGuard()
+				.getDispCommonPrefs()->getDebug()->isVerboseLogEnabled();
+		if (bVerbose)
+			a << "--verbose" << "5";
+	}
 	a << "--timeout" << QString::number(m_nBackupTimeout);
+
 	Client x(m_cABackupClient = new Backup::Process::Unit(boost::bind<void>(
 		Backup::Process::Flop(sVmName_, *m_task), _1, _2, _3)), a);
 	PRL_RESULT e = PRL_ERR_SUCCESS;
