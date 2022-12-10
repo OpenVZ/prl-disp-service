@@ -600,9 +600,9 @@ Result Unit::completeConfig(CVmConfiguration& config_)
 		if (virDomainGetBlockInfo(getDomain().data(), QSTR2UTF8(d->getSystemName()),
 			&b, 0) == 0)
 		{
-			d->setSize(b.capacity >> 20);
+			d->setSize(BYTE2MB(b.capacity));
 			d->setSizeInBytes(b.capacity);
-			d->setSizeOnDisk(b.physical >> 20);
+			d->setSizeOnDisk(BYTE2MB(b.physical));
 		}
 	}
 	return Result();

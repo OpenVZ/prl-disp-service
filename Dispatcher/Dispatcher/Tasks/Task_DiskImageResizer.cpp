@@ -53,7 +53,6 @@ using namespace Virtuozzo;
 
 #define MB2SECT(x)	((PRL_UINT64) (x) << 11)
 #define SECT2MB(x)	((x) >> 11)
-#define BYTE2MB(x)	((x) >> 20)
 
 namespace
 {
