@@ -46,6 +46,8 @@
 #include "CDspDispConnection.h"
 #include <prlxmlmodel/DispConfig/CDispCpuPreferences.h>
 
+#define BYTE2MB(x)	(((x) + 1024*1024ull - 1) >> 20)
+
 using namespace IOService;
 
 /** Header classes predefines */

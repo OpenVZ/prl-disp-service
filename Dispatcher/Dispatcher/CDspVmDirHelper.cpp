@@ -3072,11 +3072,12 @@ PRL_RESULT CDspVmDirHelper::UpdateHardDiskInformation(SmartPtr<CVmConfiguration>
 		::Stat::timedValue_type v;
 		v = s->read(::Stat::Name::Hdd::getPhysical(*d));
 		if (0 != v.second)
-			d->setSizeOnDisk(v.first >> 20);
+			d->setSizeOnDisk(BYTE2MB(v.first));
 /*
 		v = s->read(::Stat::Name::Hdd::getCapacity(*d));
 		if (0 != v.second)
-			d->setSize(v.first >> 20);
+			d->setSize(BYTE2MB(v.first));
+			d->setSizeInBytes(v.first);
 */
 	}
 	return PRL_ERR_SUCCESS;
