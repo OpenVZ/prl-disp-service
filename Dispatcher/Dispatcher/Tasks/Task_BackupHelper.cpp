@@ -963,7 +963,8 @@ Builder& Builder::withCompression()
 PRL_RESULT Builder::operator()(quint64 size_)
 {
 	VirtualDisk::qcow2PolicyList_type p(m_policyList);
-	p.push_back(VirtualDisk::Policy::Qcow2::size_type(size_));
+	//qemu image has to be aligned by 65536 bytes - we will align on 1 Mb
+	p.push_back(VirtualDisk::Policy::Qcow2::size_type(BYTE2MB(size_) << 20 ));
 
 	return VirtualDisk::Qcow2::create(m_path, p);
 }
