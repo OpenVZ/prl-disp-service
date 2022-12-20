@@ -3,6 +3,7 @@ TEMPLATE = lib
 CONFIG += staticlib
 
 DEFINES += PRINTABLE_TARGET=cmn_utils
+DEFINES += BOOST_BIND_GLOBAL_PLACEHOLDERS
 
 include(PrlCommonUtils.pri)
 
