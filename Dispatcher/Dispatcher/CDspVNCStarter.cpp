@@ -860,7 +860,7 @@ Unit<T>::~Unit()
 	if (NULL == x)
 		return;
 
-	QCoreApplication::postEvent(x, new QEvent(QEvent::DeferredDelete));
+	QCoreApplication::postEvent(x, new QDeferredDeleteEvent);
 }
 
 template<class T>
