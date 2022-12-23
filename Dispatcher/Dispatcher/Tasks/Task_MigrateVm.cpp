@@ -1031,7 +1031,6 @@ void Frontend::on_exit(const Event& event_, FSM& fsm_)
 	{
 		c->close();
 	}
-	m_listenerMap.clear();
 	getConnector()->setService(NULL);
 }
 
