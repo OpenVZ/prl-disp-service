@@ -1014,7 +1014,13 @@ void Frontend::on_entry(const Event& event_, FSM& fsm_)
 	getConnector()->setService(m_service);
 	if (setup(SLOT(acceptLibvirt())) && setup(SLOT(acceptQemuState()))
 		&& setup(SLOT(acceptQemuDisk())))
-		return getConnector()->handle(m_listenerMap.values());
+	{
+		Libvirt::State::serverList_type listnerList;
+		listnerList.push_back(m_listenerMap[SLOT(acceptLibvirt())]);
+		listnerList.push_back(m_listenerMap[SLOT(acceptQemuState())]);
+		listnerList.push_back(m_listenerMap[SLOT(acceptQemuDisk())]);
+		return getConnector()->handle(listnerList);
+	}
 
 	fsm_.process_event(Flop::Event(PRL_ERR_FAILURE));
 }
