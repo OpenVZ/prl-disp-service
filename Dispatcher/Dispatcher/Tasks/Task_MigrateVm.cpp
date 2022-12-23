@@ -830,6 +830,7 @@ Flop::Event State::start(serverList_type const& serverList_)
 	const QString u = QString("qemu+tcp://%1:%2/system")
 				.arg(QHostAddress(QHostAddress::LocalHost).toString())
 				.arg(serverList_.first()->serverPort());
+	WRITE_TRACE(DBG_DEBUG, "Start migrate for uri: '%s'", QSTR2UTF8(u));
 	Task::agent_type a = ::Libvirt::Kit.vms().at(m_task->getVmUuid()).getState().migrate(u);
 	switch (m_task->getOldState())
 	{
@@ -1002,7 +1003,7 @@ bool Frontend::setup(const char* method_)
 		WRITE_TRACE(DBG_FATAL, "can't listen");
 		return false;
 	}
-	WRITE_TRACE(DBG_DEBUG, "Listen at localhost: %d", s->serverPort());
+	WRITE_TRACE(DBG_DEBUG, "Listen '%s' at localhost: %d", method_, s->serverPort());
 	m_listenerMap[method_] = s;
 	return true;
 }
