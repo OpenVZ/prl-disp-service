@@ -9527,7 +9527,25 @@ static QString g_text[] = {
 	QString("backend9499"),
 	QString(""),
 	QString("maxGuests"),
-	QString("maxESGuests")
+	QString("maxESGuests"),
+	QString(""),
+	QString("vpd"),
+	QString("vpdFieldValueFormat"),
+	QString("fields"),
+	QString("change_level"),
+	QString("manufacture_id"),
+	QString("part_number"),
+	QString("serial_number"),
+	QString("vendor_field"),
+	QString("vendorVPDFieldIndex"),
+	QString("readwrite"),
+	QString("asset_tag"),
+	QString("system_field"),
+	QString("systemVPDFieldIndex"),
+	QString(""),
+	QString("capscsigeneric"),
+	QString("capability9519"),
+	QString("scsi_generic")
 };
 
 const QString& getText(quint32 index_)

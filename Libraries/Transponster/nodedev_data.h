@@ -1649,6 +1649,72 @@ struct Validatable<Nodedev::Xml::PData9162>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PVpdFieldValueFormat
+
+namespace Nodedev
+{
+namespace Xml
+{
+struct PVpdFieldValueFormat
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Nodedev
+
+template<>
+struct Validatable<Nodedev::Xml::PVpdFieldValueFormat>: mpl::true_
+{
+	static bool validate(const Nodedev::Xml::PVpdFieldValueFormat::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PVendorVPDFieldIndex
+
+namespace Nodedev
+{
+namespace Xml
+{
+struct PVendorVPDFieldIndex
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Nodedev
+
+template<>
+struct Validatable<Nodedev::Xml::PVendorVPDFieldIndex>: mpl::true_
+{
+	static bool validate(const Nodedev::Xml::PVendorVPDFieldIndex::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PSystemVPDFieldIndex
+
+namespace Nodedev
+{
+namespace Xml
+{
+struct PSystemVPDFieldIndex
+{
+	typedef QString value_type;
+};
+
+} // namespace Xml
+} // namespace Nodedev
+
+template<>
+struct Validatable<Nodedev::Xml::PSystemVPDFieldIndex>: mpl::true_
+{
+	static bool validate(const Nodedev::Xml::PSystemVPDFieldIndex::value_type& value_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct VUUID
 
 namespace Nodedev
