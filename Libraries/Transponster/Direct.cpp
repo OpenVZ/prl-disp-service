@@ -1473,26 +1473,32 @@ void Vm::setOsInfo(CVmCommonOptions* opts)
 	}
 }
 
-void Vm::setAutoUpdate(CVmTools* t) noexcept
+void Vm::setGuestTools(CVmTools* t) noexcept
 {
 	if (!m_input->getMetadata().is_initialized())
 		return;
 
-	// Set default value
+	// Set default value for autoupdate
 	t->getAutoUpdate()->setEnabled(true);
 
 	// Considered metadata part
 	//<metadata>
 	//	...
 	//	<vz:vz xmlns:vz="http://www.virtuozzo.com/vhs">
-	//		<vz:guest_tools autoupdate="yes"/>
+	//		<vz:guest_tools autoupdate="yes" version="X.X.X-X.vz9" actual="yes"/>
 	//	</vz:vz>
 	//</metadata>
 
 	boost::optional<QDomElement> foundEl = getMetaNsElement(m_input->getMetadata().get(), VHS_URI, "guest_tools");
 
-	if (foundEl.is_initialized() && foundEl.get().attribute("autoupdate") == "no")
-		t->getAutoUpdate()->setEnabled(false);
+	if (foundEl.is_initialized())
+	{
+		if (foundEl.get().attribute("autoupdate") == "no")
+			t->getAutoUpdate()->setEnabled(false);
+		QString version = foundEl.get().attribute("version");
+		if (!version.isEmpty())
+			t->setAgentVersion(version);
+	}
 }
 
 PRL_RESULT Vm::setSettings()
@@ -1509,9 +1515,8 @@ PRL_RESULT Vm::setSettings()
 	setOsInfo(o);
 
 	CVmTools* t = new CVmTools();
+	setGuestTools(t);
 	s->setVmTools(t);
-
-	setAutoUpdate(t);
 
 	CVmRunTimeOptions* r(new CVmRunTimeOptions());
 	s->setVmRuntimeOptions(r);
