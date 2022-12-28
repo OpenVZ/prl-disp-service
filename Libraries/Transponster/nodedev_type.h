@@ -448,6 +448,273 @@ private:
 } // namespace Nodedev
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VendorField
+
+namespace Nodedev
+{
+namespace Xml
+{
+struct VendorField
+{
+	const PVendorVPDFieldIndex::value_type& getIndex() const
+	{
+		return m_index;
+	}
+	void setIndex(const PVendorVPDFieldIndex::value_type& value_)
+	{
+		m_index = value_;
+	}
+	const PVpdFieldValueFormat::value_type& getOwnValue() const
+	{
+		return m_ownValue;
+	}
+	void setOwnValue(const PVpdFieldValueFormat::value_type& value_)
+	{
+		m_ownValue = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	PVendorVPDFieldIndex::value_type m_index;
+	PVpdFieldValueFormat::value_type m_ownValue;
+};
+
+} // namespace Xml
+} // namespace Nodedev
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Fields
+
+namespace Nodedev
+{
+namespace Xml
+{
+struct Fields
+{
+	const boost::optional<PVpdFieldValueFormat::value_type >& getChangeLevel() const
+	{
+		return m_changeLevel;
+	}
+	void setChangeLevel(const boost::optional<PVpdFieldValueFormat::value_type >& value_)
+	{
+		m_changeLevel = value_;
+	}
+	const boost::optional<PVpdFieldValueFormat::value_type >& getManufactureId() const
+	{
+		return m_manufactureId;
+	}
+	void setManufactureId(const boost::optional<PVpdFieldValueFormat::value_type >& value_)
+	{
+		m_manufactureId = value_;
+	}
+	const boost::optional<PVpdFieldValueFormat::value_type >& getPartNumber() const
+	{
+		return m_partNumber;
+	}
+	void setPartNumber(const boost::optional<PVpdFieldValueFormat::value_type >& value_)
+	{
+		m_partNumber = value_;
+	}
+	const boost::optional<PVpdFieldValueFormat::value_type >& getSerialNumber() const
+	{
+		return m_serialNumber;
+	}
+	void setSerialNumber(const boost::optional<PVpdFieldValueFormat::value_type >& value_)
+	{
+		m_serialNumber = value_;
+	}
+	const QList<VendorField >& getVendorFieldList() const
+	{
+		return m_vendorFieldList;
+	}
+	void setVendorFieldList(const QList<VendorField >& value_)
+	{
+		m_vendorFieldList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	boost::optional<PVpdFieldValueFormat::value_type > m_changeLevel;
+	boost::optional<PVpdFieldValueFormat::value_type > m_manufactureId;
+	boost::optional<PVpdFieldValueFormat::value_type > m_partNumber;
+	boost::optional<PVpdFieldValueFormat::value_type > m_serialNumber;
+	QList<VendorField > m_vendorFieldList;
+};
+
+} // namespace Xml
+} // namespace Nodedev
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VendorField1
+
+namespace Nodedev
+{
+namespace Xml
+{
+struct VendorField1
+{
+	const PVendorVPDFieldIndex::value_type& getIndex() const
+	{
+		return m_index;
+	}
+	void setIndex(const PVendorVPDFieldIndex::value_type& value_)
+	{
+		m_index = value_;
+	}
+	const PVpdFieldValueFormat::value_type& getOwnValue() const
+	{
+		return m_ownValue;
+	}
+	void setOwnValue(const PVpdFieldValueFormat::value_type& value_)
+	{
+		m_ownValue = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	PVendorVPDFieldIndex::value_type m_index;
+	PVpdFieldValueFormat::value_type m_ownValue;
+};
+
+} // namespace Xml
+} // namespace Nodedev
+
+///////////////////////////////////////////////////////////////////////////////
+// struct SystemField
+
+namespace Nodedev
+{
+namespace Xml
+{
+struct SystemField
+{
+	const PSystemVPDFieldIndex::value_type& getIndex() const
+	{
+		return m_index;
+	}
+	void setIndex(const PSystemVPDFieldIndex::value_type& value_)
+	{
+		m_index = value_;
+	}
+	const PVpdFieldValueFormat::value_type& getOwnValue() const
+	{
+		return m_ownValue;
+	}
+	void setOwnValue(const PVpdFieldValueFormat::value_type& value_)
+	{
+		m_ownValue = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	PSystemVPDFieldIndex::value_type m_index;
+	PVpdFieldValueFormat::value_type m_ownValue;
+};
+
+} // namespace Xml
+} // namespace Nodedev
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Fields1
+
+namespace Nodedev
+{
+namespace Xml
+{
+struct Fields1
+{
+	const boost::optional<PVpdFieldValueFormat::value_type >& getAssetTag() const
+	{
+		return m_assetTag;
+	}
+	void setAssetTag(const boost::optional<PVpdFieldValueFormat::value_type >& value_)
+	{
+		m_assetTag = value_;
+	}
+	const QList<VendorField1 >& getVendorFieldList() const
+	{
+		return m_vendorFieldList;
+	}
+	void setVendorFieldList(const QList<VendorField1 >& value_)
+	{
+		m_vendorFieldList = value_;
+	}
+	const QList<SystemField >& getSystemFieldList() const
+	{
+		return m_systemFieldList;
+	}
+	void setSystemFieldList(const QList<SystemField >& value_)
+	{
+		m_systemFieldList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	boost::optional<PVpdFieldValueFormat::value_type > m_assetTag;
+	QList<VendorField1 > m_vendorFieldList;
+	QList<SystemField > m_systemFieldList;
+};
+
+} // namespace Xml
+} // namespace Nodedev
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Capability1
+
+namespace Nodedev
+{
+namespace Xml
+{
+struct Capability1
+{
+	const PVpdFieldValueFormat::value_type& getName() const
+	{
+		return m_name;
+	}
+	void setName(const PVpdFieldValueFormat::value_type& value_)
+	{
+		m_name = value_;
+	}
+	const boost::optional<Fields >& getFields() const
+	{
+		return m_fields;
+	}
+	void setFields(const boost::optional<Fields >& value_)
+	{
+		m_fields = value_;
+	}
+	const boost::optional<Fields1 >& getFields2() const
+	{
+		return m_fields2;
+	}
+	void setFields2(const boost::optional<Fields1 >& value_)
+	{
+		m_fields2 = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	PVpdFieldValueFormat::value_type m_name;
+	boost::optional<Fields > m_fields;
+	boost::optional<Fields1 > m_fields2;
+};
+
+} // namespace Xml
+} // namespace Nodedev
+
+///////////////////////////////////////////////////////////////////////////////
 // struct IommuGroup
 
 namespace Nodedev
@@ -670,6 +937,14 @@ struct Cappcidev
 	{
 		m_capability4 = value_;
 	}
+	const boost::optional<Capability1 >& getCapability5() const
+	{
+		return m_capability5;
+	}
+	void setCapability5(const boost::optional<Capability1 >& value_)
+	{
+		m_capability5 = value_;
+	}
 	const boost::optional<IommuGroup >& getIommuGroup() const
 	{
 		return m_iommuGroup;
@@ -707,6 +982,7 @@ private:
 	boost::optional<Capability > m_capability2;
 	boost::optional<EType > m_capability3;
 	boost::optional<QList<Type > > m_capability4;
+	boost::optional<Capability1 > m_capability5;
 	boost::optional<IommuGroup > m_iommuGroup;
 	boost::optional<Numa > m_numa;
 	boost::optional<QList<Link > > m_pciExpress;
@@ -1355,15 +1631,15 @@ private:
 } // namespace Nodedev
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability1
+// struct Capability2
 
 namespace Nodedev
 {
 namespace Xml
 {
-struct Capability1
+struct Capability2
 {
-	Capability1();
+	Capability2();
 
 	EMediaAvailable getMediaAvailable() const
 	{
@@ -1454,7 +1730,7 @@ namespace Nodedev
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Element<Nodedev::Xml::Capability1, Name::Strict<3467> >, Capstoragefixed > > VCapstorageImpl;
+typedef Choice<mpl::vector<Element<Nodedev::Xml::Capability2, Name::Strict<3467> >, Capstoragefixed > > VCapstorageImpl;
 typedef VCapstorageImpl::value_type VCapstorage;
 
 } // namespace Xml
@@ -1764,7 +2040,7 @@ namespace Nodedev
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Capsystem, Cappcidev, Capusbdev, Capusbinterface, Capnet, Capscsihost, Capscsitarget, Capscsi, Capstorage, Ordered<mpl::vector<Attribute<mpl::int_<3547>, Name::Strict<105> >, Element<Text<Nodedev::Xml::EType1 >, Name::Strict<105> > > >, Capmdev, Capccwdev, Capcssdev, Ordered<mpl::vector<Attribute<mpl::int_<6886>, Name::Strict<105> >, Element<Text<Nodedev::Xml::PPath >, Name::Strict<6887> > > >, Ordered<mpl::vector<Attribute<mpl::int_<6888>, Name::Strict<105> >, Element<Text<Nodedev::Xml::VUint8 >, Name::Strict<6889> > > >, Capapqueue, Ordered<mpl::vector<Attribute<mpl::int_<6893>, Name::Strict<105> >, Optional<Element<Ordered<mpl::vector<Attribute<mpl::int_<3505>, Name::Strict<105> >, OneOrMore<Element<Nodedev::Xml::Type, Name::Strict<105> > > > >, Name::Strict<3467> > > > > > > VCapabilityImpl;
+typedef Choice<mpl::vector<Capsystem, Cappcidev, Capusbdev, Capusbinterface, Capnet, Ordered<mpl::vector<Attribute<mpl::int_<9521>, Name::Strict<105> >, Element<Text<QString >, Name::Strict<940> > > >, Capscsihost, Capscsitarget, Capscsi, Capstorage, Ordered<mpl::vector<Attribute<mpl::int_<3547>, Name::Strict<105> >, Element<Text<Nodedev::Xml::EType1 >, Name::Strict<105> > > >, Capmdev, Capccwdev, Capcssdev, Ordered<mpl::vector<Attribute<mpl::int_<6886>, Name::Strict<105> >, Element<Text<Nodedev::Xml::PPath >, Name::Strict<6887> > > >, Ordered<mpl::vector<Attribute<mpl::int_<6888>, Name::Strict<105> >, Element<Text<Nodedev::Xml::VUint8 >, Name::Strict<6889> > > >, Capapqueue, Ordered<mpl::vector<Attribute<mpl::int_<6893>, Name::Strict<105> >, Optional<Element<Ordered<mpl::vector<Attribute<mpl::int_<3505>, Name::Strict<105> >, OneOrMore<Element<Nodedev::Xml::Type, Name::Strict<105> > > > >, Name::Strict<3467> > > > > > > VCapabilityImpl;
 typedef VCapabilityImpl::value_type VCapability;
 
 } // namespace Xml
@@ -1961,6 +2237,78 @@ struct Traits<Nodedev::Xml::Type>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VendorField traits
+
+template<>
+struct Traits<Nodedev::Xml::VendorField>
+{
+	typedef Ordered<mpl::vector<Attribute<Nodedev::Xml::PVendorVPDFieldIndex, Name::Strict<488> >, Text<Nodedev::Xml::PVpdFieldValueFormat > > > marshal_type;
+
+	static int parse(Nodedev::Xml::VendorField& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::VendorField& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Fields traits
+
+template<>
+struct Traits<Nodedev::Xml::Fields>
+{
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<274>, Name::Strict<5790> >, Optional<Element<Text<Nodedev::Xml::PVpdFieldValueFormat >, Name::Strict<9508> > >, Optional<Element<Text<Nodedev::Xml::PVpdFieldValueFormat >, Name::Strict<9509> > >, Optional<Element<Text<Nodedev::Xml::PVpdFieldValueFormat >, Name::Strict<9510> > >, Optional<Element<Text<Nodedev::Xml::PVpdFieldValueFormat >, Name::Strict<9511> > >, ZeroOrMore<Element<Nodedev::Xml::VendorField, Name::Strict<9512> > > > > marshal_type;
+
+	static int parse(Nodedev::Xml::Fields& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Fields& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VendorField1 traits
+
+template<>
+struct Traits<Nodedev::Xml::VendorField1>
+{
+	typedef Ordered<mpl::vector<Attribute<Nodedev::Xml::PVendorVPDFieldIndex, Name::Strict<488> >, Text<Nodedev::Xml::PVpdFieldValueFormat > > > marshal_type;
+
+	static int parse(Nodedev::Xml::VendorField1& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::VendorField1& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct SystemField traits
+
+template<>
+struct Traits<Nodedev::Xml::SystemField>
+{
+	typedef Ordered<mpl::vector<Attribute<Nodedev::Xml::PSystemVPDFieldIndex, Name::Strict<488> >, Text<Nodedev::Xml::PVpdFieldValueFormat > > > marshal_type;
+
+	static int parse(Nodedev::Xml::SystemField& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::SystemField& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Fields1 traits
+
+template<>
+struct Traits<Nodedev::Xml::Fields1>
+{
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<9514>, Name::Strict<5790> >, Optional<Element<Text<Nodedev::Xml::PVpdFieldValueFormat >, Name::Strict<9515> > >, ZeroOrMore<Element<Nodedev::Xml::VendorField1, Name::Strict<9512> > >, ZeroOrMore<Element<Nodedev::Xml::SystemField, Name::Strict<9516> > > > > marshal_type;
+
+	static int parse(Nodedev::Xml::Fields1& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Fields1& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Capability1 traits
+
+template<>
+struct Traits<Nodedev::Xml::Capability1>
+{
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<9505>, Name::Strict<105> >, Element<Text<Nodedev::Xml::PVpdFieldValueFormat >, Name::Strict<107> >, Optional<Element<Nodedev::Xml::Fields, Name::Strict<9507> > >, Optional<Element<Nodedev::Xml::Fields1, Name::Strict<9507> > > > > marshal_type;
+
+	static int parse(Nodedev::Xml::Capability1& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Capability1& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct IommuGroup traits
 
 template<>
@@ -2002,7 +2350,7 @@ struct Traits<Nodedev::Xml::Link>
 template<>
 struct Traits<Nodedev::Xml::Cappcidev>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<596>, Name::Strict<105> >, Optional<Element<Text<Nodedev::Xml::PClass >, Name::Strict<842> > >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<1> >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<29> >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<31> >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<33> >, Element<Nodedev::Xml::Product, Name::Strict<460> >, Element<Nodedev::Xml::Vendor, Name::Strict<459> >, Optional<Element<Ordered<mpl::vector<Attribute<mpl::int_<3501>, Name::Strict<105> >, Optional<Element<Nodedev::Xml::Address, Name::Strict<111> > > > >, Name::Strict<3467> > >, Optional<Element<Nodedev::Xml::Capability, Name::Strict<3467> > >, Optional<Element<Attribute<Nodedev::Xml::EType, Name::Strict<105> >, Name::Strict<3467> > >, Optional<Element<Ordered<mpl::vector<Attribute<mpl::int_<3505>, Name::Strict<105> >, OneOrMore<Element<Nodedev::Xml::Type, Name::Strict<105> > > > >, Name::Strict<3467> > >, Optional<Element<Nodedev::Xml::IommuGroup, Name::Strict<3509> > >, Optional<Element<Nodedev::Xml::Numa, Name::Strict<1031> > >, Optional<Element<ZeroOrMore<Element<Nodedev::Xml::Link, Name::Strict<124> > >, Name::Strict<3511> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<596>, Name::Strict<105> >, Optional<Element<Text<Nodedev::Xml::PClass >, Name::Strict<842> > >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<1> >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<29> >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<31> >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<33> >, Element<Nodedev::Xml::Product, Name::Strict<460> >, Element<Nodedev::Xml::Vendor, Name::Strict<459> >, Optional<Element<Ordered<mpl::vector<Attribute<mpl::int_<3501>, Name::Strict<105> >, Optional<Element<Nodedev::Xml::Address, Name::Strict<111> > > > >, Name::Strict<3467> > >, Optional<Element<Nodedev::Xml::Capability, Name::Strict<3467> > >, Optional<Element<Attribute<Nodedev::Xml::EType, Name::Strict<105> >, Name::Strict<3467> > >, Optional<Element<Ordered<mpl::vector<Attribute<mpl::int_<3505>, Name::Strict<105> >, OneOrMore<Element<Nodedev::Xml::Type, Name::Strict<105> > > > >, Name::Strict<3467> > >, Optional<Element<Nodedev::Xml::Capability1, Name::Strict<3467> > >, Optional<Element<Nodedev::Xml::IommuGroup, Name::Strict<3509> > >, Optional<Element<Nodedev::Xml::Numa, Name::Strict<1031> > >, Optional<Element<ZeroOrMore<Element<Nodedev::Xml::Link, Name::Strict<124> > >, Name::Strict<3511> > > > > marshal_type;
 
 	static int parse(Nodedev::Xml::Cappcidev& , QStack<QDomElement>& );
 	static int generate(const Nodedev::Xml::Cappcidev& , QDomElement& );
@@ -2189,15 +2537,15 @@ struct Traits<Nodedev::Xml::Anonymous5139>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability1 traits
+// struct Capability2 traits
 
 template<>
-struct Traits<Nodedev::Xml::Capability1>
+struct Traits<Nodedev::Xml::Capability2>
 {
 	typedef Ordered<mpl::vector<Attribute<mpl::int_<537>, Name::Strict<105> >, Element<Text<Nodedev::Xml::EMediaAvailable >, Name::Strict<3544> >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<3545> >, Optional<Element<Text<QString >, Name::Strict<3546> > >, Optional<Fragment<Nodedev::Xml::Anonymous5139 > > > > marshal_type;
 
-	static int parse(Nodedev::Xml::Capability1& , QStack<QDomElement>& );
-	static int generate(const Nodedev::Xml::Capability1& , QDomElement& );
+	static int parse(Nodedev::Xml::Capability2& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Capability2& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////

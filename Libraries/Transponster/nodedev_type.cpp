@@ -527,6 +527,381 @@ int Traits<Nodedev::Xml::Type>::generate(const Nodedev::Xml::Type& src_, QDomEle
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VendorField
+
+namespace Nodedev
+{
+namespace Xml
+{
+bool VendorField::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<VendorField, Name::Strict<9512> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool VendorField::save(QDomElement& dst_) const
+{
+	Element<VendorField, Name::Strict<9512> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool VendorField::save(QDomDocument& dst_) const
+{
+	Element<VendorField, Name::Strict<9512> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Nodedev
+
+int Traits<Nodedev::Xml::VendorField>::parse(Nodedev::Xml::VendorField& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setIndex(m.get<0>().getValue());
+		dst_.setOwnValue(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::VendorField>::generate(const Nodedev::Xml::VendorField& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getIndex(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getOwnValue(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Fields
+
+namespace Nodedev
+{
+namespace Xml
+{
+bool Fields::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Fields, Name::Strict<9507> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Fields::save(QDomElement& dst_) const
+{
+	Element<Fields, Name::Strict<9507> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Fields::save(QDomDocument& dst_) const
+{
+	Element<Fields, Name::Strict<9507> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Nodedev
+
+int Traits<Nodedev::Xml::Fields>::parse(Nodedev::Xml::Fields& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setChangeLevel(m.get<1>().getValue());
+		dst_.setManufactureId(m.get<2>().getValue());
+		dst_.setPartNumber(m.get<3>().getValue());
+		dst_.setSerialNumber(m.get<4>().getValue());
+		dst_.setVendorFieldList(m.get<5>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::Fields>::generate(const Nodedev::Xml::Fields& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getChangeLevel(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getManufactureId(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getPartNumber(), m.get<3>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSerialNumber(), m.get<4>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVendorFieldList(), m.get<5>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VendorField1
+
+namespace Nodedev
+{
+namespace Xml
+{
+bool VendorField1::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<VendorField1, Name::Strict<9512> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool VendorField1::save(QDomElement& dst_) const
+{
+	Element<VendorField1, Name::Strict<9512> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool VendorField1::save(QDomDocument& dst_) const
+{
+	Element<VendorField1, Name::Strict<9512> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Nodedev
+
+int Traits<Nodedev::Xml::VendorField1>::parse(Nodedev::Xml::VendorField1& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setIndex(m.get<0>().getValue());
+		dst_.setOwnValue(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::VendorField1>::generate(const Nodedev::Xml::VendorField1& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getIndex(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getOwnValue(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct SystemField
+
+namespace Nodedev
+{
+namespace Xml
+{
+bool SystemField::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<SystemField, Name::Strict<9516> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool SystemField::save(QDomElement& dst_) const
+{
+	Element<SystemField, Name::Strict<9516> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool SystemField::save(QDomDocument& dst_) const
+{
+	Element<SystemField, Name::Strict<9516> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Nodedev
+
+int Traits<Nodedev::Xml::SystemField>::parse(Nodedev::Xml::SystemField& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setIndex(m.get<0>().getValue());
+		dst_.setOwnValue(m.get<1>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::SystemField>::generate(const Nodedev::Xml::SystemField& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getIndex(), m.get<0>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getOwnValue(), m.get<1>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Fields1
+
+namespace Nodedev
+{
+namespace Xml
+{
+bool Fields1::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Fields1, Name::Strict<9507> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Fields1::save(QDomElement& dst_) const
+{
+	Element<Fields1, Name::Strict<9507> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Fields1::save(QDomDocument& dst_) const
+{
+	Element<Fields1, Name::Strict<9507> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Nodedev
+
+int Traits<Nodedev::Xml::Fields1>::parse(Nodedev::Xml::Fields1& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setAssetTag(m.get<1>().getValue());
+		dst_.setVendorFieldList(m.get<2>().getValue());
+		dst_.setSystemFieldList(m.get<3>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::Fields1>::generate(const Nodedev::Xml::Fields1& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getAssetTag(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getVendorFieldList(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getSystemFieldList(), m.get<3>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Capability1
+
+namespace Nodedev
+{
+namespace Xml
+{
+bool Capability1::load(const QDomElement& src_)
+{
+	QStack<QDomElement> k;
+	k.push(src_);
+	Element<Capability1, Name::Strict<3467> > m;
+	if (0 > m.consume(k))
+		return false;
+	
+	*this = m.getValue();
+	return true;
+}
+
+bool Capability1::save(QDomElement& dst_) const
+{
+	Element<Capability1, Name::Strict<3467> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+bool Capability1::save(QDomDocument& dst_) const
+{
+	Element<Capability1, Name::Strict<3467> > m;
+	m.setValue(*this);
+	return 0 <= m.produce(dst_);
+}
+
+
+} // namespace Xml
+} // namespace Nodedev
+
+int Traits<Nodedev::Xml::Capability1>::parse(Nodedev::Xml::Capability1& dst_, QStack<QDomElement>& stack_)
+{
+	marshal_type m;
+	int output = m.consume(stack_);
+	if (0 <= output)
+	{
+		dst_.setName(m.get<1>().getValue());
+		dst_.setFields(m.get<2>().getValue());
+		dst_.setFields2(m.get<3>().getValue());
+	}
+	return output;
+}
+
+int Traits<Nodedev::Xml::Capability1>::generate(const Nodedev::Xml::Capability1& src_, QDomElement& dst_)
+{
+	marshal_type m;
+	if (0 > Details::Marshal::assign(src_.getName(), m.get<1>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getFields(), m.get<2>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getFields2(), m.get<3>()))
+		return -1;
+
+	return m.produce(dst_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct IommuGroup
 
 namespace Nodedev
@@ -749,9 +1124,10 @@ int Traits<Nodedev::Xml::Cappcidev>::parse(Nodedev::Xml::Cappcidev& dst_, QStack
 		dst_.setCapability2(m.get<9>().getValue());
 		dst_.setCapability3(m.get<10>().getValue());
 		dst_.setCapability4(m.get<11>().getValue());
-		dst_.setIommuGroup(m.get<12>().getValue());
-		dst_.setNuma(m.get<13>().getValue());
-		dst_.setPciExpress(m.get<14>().getValue());
+		dst_.setCapability5(m.get<12>().getValue());
+		dst_.setIommuGroup(m.get<13>().getValue());
+		dst_.setNuma(m.get<14>().getValue());
+		dst_.setPciExpress(m.get<15>().getValue());
 	}
 	return output;
 }
@@ -781,11 +1157,13 @@ int Traits<Nodedev::Xml::Cappcidev>::generate(const Nodedev::Xml::Cappcidev& src
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getCapability4(), m.get<11>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getIommuGroup(), m.get<12>()))
+	if (0 > Details::Marshal::assign(src_.getCapability5(), m.get<12>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getNuma(), m.get<13>()))
+	if (0 > Details::Marshal::assign(src_.getIommuGroup(), m.get<13>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getPciExpress(), m.get<14>()))
+	if (0 > Details::Marshal::assign(src_.getNuma(), m.get<14>()))
+		return -1;
+	if (0 > Details::Marshal::assign(src_.getPciExpress(), m.get<15>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -1420,21 +1798,21 @@ int Traits<Nodedev::Xml::Anonymous5139>::generate(const Nodedev::Xml::Anonymous5
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability1
+// struct Capability2
 
 namespace Nodedev
 {
 namespace Xml
 {
-Capability1::Capability1(): m_mediaAvailable(), m_mediaSize()
+Capability2::Capability2(): m_mediaAvailable(), m_mediaSize()
 {
 }
 
-bool Capability1::load(const QDomElement& src_)
+bool Capability2::load(const QDomElement& src_)
 {
 	QStack<QDomElement> k;
 	k.push(src_);
-	Element<Capability1, Name::Strict<3467> > m;
+	Element<Capability2, Name::Strict<3467> > m;
 	if (0 > m.consume(k))
 		return false;
 	
@@ -1442,16 +1820,16 @@ bool Capability1::load(const QDomElement& src_)
 	return true;
 }
 
-bool Capability1::save(QDomElement& dst_) const
+bool Capability2::save(QDomElement& dst_) const
 {
-	Element<Capability1, Name::Strict<3467> > m;
+	Element<Capability2, Name::Strict<3467> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
 
-bool Capability1::save(QDomDocument& dst_) const
+bool Capability2::save(QDomDocument& dst_) const
 {
-	Element<Capability1, Name::Strict<3467> > m;
+	Element<Capability2, Name::Strict<3467> > m;
 	m.setValue(*this);
 	return 0 <= m.produce(dst_);
 }
@@ -1460,7 +1838,7 @@ bool Capability1::save(QDomDocument& dst_) const
 } // namespace Xml
 } // namespace Nodedev
 
-int Traits<Nodedev::Xml::Capability1>::parse(Nodedev::Xml::Capability1& dst_, QStack<QDomElement>& stack_)
+int Traits<Nodedev::Xml::Capability2>::parse(Nodedev::Xml::Capability2& dst_, QStack<QDomElement>& stack_)
 {
 	marshal_type m;
 	int output = m.consume(stack_);
@@ -1474,7 +1852,7 @@ int Traits<Nodedev::Xml::Capability1>::parse(Nodedev::Xml::Capability1& dst_, QS
 	return output;
 }
 
-int Traits<Nodedev::Xml::Capability1>::generate(const Nodedev::Xml::Capability1& src_, QDomElement& dst_)
+int Traits<Nodedev::Xml::Capability2>::generate(const Nodedev::Xml::Capability2& src_, QDomElement& dst_)
 {
 	marshal_type m;
 	if (0 > Details::Marshal::assign(src_.getMediaAvailable(), m.get<1>()))

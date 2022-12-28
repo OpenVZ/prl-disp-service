@@ -78,6 +78,7 @@
         <ref name="capusbdev"/>
         <ref name="capusbinterface"/>
         <ref name="capnet"/>
+        <ref name="capscsigeneric"/>
         <ref name="capscsihost"/>
         <ref name="capscsitarget"/>
         <ref name="capscsi"/>
@@ -220,6 +221,10 @@
 
     <optional>
       <ref name="mdev_types"/>
+    </optional>
+
+    <optional>
+      <ref name="vpd"/>
     </optional>
 
     <optional>
@@ -418,6 +423,16 @@
     </element>
     <element name="vports">
       <ref name="unsignedInt"/>
+    </element>
+  </define>
+
+  <define name="capscsigeneric">
+    <attribute name="type">
+      <value>scsi_generic</value>
+    </attribute>
+
+    <element name='char'>
+      <text/>
     </element>
   </define>
 
@@ -757,6 +772,80 @@
     </element>
   </define>
 
+  <define name="vpd">
+    <element name="capability">
+      <attribute name="type">
+        <value>vpd</value>
+      </attribute>
+      <element name="name">
+        <ref name="vpdFieldValueFormat"/>
+      </element>
+      <optional>
+        <element name="fields">
+          <attribute name="access">
+            <value>readonly</value>
+          </attribute>
+          <optional>
+            <element name="change_level">
+              <ref name="vpdFieldValueFormat"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="manufacture_id">
+              <ref name="vpdFieldValueFormat"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="part_number">
+              <ref name="vpdFieldValueFormat"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="serial_number">
+              <ref name="vpdFieldValueFormat"/>
+            </element>
+          </optional>
+          <zeroOrMore>
+            <element name="vendor_field">
+              <attribute name="index">
+                <ref name="vendorVPDFieldIndex"/>
+              </attribute>
+              <ref name="vpdFieldValueFormat"/>
+            </element>
+          </zeroOrMore>
+        </element>
+      </optional>
+      <optional>
+        <element name="fields">
+          <attribute name="access">
+            <value>readwrite</value>
+          </attribute>
+          <optional>
+            <element name="asset_tag">
+              <ref name="vpdFieldValueFormat"/>
+            </element>
+          </optional>
+          <zeroOrMore>
+            <element name="vendor_field">
+              <attribute name="index">
+                <ref name="vendorVPDFieldIndex"/>
+              </attribute>
+              <ref name="vpdFieldValueFormat"/>
+            </element>
+          </zeroOrMore>
+          <zeroOrMore>
+            <element name="system_field">
+              <attribute name="index">
+                <ref name="systemVPDFieldIndex"/>
+              </attribute>
+              <ref name="vpdFieldValueFormat"/>
+            </element>
+          </zeroOrMore>
+        </element>
+      </optional>
+    </element>
+  </define>
+
   <define name="apDomainRange">
     <choice>
       <data type="string">
@@ -767,6 +856,24 @@
         <param name="maxInclusive">255</param>
       </data>
     </choice>
+  </define>
+
+  <define name="vpdFieldValueFormat">
+    <data type="string">
+      <param name="pattern">[0-9a-zA-F -_,.:;=]{0,255}</param>
+    </data>
+  </define>
+
+  <define name="vendorVPDFieldIndex">
+    <data type="string">
+      <param name="pattern">[0-9A-Z]{1}</param>
+    </data>
+  </define>
+
+  <define name="systemVPDFieldIndex">
+    <data type="string">
+      <param name="pattern">[0-9B-Z]{1}</param>
+    </data>
   </define>
 
 </grammar>

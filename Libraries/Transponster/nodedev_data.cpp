@@ -1027,6 +1027,42 @@ bool Validatable<Nodedev::Xml::PData9162>::validate(Nodedev::Xml::PData9162::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct PVpdFieldValueFormat
+
+bool Validatable<Nodedev::Xml::PVpdFieldValueFormat>::validate(const Nodedev::Xml::PVpdFieldValueFormat::value_type& value_)
+{
+	QRegExp q("[0-9a-zA-F -_,.:;=]{0,255}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PVendorVPDFieldIndex
+
+bool Validatable<Nodedev::Xml::PVendorVPDFieldIndex>::validate(const Nodedev::Xml::PVendorVPDFieldIndex::value_type& value_)
+{
+	QRegExp q("[0-9A-Z]{1}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PSystemVPDFieldIndex
+
+bool Validatable<Nodedev::Xml::PSystemVPDFieldIndex>::validate(const Nodedev::Xml::PSystemVPDFieldIndex::value_type& value_)
+{
+	QRegExp q("[0-9B-Z]{1}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct VUUID
 
 bool Traits<Nodedev::Xml::VUUID>::parse(const QString& src_, Nodedev::Xml::VUUID& dst_)
