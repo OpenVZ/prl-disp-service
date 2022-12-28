@@ -2250,19 +2250,18 @@ void Builder::setOsInfo(const CVmCommonOptions* opts)
 	m_result->setMetadata(metadata);
 }
 
-void Builder::setAutoUpdate()
+void Builder::setGuestTools()
 {
 	// Considered metadata part
 	//<metadata>
 	//	<vz:vz xmlns:vz="http://www.virtuozzo.com/vhs">
-	//		<vz:guest_tools autoupdate="yes"/>
+	//		<vz:guest_tools autoupdate="yes" version="X.X-X.vz9" />
 	//	</vz:vz>
 	//</metadata>
 
-	bool is_enabled =
-			m_input.getVmSettings()->getVmTools()->getAutoUpdate()->isEnabled();
+	QString currentAutoUpd = m_input.getVmSettings()->getVmTools()->getAutoUpdate()->isEnabled() ? "yes" : "no";
+	QString version = m_input.getVmSettings()->getVmTools()->getAgentVersion();
 
-	QString currentAutoUpd = is_enabled ? "yes" : "no";
 
 	QList<QDomElement> metadata;
 
@@ -2278,9 +2277,12 @@ void Builder::setAutoUpdate()
 			QDomNodeList foundList = dom.elementsByTagName("guest_tools");
 
 			if (!foundList.isEmpty())
+			{
 				foundList.at(0).toElement().setAttribute("autoupdate", currentAutoUpd);
+				foundList.at(0).toElement().setAttribute("version", version);
+			}
 			else
-				dom.appendChild(Reverse::Metadata::generateAutoUpdateChild(currentAutoUpd));
+				dom.appendChild(Reverse::Metadata::generateGuestToolsChild(currentAutoUpd, version));
 
 			detected = true;
 			break;
@@ -2290,7 +2292,7 @@ void Builder::setAutoUpdate()
 	if (!detected)
 	{
 		QDomElement domParent = QDomDocument().createElementNS(VHS_URI, "vz:vz");
-		domParent.appendChild(Reverse::Metadata::generateAutoUpdateChild(currentAutoUpd));
+		domParent.appendChild(Reverse::Metadata::generateGuestToolsChild(currentAutoUpd, version));
 
 		metadata.append(domParent);
 	}
@@ -2316,7 +2318,7 @@ PRL_RESULT Builder::setSettings()
 
 	// Translate osVersion into libosinfo URI
 	setOsInfo(o);
-	setAutoUpdate();
+	setGuestTools();
 
 	CVmRunTimeOptions* r(s->getVmRuntimeOptions());
 	if (NULL == r)
@@ -4150,11 +4152,12 @@ QDomElement Vm::Reverse::Metadata::generateLibosinfoXml(const QString& libosinfo
 	return domParent;
 }
 
-QDomElement Vm::Reverse::Metadata::generateAutoUpdateChild(const QString &autoupdate_val)
+QDomElement Vm::Reverse::Metadata::generateGuestToolsChild(const QString &autoupdate_val, const QString &version)
 {
 	QDomDocument doc;
 	QDomElement domChild = doc.createElementNS(VHS_URI,  "vz:guest_tools");
 	domChild.setAttribute("autoupdate", autoupdate_val);
+	domChild.setAttribute("version", version);
 	return domChild;
 }
 

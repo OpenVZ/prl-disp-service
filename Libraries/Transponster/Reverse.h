@@ -211,7 +211,7 @@ struct Builder
 
 	PRL_RESULT setBlank();
 	void       setOsInfo(const CVmCommonOptions* opts);
-	void       setAutoUpdate();
+	void       setGuestTools();
 	PRL_RESULT setSettings();
 	PRL_RESULT setDevices();
 	PRL_RESULT setResources(const VtInfo& vt_);
@@ -338,7 +338,7 @@ struct Metadata
 {
 	static bool getDistroStr(unsigned int osType, unsigned int osNumber, QString *libosinfoId);
 	static QDomElement generateLibosinfoXml(const QString& libosinfoId);
-	static QDomElement generateAutoUpdateChild(const QString& autoupdate_val);
+	static QDomElement generateGuestToolsChild(const QString& autoupdate_val, const QString& version);
 };
 
 } // namespace Reverse
