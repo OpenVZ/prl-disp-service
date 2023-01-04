@@ -1551,6 +1551,8 @@ bool CDspVmDirHelper::sendVmToolsInfo(const IOSender::Handle& sender,
 			if (QString::compare(hostToolsVersion, toolsVersion) != 0)
 				toolsState = PTS_OUTDATED;
 		}
+		else if (toolsState == PTS_INSTALLED)
+			toolsState = PTS_POSSIBLY_INSTALLED;
 	}
 
 	////////////////////////////////////////////////////////////////////////
