@@ -225,6 +225,17 @@ PRL_RESULT Disk::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 		boost::apply_visitor(BackingChain(*d), w->getValue().getDiskSource());
 		c = &(w->getValue().getDiskBackingChain()->value);
 	}
+
+	const boost::optional<Libvirt::Domain::Xml::Blockio> blk = disk_.getBlockio();
+
+	if (blk.is_initialized()) {
+		if (blk.get().getLogicalBlockSize().is_initialized()) {
+			d->setLogicalBlockSize(blk.get().getLogicalBlockSize().get());
+		}
+		if (blk.get().getPhysicalBlockSize().is_initialized()) {
+			d->setPhysicalBlockSize(blk.get().getPhysicalBlockSize().get());
+		}
+	}
 	return PRL_ERR_SUCCESS;
 }
 
