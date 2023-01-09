@@ -600,6 +600,16 @@ void Ordinary<CVmHardDisk>::setSource()
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct Hdd
+void Hdd::setBlockio(unsigned int logicalBlockSize_, unsigned int physicalBlockSize_) {
+	using namespace Libvirt::Domain::Xml;
+
+	Blockio blk;
+	blk.setLogicalBlockSize(logicalBlockSize_);
+	blk.setPhysicalBlockSize(physicalBlockSize_);
+
+	Ordinary<CVmHardDisk>::getResult().setBlockio(blk);
+}
+
 
 void Hdd::setIoLimit(const CVmIoLimit* global_)
 {
@@ -763,6 +773,9 @@ void List::add(const CVmHardDisk* hdd_, const CVmRunTimeOptions* runtime_)
 	}
 	if (!hdd_->getSerialNumber().isEmpty())
 		b.setSerial(hdd_->getSerialNumber());
+
+	if (hdd_->getDeviceType() == PDE_HARD_DISK)
+		b.setBlockio(hdd_->getLogicalBlockSize(), hdd_->getPhysicalBlockSize());
 
 	build(b);
 }

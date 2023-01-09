@@ -93,7 +93,7 @@ PRL_RESULT Task_GetInfoFromVirtuozzoUtils::GetDiskImageInformation(
 		cHardDisk.setEmulatedType(pCachedHardDisk->getEmulatedType());
 		cHardDisk.setSplitted(pCachedHardDisk->isSplitted());
 		cHardDisk.setDiskType(pCachedHardDisk->getDiskType());
-		cHardDisk.setBlockSize(pCachedHardDisk->getBlockSize());
+		cHardDisk.setPhysicalBlockSize(pCachedHardDisk->getPhysicalBlockSize());
 		cHardDisk.setSize(pCachedHardDisk->getSize());
 		cHardDisk.setCompatLevel(pCachedHardDisk->getCompatLevel());
 		cHardDisk.setSizeOnDisk(pCachedHardDisk->getSizeOnDisk());

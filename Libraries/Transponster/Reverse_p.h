@@ -587,6 +587,7 @@ struct Hdd: Ordinary<CVmHardDisk>
 	{
 	}
 
+	void setBlockio(unsigned int logicalBlockSize_, unsigned int physicalBlockSize_);
 	void setIoLimit(const CVmIoLimit* global_);
 	void setIopsLimit(const CVmRunTimeOptions& runtime_);
 	void setSerial(const QString& serial_);
