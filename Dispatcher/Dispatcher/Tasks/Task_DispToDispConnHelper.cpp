@@ -156,7 +156,13 @@ PRL_RESULT Task_DispToDispConnHelper::Connect(
 	if (nFlags & PLLF_LOGIN_WITH_RSA_KEYS)
 		return ProcessPublicKeyAuth(pReply);
 
-	return PRL_ERR_SUCCESS;
+	CDispToDispCommandPtr pCmd = CDispToDispProtoSerializer::ParseCommand(pReply);
+	CDispToDispResponseCommand *pResponseCommand =
+		CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(pCmd);
+	if (!pResponseCommand->IsValid())
+		return PRL_ERR_UNRECOGNIZED_REQUEST;
+
+	return pResponseCommand->GetRetCode();
 }
 
 void Task_DispToDispConnHelper::Disconnect()
