@@ -2456,6 +2456,14 @@ PRL_RESULT Builder::setResources(const VtInfo& vt_)
 	if (u.getClock(t))
 		m_result->setClock(t);
 
+	Libvirt::Domain::Xml::Os2 o;
+	if (u.getChipset(o))
+	{
+		mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
+		vos.setValue(o);
+		m_result->setOs(vos);
+	}
+
 	u.getCpu(vt_, *m_result);
 	return PRL_ERR_SUCCESS;
 }
