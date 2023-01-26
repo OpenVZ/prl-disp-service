@@ -151,7 +151,7 @@ namespace Chipset
 
 // all supported machine types
 static const std::map<Chipset_type, quint32> supportedVersions{
-{Chipset_type::i440fx, 4}, {Chipset_type::Q35, 0}, {Chipset_type::rhel7, 3}};
+{Chipset_type::CHIP_PCI440FX, 4}, {Chipset_type::CHIP_Q35, 0}, {Chipset_type::CHIP_RHEL7, 3}};
 
 typedef QPair<Chipset_type, quint32> model_type;
 //			 <chipset_type, machine_type/version>
@@ -170,7 +170,7 @@ struct Generic
 ///////////////////////////////////////////////////////////////////////////////
 // struct i440fx
 
-struct i440fx: private Generic<i440fx, Chipset_type::i440fx>
+struct i440fx: private Generic<i440fx, Chipset_type::CHIP_PCI440FX>
 {
 	static const QString s_PREFIX;
 
@@ -182,7 +182,7 @@ struct i440fx: private Generic<i440fx, Chipset_type::i440fx>
 ///////////////////////////////////////////////////////////////////////////////
 // struct Q35
 
-struct Q35: private Generic<Q35, Chipset_type::Q35>
+struct Q35: private Generic<Q35, Chipset_type::CHIP_Q35>
 {
 	static const QString s_PREFIX;
 
@@ -194,7 +194,7 @@ struct Q35: private Generic<Q35, Chipset_type::Q35>
 ///////////////////////////////////////////////////////////////////////////////
 // struct Rhel
 
-struct rhel7: public Generic<rhel7, Chipset_type::rhel7>
+struct rhel7: public Generic<rhel7, Chipset_type::CHIP_RHEL7>
 {
 	static const QString s_PREFIX;
 };

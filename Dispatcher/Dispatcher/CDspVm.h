@@ -116,18 +116,6 @@ struct Demand;
 class CDspVm
 {
 public:
-	enum ChipsetType
-	{
-		CHIP_PCI440FX = 1u
-	};
-	enum I440fxVersion
-	{
-		PCI440FX_78 = 5u,
-		PCI440FX_710 = 7u,
-		PCI440FX_712 = 9u,
-		PCI440FX_DEFAULT = PCI440FX_712
-	};
-
 	enum VmPowerState { vpsNormal=0, vpsPausedByHostSleep=1, vpsPausedByVmFrozen=2 };
 	static const char* VmPowerStateToString( VmPowerState st );
 

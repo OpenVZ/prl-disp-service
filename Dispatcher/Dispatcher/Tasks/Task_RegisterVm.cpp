@@ -48,6 +48,7 @@
 #include "CDspVmBrand.h"
 #include <prlcommon/ProtoSerializer/CProtoSerializer.h>
 #include "CDspClientManager.h"
+#include <prlsdk/PrlEnums.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/PrlCommonUtilsBase/StringUtils.h>
 #include <prlcommon/Std/PrlAssert.h>
@@ -1971,8 +1972,8 @@ void Task_RegisterVm::patchNewConfiguration()
 		// family and 3 denotes 7.6 machine type. it was decided to assign
 		// minimum 7.8 machine type for new VMs thus the chipset version value
 		// should be not less than 5 for the i440fx machine type.
-		if (NULL != c && c->getType() == CDspVm::CHIP_PCI440FX)
-			c->setVersion(qMax<quint32>(c->getVersion(), CDspVm::PCI440FX_DEFAULT));
+		if (NULL != c && c->getType() == static_cast<unsigned int>(PRL_CHIPSET_TYPE::CHIP_PCI440FX))
+			c->setVersion(qMax<quint32>(c->getVersion(), PRL_I440FX_VERSION::PCI440FX_DEFAULT));
 	}
 	if (m_pVmConfig->getVmHardwareList()->getClock() != NULL &&
 		m_pVmConfig->getVmHardwareList()->getClock()->getTimeShift() != 0)

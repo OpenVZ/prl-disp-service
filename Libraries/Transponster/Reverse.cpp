@@ -173,7 +173,7 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Domain& dst_)
 	
 	using namespace Transponster::Chipset;
 	
-	if (model.first != Chipset_type::UNKNOWN &&
+	if (model.first != Chipset_type::CHIP_UNKNOWN &&
 			model.second >= supportedVersions.at(model.first))
 	{
 			Libvirt::Domain::Xml::Vmcoreinfo i;

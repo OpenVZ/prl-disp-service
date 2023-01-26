@@ -33,6 +33,7 @@
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/PrlCommonUtilsBase/VirtuozzoDirs.h>
 #include "prlcommon/Interfaces/ApiDevNums.h"
+#include <prlsdk/PrlEnums.h>
 #include <prlsdk/PrlOses.h>
 #include <boost/range/irange.hpp>
 #include <boost/range/algorithm/copy.hpp>
@@ -347,8 +348,8 @@ result_type Converter::convertHardware(SmartPtr<CVmConfiguration> &cfg) const
 	// minimum 7.8 machine type for new VMs thus the chipset version value
 	// should be not less than 5 for the i440fx machine type.
 	::Chipset* c = pVmHardware->getChipset();
-	if (NULL != c && c->getType() == CDspVm::CHIP_PCI440FX)
-		c->setVersion(qMax<quint32>(c->getVersion(), CDspVm::PCI440FX_DEFAULT));
+	if (NULL != c && c->getType() == static_cast<unsigned int>(PRL_CHIPSET_TYPE::CHIP_PCI440FX))
+		c->setVersion(qMax<quint32>(c->getVersion(), PRL_I440FX_VERSION::PCI440FX_DEFAULT));
 	
 	::CVmCpu* cpu = pVmHardware->getCpu();
 	if (cpu != nullptr)

@@ -26,15 +26,9 @@
 #define CHIPSETHELPER_H
 
 #include <prlxmlmodel/VmConfig/CVmConfiguration.h>
+#include <prlsdk/PrlEnums.h>
 
-enum class Chipset_type: unsigned
-{
-	UNKNOWN = 0,
-	i440fx = 1,
-	Q35 = 2,
-	rhel7 = 3
-};
-
+typedef PRL_CHIPSET_TYPE Chipset_type;
 typedef std::underlying_type<Chipset_type>::type chipInternal_t;
 
 #endif // CHIPSETHELPER_H

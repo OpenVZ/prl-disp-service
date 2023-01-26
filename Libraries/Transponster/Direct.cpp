@@ -1217,7 +1217,7 @@ Prl::Expected<model_type, PRL_RESULT>
 	i440fx::deserialize(const QString& text_) const
 {
 	Prl::Expected<model_type, PRL_RESULT> x =
-		Generic<i440fx, Chipset_type::i440fx>::deserialize(text_);
+		Generic<i440fx, Chipset_type::CHIP_PCI440FX>::deserialize(text_);
 	if (x.isFailed())
 		return x;
 
@@ -1226,7 +1226,7 @@ Prl::Expected<model_type, PRL_RESULT>
 
 QString i440fx::serialize(model_type::second_type version_) const
 {
-	return Generic<i440fx, Chipset_type::i440fx>::serialize(qMax(version_, 3u) + 3u);
+	return Generic<i440fx, Chipset_type::CHIP_PCI440FX>::serialize(qMax(version_, 3u) + 3u);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1238,7 +1238,7 @@ Prl::Expected<model_type, PRL_RESULT>
 	Q35::deserialize(const QString& text_) const
 {
 	Prl::Expected<model_type, PRL_RESULT> x =
-		Generic<Q35, Chipset_type::Q35>::deserialize(text_);
+		Generic<Q35, Chipset_type::CHIP_Q35>::deserialize(text_);
 	if (x.isFailed())
 		return x;
 
@@ -1248,7 +1248,7 @@ Prl::Expected<model_type, PRL_RESULT>
 
 QString Q35::serialize(model_type::second_type version_) const
 {
-	return Generic<Q35, Chipset_type::Q35>::serialize(version_);
+	return Generic<Q35, Chipset_type::CHIP_Q35>::serialize(version_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1272,7 +1272,7 @@ model_type Marshal::deserialize_(const QString& text_) const
 	if(x.isSucceed())
 		return x.value();
 
-	return model_type{Chipset_type::UNKNOWN, 0};
+	return model_type{Chipset_type::CHIP_UNKNOWN, 0};
 }
 
 ::Chipset Marshal::deserialize(const QString& text_) const
@@ -1290,11 +1290,11 @@ QString Marshal::serialize(const model_type& object_) const
 {
 	switch (object_.first)
 	{
-	case Chipset_type::i440fx: 
+	case Chipset_type::CHIP_PCI440FX:
 		return i440fx().serialize(object_.second);
-	case Chipset_type::Q35:
+	case Chipset_type::CHIP_Q35:
 		return Q35().serialize(object_.second);
-	case Chipset_type::rhel7:
+	case Chipset_type::CHIP_RHEL7:
 		return rhel7{}.serialize(object_.second);
 	default:
 		return QString();
