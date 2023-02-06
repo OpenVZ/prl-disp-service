@@ -74,8 +74,6 @@ private slots:
 	void testClone();
 	void testGetCapabilities();
 	void testSetCapabilities();
-	void testGetNetfilterMode();
-	void testSetNetfilterMode();
 
 private:
 	QString		m_sServerUuid;

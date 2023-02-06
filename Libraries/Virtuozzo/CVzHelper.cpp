@@ -982,10 +982,6 @@ static int get_vm_config(vzctl_env_handle_ptr h,
 		if (vzctl2_env_get_cap(env_param, &ul) == 0)
 			pCt->setCapabilitiesMask(ul);
 
-		unsigned mode;
-		if (vzctl2_env_get_netfilter(env_param, &mode) == 0)
-			pCt->setNetfilterMode( static_cast<PRL_NETFILTER_MODE>(mode) );
-
 		struct vzctl_feature_param f;
 		if (vzctl2_env_get_features(env_param, &f) == 0) {
 			pCt->setFeaturesOnMask(f.on);
@@ -1522,12 +1518,6 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 	unsigned long capmask = pConfig->getCtSettings()->getCapabilitiesMask();
 	if (old_capmask != capmask && capmask != 0)
 		vzctl2_env_set_cap(h, new_param, capmask);
-
-	// Netfilter mode.
-	PRL_NETFILTER_MODE old_netfilter_mode = pOldConfig->getCtSettings()->getNetfilterMode();
-	PRL_NETFILTER_MODE netfilter_mode = pConfig->getCtSettings()->getNetfilterMode();
-	if (old_netfilter_mode != netfilter_mode && netfilter_mode != PCNM_NOT_SET)
-		vzctl2_env_set_netfilter(new_param, netfilter_mode);
 
 	struct vzctl_feature_param f;
 	f.on = pConfig->getCtSettings()->getFeaturesOnMask();
