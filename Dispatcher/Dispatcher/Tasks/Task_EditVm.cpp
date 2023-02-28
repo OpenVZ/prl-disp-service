@@ -2804,7 +2804,7 @@ PRL_RESULT Action<CVmStartupBios>::execute()
 
 	QString templ = OVMF::getTemplate(static_cast<Chipset_type>(c));
 
-	if (0 != QProcess::execute("qemu-img", QStringList() << "convert"<< "-O" << "qcow2" << templ << file))
+	if (0 != QProcess::execute(QEMU_IMG_BIN, QStringList() << "convert"<< "-O" << "qcow2" << templ << file))
 	{
 		WRITE_TRACE(DBG_FATAL, "Unable to create NVRAM image with '%s'", qPrintable(file));
 		return PRL_ERR_NVRAM_FILE_COPY;

@@ -51,6 +51,7 @@
 #include "CDspVmNetworkHelper.h"
 #include "prlcommon/Std/PrlAssert.h"
 #include <boost/smart_ptr/make_shared.hpp>
+#include <prlcommon/Interfaces/VirtuozzoDefines.h>
 #include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
@@ -492,7 +493,7 @@ PRL_RESULT Assistant::operator()(const QString& image_, const QString& archive_,
 	if (e.isFailed())
 		return e.error();
 
-	QStringList cmdline = QStringList() << QEMU_IMG << "convert" << "-O" << format_
+	QStringList cmdline = QStringList() << QEMU_IMG_BIN << "convert" << "-O" << format_
 			<< "-S" << "64k" << "-t" << "none";
 	if (format_ == "qcow2")
 		cmdline << "-f" << "raw" << "-o" << "cluster_size=1M,lazy_refcounts=on"; 
