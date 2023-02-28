@@ -5,7 +5,7 @@
 /// Source task for Vm backup creation
 ///
 /// Copyright (c) 2016-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -863,12 +863,5 @@ private:
 
 } // namespace Object
 } // namespace Backup
-
-namespace
-{
-enum {QEMU_IMG_RUN_TIMEOUT = 60 * 60 * 1000};
-
-const char QEMU_IMG[] = "/usr/bin/qemu-img";
-}
 
 #endif //__Task_BackupHelper_p_H_

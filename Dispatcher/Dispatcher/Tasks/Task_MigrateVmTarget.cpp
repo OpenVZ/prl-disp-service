@@ -974,7 +974,7 @@ void Frontend::create(const CVmHardDisk& event_)
 	a << event_.getSystemName();
 	a << QString::number(event_.getSize()).append("M");
 
-	getConnector()->launch("qemu-img", a);
+	getConnector()->launch(QEMU_IMG_BIN, a);
 }
 
 } // namespace Start
