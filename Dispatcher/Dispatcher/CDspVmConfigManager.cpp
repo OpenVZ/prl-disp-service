@@ -40,6 +40,7 @@
 #include "CDspVmDirHelper.h"
 #include "CDspVNCStarter_p.h"
 #include "Tasks/Task_EditVm.h"
+#include "Libraries/Virtuozzo/OvmfHelper.h"
 #include <prlxmlmodel/VmConfig/CVmHardDisk.h>
 #include "EditHelpers/CMultiEditMergeVmConfig.h"
 #include "Libraries/Transponster/NetFilter.h"
@@ -360,6 +361,27 @@ void State::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 }
 
 } // namespace Patch
+
+///////////////////////////////////////////////////////////////////////////////
+// struct NvramInfo
+
+void NvramInfo::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	//update old NVRAM to new 4M only for non Chipset_type::Q35.
+	//Chipset_type::Q35 uses OVMF_CODE_SECBOOT. It is not need update
+	//do not update running VM, because their NVRAM is locked
+	if (old_.getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled() &&
+		!old_.getVmSettings()->getClusterOptions()->isRunning())
+	{
+		NvramUpdater n(old_.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM(),
+				static_cast<Chipset_type>(old_.getVmHardwareList()->getChipset()->getType()));
+		if (n.isOldVerison() && n.updateNVRAM())
+		{
+			WRITE_TRACE(DBG_INFO, "NVRAM Updated successfully for VM '%s'", QSTR2UTF8(old_.getVmIdentification()->getVmName()));
+			new_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM(VZ_VM_NVRAM_FILE_NAME);
+		}
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // struct BackupDirectory
