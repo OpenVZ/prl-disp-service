@@ -293,6 +293,14 @@ struct OsInfo
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct NvramInfo
+
+struct NvramInfo
+{
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct BackupDirectory
 
 struct BackupDirectory
@@ -382,7 +390,7 @@ struct Reviser<N, void>
 };
 
 typedef boost::mpl::vector<Nvram, Patch::Runtime> revise_types;
-typedef boost::mpl::vector<Identification, OsInfo, BackupDirectory, RuntimeOptions, GlobalNetwork,
+typedef boost::mpl::vector<Identification, OsInfo, NvramInfo, BackupDirectory, RuntimeOptions, GlobalNetwork,
 		Patch::Index, Cpu::Copy, NetworkDevices, HardDisks, OpticalDisks, Patch::State,
 		HighAvailability, Tools, RemoteDisplay::Pivot>
 		untranslatable_types;

@@ -33,4 +33,34 @@ struct OVMF
 	static QString getTemplate(Chipset_type machine_type);
 };
 
+class NvramUpdater
+{
+
+	enum class UEFI_TASKS {
+		UEFI_DUMP_VARS,
+		UEFI_RESTORE_VARS,
+	};
+
+public:
+	NvramUpdater(const QString &path_, const Chipset_type chip);
+	~NvramUpdater();
+	bool updateNVRAM();
+
+
+	bool isOldVerison();
+	static QStringList generateQemuArgs(const QString &ovmfCode, const QString &ovmfVars, const QString &disk);
+
+private:
+
+	bool runUefiShell(const UEFI_TASKS task);
+	bool sendUefiEscape(QProcess &p);
+	bool runCmd(const QStringList &cmd);
+
+private:
+	QFileInfo		m_path;
+	Chipset_type	m_chip;
+	QString			m_newNvram;
+	QString			m_storage;
+};
+
 #endif // OVMFHELPER_H
