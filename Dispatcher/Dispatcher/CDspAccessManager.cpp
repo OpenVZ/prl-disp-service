@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2023 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core. Virtuozzo Core is free software;
  * you can redistribute it and/or modify it under the terms of the GNU
@@ -202,6 +202,7 @@ void CDspAccessManager::initAccessRights()
 	m_accessRights[PVE::DspCmdVmUmount]		= PAIR( R | W | X     , PAR_VM_MOUNT_ACCESS);
 	m_accessRights[PVE::DspCmdDirVmMove]            = PAIR( R | W | X	, PAR_VM_MOVE_ACCESS );
 	m_accessRights[PVE::DspCmdVmCommitEncryption]   = PAIR(R | W , PAR_VM_COMMIT_ACCESS);
+	m_accessRights[PVE::DspCmdVmUpdateNvram]     = PAIR( R | W	| X, PAR_VM_UPDATE_NVRAM );
 
 #undef N
 #undef R
