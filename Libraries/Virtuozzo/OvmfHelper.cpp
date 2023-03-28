@@ -99,6 +99,7 @@ static void cleanup_output(QByteArray &out)
 	out.replace("\e[2J", "");
 	out.replace("\e[=3h", "");
 	out.replace("\e", "");
+	out.replace("\r", "");
 }
 
 bool NvramUpdater::sendUefiEscape(QProcess &p)
@@ -236,7 +237,7 @@ bool NvramUpdater::isOldVerison()
 		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: Cmd '%s' failed: '%s'; exit code: %d",
 					QSTR2UTF8(cmd.join(" ")),
 					QSTR2UTF8(proc.errorString()),
-		 			proc.exitCode());
+					proc.exitCode());
 		return false;
 	}
 
