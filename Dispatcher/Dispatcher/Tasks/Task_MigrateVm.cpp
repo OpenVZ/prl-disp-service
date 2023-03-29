@@ -7,7 +7,7 @@
 /// @author krasnov@
 ///
 /// Copyright (c) 2010-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -1957,6 +1957,18 @@ PRL_RESULT Task_MigrateVmSource::reactCheckReply(const SmartPtr<IOPackage>& pack
 		m_lstCheckPrecondsErrors = x.getResult();
 		return PRL_ERR_VM_MIGRATE_CHECKING_PRECONDITIONS_FAILED;
 	}
+
+	//prohibit migration of VM with enabled EFI to old dispatcher version
+	//because it does not have proper OVMF 4M file
+	if (m_nRemoteVersion < MIGRATE_DISP_PROTO_V11 &&
+			m_pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+	{
+		WRITE_TRACE(DBG_FATAL, "Old Virtuozzo Server on target (protocol version %d)."
+			" Migration is not supported with enabled booting with EFI firmware",
+			m_nRemoteVersion);
+		return PRL_ERR_VM_MIGRATE_CHECKING_PRECONDITIONS_FAILED;
+	}
+
 	return prepareStart();
 }
 
