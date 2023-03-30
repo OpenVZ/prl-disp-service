@@ -33,10 +33,10 @@ QString OVMF::getFirmware(Chipset_type machine_type)
 }
 
 NvramUpdater::NvramUpdater(const QString &path_, const Chipset_type chip) :
-		m_path(path_) , m_chip(chip)
+		m_oldNvram(path_) , m_chip(chip)
 {
-	m_newNvram = m_path.absolutePath() + "/" + VZ_VM_NVRAM_FILE_NAME;
-	m_storage = m_path.absolutePath() + "/store.img";
+	m_newNvram = m_oldNvram.absolutePath() + "/" + VZ_VM_NVRAM_FILE_NAME;
+	m_storage = m_oldNvram.absolutePath() + "/store.img";
 }
 
 NvramUpdater::~NvramUpdater()
@@ -127,7 +127,7 @@ bool NvramUpdater::runUefiShell(const UEFI_TASKS task)
 	QStringList lArgs;
 	if (task == UEFI_TASKS::UEFI_DUMP_VARS)
 	{
-		lArgs = generateQemuArgs(m_chip == Chipset_type::Q35 ? OVMF_CODE_SECBOOT : OVMF_CODE_OLD, m_path.absoluteFilePath(), m_storage);
+		lArgs = generateQemuArgs(m_chip == Chipset_type::Q35 ? OVMF_CODE_SECBOOT : OVMF_CODE_OLD, m_oldNvram.absoluteFilePath(), m_storage);
 	}
 	else if (task == UEFI_TASKS::UEFI_RESTORE_VARS)
 	{
@@ -187,7 +187,7 @@ bool NvramUpdater::runUefiShell(const UEFI_TASKS task)
 
 bool NvramUpdater::updateNVRAM()
 {
-	WRITE_TRACE(DBG_DEBUG, "Trying to update NVRAM: %s", QSTR2UTF8(m_path.absoluteFilePath()));
+	WRITE_TRACE(DBG_DEBUG, "Trying to update NVRAM: %s", QSTR2UTF8(m_oldNvram.absoluteFilePath()));
 
 	//remove artifacts if present
 	QFile::remove(m_newNvram);
@@ -228,7 +228,7 @@ bool NvramUpdater::updateNVRAM()
 
 bool NvramUpdater::isOldVerison()
 {
-	QStringList cmd = QStringList() << QEMU_IMG_BIN << "info" << m_path.absoluteFilePath();
+	QStringList cmd = QStringList() << QEMU_IMG_BIN << "info" << m_oldNvram.absoluteFilePath();
 	QString output;
 	QProcess proc;
 	if (!HostUtils::RunCmdLineUtility(cmd, output, DEFAULT_WAIT_TIMER, &proc))
