@@ -229,6 +229,13 @@ bool NvramUpdater::updateNVRAM()
 
 bool NvramUpdater::isOldVerison()
 {
+	if (!m_oldNvram.exists())
+	{
+		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: File '%s' is absent",
+					QSTR2UTF8(m_oldNvram.filePath()));
+		return false;
+	}
+
 	QStringList cmd = QStringList() << QEMU_IMG_BIN << "info" << m_oldNvram.absoluteFilePath();
 	QString output;
 	QProcess proc;
