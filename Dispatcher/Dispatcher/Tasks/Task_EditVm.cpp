@@ -7,7 +7,7 @@
 /// @author myakhin@
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -1624,7 +1624,7 @@ PRL_RESULT Task_EditVm::editVm()
 					->getNVRAM();
 
 				if (nvram.isEmpty())
-					nvram = QDir(vmHomePath).absoluteFilePath(PRL_VM_NVRAM_FILE_NAME);
+					nvram = QDir(vmHomePath).absoluteFilePath(VZ_VM_NVRAM_FILE_NAME);
 				else if (QFileInfo(nvram).isRelative())
 					nvram = QDir(vmHomePath).absoluteFilePath(nvram);
 
