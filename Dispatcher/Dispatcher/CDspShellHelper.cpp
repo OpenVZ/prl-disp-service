@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -82,12 +82,13 @@
 #include <prlcommon/Logging/Logging.h>
 #include <prlcommon/PrlCommonUtilsBase/SysError.h>
 #include <prlcommon/Std/PrlAssert.h>
-#include <Libraries/PrlNetworking/netconfig.h>
 #include <prlcommon/PrlCommonUtilsBase/CFileHelper.h>
 #include <prlcommon/HostUtils/HostUtils.h>
 #include <prlcommon/Std/PrlTime.h>
 
+#include "Libraries/PrlNetworking/netconfig.h"
 #include "Libraries/CpuFeatures/CCpuHelper.h"
+#include "Libraries/Virtuozzo/OvmfHelper.h"
 
 #include <prlsdk/PrlApiDeprecated.h>
 
@@ -1048,6 +1049,63 @@ void CDspShellHelper::sendVcmmdConfig(SmartPtr<CDspClient>& pUser, const SmartPt
 	}
 	while(0);
 	pUser->sendSimpleResponse(p, ret);
+}
+
+//update new NVRAM in success case in other case return an error
+void CDspShellHelper::updateVmNvram(SmartPtr<CDspClient> &pUser, const SmartPtr<IOPackage>& p)
+{
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand(p);
+	if ( ! cmd->IsValid() )
+	{
+		pUser->sendSimpleResponse( p, PRL_ERR_FAILURE );
+		return;
+	}
+
+	QString vmuuid = cmd->GetVmUuid();
+
+	PRL_RESULT nRetCode = PRL_ERR_SUCCESS;
+	SmartPtr<CVmConfiguration> pVmConfig = CDspService::instance()->getVmDirHelper().getVmConfigByUuid(pUser, vmuuid, nRetCode);
+
+	if (!pVmConfig || !pVmConfig->getVmSettings())
+	{
+		WRITE_TRACE(DBG_FATAL, "Failed to get VM configuration for '%s' : %d", QSTR2UTF8(vmuuid), nRetCode);
+		pUser->sendSimpleResponse( p, PRL_ERR_UNEXPECTED );
+		return;
+	}
+
+	if (!pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
+	{
+		WRITE_TRACE(DBG_FATAL, "Failed update NVRAM for VM '%s' with disabled EFI", QSTR2UTF8(vmuuid));
+		pUser->sendSimpleResponse( p, PRL_ERR_INVALID_ARG );
+		return;
+	}
+
+	if (pVmConfig->getVmSettings()->getClusterOptions()->isRunning())
+	{
+		WRITE_TRACE(DBG_FATAL, "Failed update NVRAM for running VM '%s'", QSTR2UTF8(vmuuid));
+		pUser->sendSimpleResponse( p, PRL_ERR_VM_ALREADY_RUNNING );
+		return;
+	}
+
+	NvramUpdater n(pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM(),
+			static_cast<Chipset_type>(pVmConfig->getVmHardwareList()->getChipset()->getType()));
+
+	if (!n.isOldVerison())
+	{
+		WRITE_TRACE(DBG_FATAL, "VM '%s' has already updated NVRAM", QSTR2UTF8(vmuuid));
+		pUser->sendSimpleResponse( p, PRL_ERR_INVALID_ARG );
+		return;
+	}
+
+	if (!n.updateNVRAM())
+	{
+		WRITE_TRACE(DBG_FATAL, "Can not update NVRAM for VM '%s'", QSTR2UTF8(vmuuid));
+		pUser->sendSimpleResponse( p, PRL_ERR_OPERATION_FAILED );
+		return;
+	}
+
+	CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand( p, PRL_ERR_SUCCESS );
+	pUser->sendResponse(pCmd, p );
 }
 
 static QMutex* gs_pmtxUserAuth = new QMutex;

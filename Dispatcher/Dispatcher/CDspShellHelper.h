@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -185,6 +185,7 @@ public:
 	void sendLicenseInfo(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 	void updateLicense(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 	void sendVcmmdConfig(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
+	void updateVmNvram(SmartPtr<CDspClient>& pUser, const SmartPtr<IOPackage>& p);
 
 private:
 	PRL_RESULT refreshVmsCPUFeatures(SmartPtr<CDspClient>& user_) const;

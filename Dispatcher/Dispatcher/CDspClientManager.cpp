@@ -8,7 +8,7 @@
 /// @author romanp
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -695,6 +695,8 @@ void CDspClientManager::handleToDispatcherPackage (
 		return (void)m_service->getShellServiceHelper().sendVcmmdConfig(client, p);
 	case PVE::DspCmdGetCpuMaskSupport:
 		return (void)m_service->getShellServiceHelper().isCpuMaskingSupport(client, p);
+	case PVE::DspCmdVmUpdateNvram:
+		return (void)m_service->getShellServiceHelper().updateVmNvram(client, p);
 
 	} //switch( p->header.type )
 	///////////////////////////////////////////////
