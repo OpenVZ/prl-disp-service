@@ -57,7 +57,7 @@ private:
 	bool runCmd(const QStringList &cmd);
 
 private:
-	QFileInfo		m_path;
+	QFileInfo		m_oldNvram;
 	Chipset_type	m_chip;
 	QString			m_newNvram;
 	QString			m_storage;
