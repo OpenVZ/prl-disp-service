@@ -1,9 +1,9 @@
 [Unit]
 Description=Dispatcher service.
 After=syslog.target network-online.target local-fs.target vstorage-fs.service
-After=libvirtd.service systemd-modules-load.service vzevent.service vz.service
+After=virtqemud.service virtvzctd.service systemd-modules-load.service vzevent.service vz.service
 After=virt-guest-shutdown.target
-Wants=libvirtd.service systemd-modules-load.service vzevent.service vz.service local-fs.target vstorage-fs.service
+Wants=virtqemud.service virtvzctd.service systemd-modules-load.service vzevent.service vz.service local-fs.target vstorage-fs.service
 Requires=virt-guest-shutdown.target local-fs.target
 
 [Service]
