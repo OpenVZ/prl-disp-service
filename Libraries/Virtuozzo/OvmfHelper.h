@@ -49,6 +49,7 @@ public:
 
 	bool isOldVerison();
 	static QStringList generateQemuArgs(const QString &ovmfCode, const QString &ovmfVars, const QString &disk);
+	const QString &getNewNvramPath() const { return m_newNvram; }
 
 private:
 

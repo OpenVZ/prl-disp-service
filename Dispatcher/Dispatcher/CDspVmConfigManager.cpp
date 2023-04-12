@@ -7,7 +7,7 @@
 /// @author Artemr
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -378,7 +378,7 @@ void NvramInfo::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 		if (n.isOldVerison() && n.updateNVRAM())
 		{
 			WRITE_TRACE(DBG_INFO, "NVRAM Updated successfully for VM '%s'", QSTR2UTF8(old_.getVmIdentification()->getVmName()));
-			new_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM(VZ_VM_NVRAM_FILE_NAME);
+			new_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM(n.getNewNvramPath());
 		}
 	}
 }
