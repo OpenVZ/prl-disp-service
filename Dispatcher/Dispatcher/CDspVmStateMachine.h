@@ -499,8 +499,7 @@ struct Frontend: Details::Frontend<Frontend>
 					if (n.isOldVerison() && n.updateNVRAM())
 					{
 						WRITE_TRACE(DBG_INFO, "NVRAM Updater[Cluster::configure]: successfully update NVRAM for VM '%s'", QSTR2UTF8(config_.getVmIdentification()->getVmName()));
-						QFileInfo nvram_(s->getVmStartupOptions()->getBios()->getNVRAM());
-						config_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM(nvram_.absolutePath() + "/" + VZ_VM_NVRAM_FILE_NAME);
+						config_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM(n.getNewNvramPath());
 						Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(config_.getVmIdentification()->getVmUuid());
 						if (v.setConfig(config_).isFailed())
 						{
