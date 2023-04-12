@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2023 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core. Virtuozzo Core is free software;
  * you can redistribute it and/or modify it under the terms of the GNU
@@ -31,8 +31,10 @@
 #include "CDspBackupDevice.h"
 #include "CDspClientManager.h"
 #include "Tasks/Task_BackgroundJob.h"
+#include "Libraries/StatesUtils/StatesHelper.h"
+#include "Libraries/PrlCommonUtils/CFirewallHelper.h"
+#include "Libraries/Virtuozzo/OvmfHelper.h"
 #include <prlcommon/Interfaces/Debug.h>
-#include <Libraries/StatesUtils/StatesHelper.h>
 #include <prlsdk/PrlEnums.h>
 #include <prlcommon/Logging/Logging.h>
 #include <boost/signals2/signal.hpp>
@@ -41,7 +43,6 @@
 #include "CDspVmGuest.h"
 #include "CDspVmStateMachine_p.h"
 #include <boost/phoenix/core/value.hpp>
-#include <Libraries/PrlCommonUtils/CFirewallHelper.h>
 
 namespace Vm
 {
@@ -489,9 +490,29 @@ struct Frontend: Details::Frontend<Frontend>
 			CVmSettings *s = config_.getVmSettings();
 			if (s)
 			{
+				bool b_newState = (!f && t);
+				//update NVRAM when VM is turned off
+				if (s->getVmStartupOptions()->getBios()->isEfiEnabled() && s->getClusterOptions()->isRunning() && !b_newState)
+				{
+					NvramUpdater n(s->getVmStartupOptions()->getBios()->getNVRAM(),
+							static_cast<Chipset_type>(config_.getVmHardwareList()->getChipset()->getType()));
+					if (n.isOldVerison() && n.updateNVRAM())
+					{
+						WRITE_TRACE(DBG_INFO, "NVRAM Updater[Cluster::configure]: successfully update NVRAM for VM '%s'", QSTR2UTF8(config_.getVmIdentification()->getVmName()));
+						QFileInfo nvram_(s->getVmStartupOptions()->getBios()->getNVRAM());
+						config_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM(nvram_.absolutePath() + "/" + VZ_VM_NVRAM_FILE_NAME);
+						Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(config_.getVmIdentification()->getVmUuid());
+						if (v.setConfig(config_).isFailed())
+						{
+							WRITE_TRACE(DBG_FATAL, "NVRAM Updater[Cluster::configure]: Failed to update runtime config for VM '%s'",
+									QSTR2UTF8(config_.getVmIdentification()->getVmName()));
+						}
+					}
+				}
+
 				ClusterOptions *o = s->getClusterOptions();
 				if (o)
-					o->setRunning(!f && t);
+					o->setRunning(b_newState);
 			}
 		}
 	};
