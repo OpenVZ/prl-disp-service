@@ -229,6 +229,9 @@ bool NvramUpdater::updateNVRAM()
 
 bool NvramUpdater::isOldVerison()
 {
+	if (m_oldNvram.filePath() == m_newNvram)
+		return false;
+
 	if (!m_oldNvram.exists())
 	{
 		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: File '%s' is absent",
