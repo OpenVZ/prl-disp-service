@@ -2456,12 +2456,11 @@ PRL_RESULT Builder::setResources(const VtInfo& vt_)
 	if (u.getClock(t))
 		m_result->setClock(t);
 
-	Libvirt::Domain::Xml::Os2 o;
-	if (u.getChipset(o))
-	{
-		mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
-		vos.setValue(o);
-		m_result->setOs(vos);
+	auto current_vos = boost::get<mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type>(m_result->getOs());
+	Libvirt::Domain::Xml::Os2 current_os2 = current_vos.getValue();
+	if (u.getChipset(current_os2)){
+		current_vos.setValue(current_os2);
+		m_result->setOs(current_vos);
 	}
 
 	u.getCpu(vt_, *m_result);
