@@ -82,6 +82,16 @@ quint64 MemGuarantee::operator()(quint64 ramsize_) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct LifecycleAction
+
+void LifecycleAction::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	new_.getVmSettings()->getVmStartupOptions()->setOnRebootAction(old_.getVmSettings()->getVmStartupOptions()->getOnRebootAction());
+	new_.getVmSettings()->getVmStartupOptions()->setOnPoweroffAction(old_.getVmSettings()->getVmStartupOptions()->getOnPoweroffAction());
+	new_.getVmSettings()->getVmStartupOptions()->setOnCrashAction(old_.getVmSettings()->getVmStartupOptions()->getOnCrashAction());
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Nvram
 
 void Nvram::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
