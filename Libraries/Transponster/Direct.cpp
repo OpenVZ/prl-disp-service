@@ -1326,6 +1326,46 @@ PRL_RESULT Vm::setIdentification()
 	return PRL_ERR_SUCCESS;
 }
 
+const char* EOff2Str(int a)
+{
+	switch (a)
+	{
+		case Libvirt::Domain::Xml::EOffOptions::EOffOptionsDestroy:
+			return "destroy";
+		case Libvirt::Domain::Xml::EOffOptions::EOffOptionsRestart:
+			return "restart";
+		case Libvirt::Domain::Xml::EOffOptions::EOffOptionsPreserve:
+			return "preserve";
+		case Libvirt::Domain::Xml::EOffOptions::EOffOptionsRenameRestart:
+			return "rename-restart";
+		default:
+			return "";
+	}
+	return "";
+}
+
+const char* ECrash2Str(int a)
+{
+	switch (a)
+	{
+		case Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsDestroy:
+			return "destroy";
+		case Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsRestart:
+			return "restart";
+		case Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsPreserve:
+			return "preserve";
+		case Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsRenameRestart:
+			return "rename-restart";
+		case Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsCoredumpDestroy:
+			return "coredump-destroy";
+		case Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsCoredumpRestart:
+			 return "coredump-restart";
+		default:
+			return "";
+	}
+	return "";
+}
+
 PRL_RESULT Vm::setSettings()
 {
 	if (m_result.isNull())
@@ -1358,6 +1398,13 @@ PRL_RESULT Vm::setSettings()
 	u->setEhcEnabled(false);
 	u->setXhcEnabled(false);
 	s->setUsbController(u);
+
+	if (m_input->getOnReboot())
+		so->setOnRebootAction(EOff2Str(m_input->getOnReboot().get()));
+	if (m_input->getOnPoweroff())
+		so->setOnPoweroffAction(EOff2Str(m_input->getOnPoweroff().get()));
+	if (m_input->getOnCrash())
+		so->setOnCrashAction(ECrash2Str(m_input->getOnCrash().get()));
 
 	m_result->setVmSettings(s);
 	return PRL_ERR_SUCCESS;

@@ -2206,6 +2206,41 @@ PRL_RESULT Builder::setDevices()
 	return PRL_ERR_SUCCESS;
 }
 
+const boost::optional<Libvirt::Domain::Xml::EOffOptions> str2EOffOption(const QString &s, bool isReboot)
+{
+	//initialize with default value
+	boost::optional<Libvirt::Domain::Xml::EOffOptions> result(
+			isReboot ? Libvirt::Domain::Xml::EOffOptions::EOffOptionsRestart : Libvirt::Domain::Xml::EOffOptions::EOffOptionsDestroy);
+	if ("destroy" == s)
+		result = Libvirt::Domain::Xml::EOffOptions::EOffOptionsDestroy;
+	else if ("restart" ==  s)
+		result = Libvirt::Domain::Xml::EOffOptions::EOffOptionsRestart;
+	else if ("preserve" ==  s)
+		result = Libvirt::Domain::Xml::EOffOptions::EOffOptionsPreserve;
+	else if ("rename-restart" == s)
+		result = Libvirt::Domain::Xml::EOffOptions::EOffOptionsRenameRestart;
+	return result;
+}
+
+const boost::optional<Libvirt::Domain::Xml::ECrashOptions> str2ECrashOption(const QString &s)
+{
+	//initialize with default value
+	boost::optional<Libvirt::Domain::Xml::ECrashOptions> result(Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsPreserve);
+	if ("destroy" == s)
+		result = Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsDestroy;
+	else if ("restart" ==  s)
+		result = Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsRestart;
+	else if ("preserve" ==  s)
+		result = Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsPreserve;
+	else if ("rename-restart" == s)
+		result = Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsRenameRestart;
+	else if ("coredump-destroy" == s)
+		result = Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsCoredumpDestroy;
+	else if ("coredump-restart" == s)
+		result = Libvirt::Domain::Xml::ECrashOptions::ECrashOptionsCoredumpRestart;
+	return result;
+}
+
 PRL_RESULT Builder::setResources(const VtInfo& vt_)
 {
 	if (m_result.isNull())
@@ -2239,6 +2274,15 @@ PRL_RESULT Builder::setResources(const VtInfo& vt_)
 	Libvirt::Domain::Xml::Clock t;
 	if (u.getClock(t))
 		m_result->setClock(t);
+
+	if (!m_input.getVmSettings()->getVmStartupOptions()->getOnPoweroffAction().isEmpty())
+		m_result->setOnPoweroff(str2EOffOption(m_input.getVmSettings()->getVmStartupOptions()->getOnPoweroffAction(), false));
+
+	if (!m_input.getVmSettings()->getVmStartupOptions()->getOnRebootAction().isEmpty())
+		m_result->setOnPoweroff(str2EOffOption(m_input.getVmSettings()->getVmStartupOptions()->getOnRebootAction(), true));
+
+	if (!m_input.getVmSettings()->getVmStartupOptions()->getOnCrashAction().isEmpty())
+		m_result->setOnCrash(str2ECrashOption(m_input.getVmSettings()->getVmStartupOptions()->getOnCrashAction()));
 
 	u.getCpu(vt_, *m_result);
 	return PRL_ERR_SUCCESS;

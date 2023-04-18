@@ -98,6 +98,14 @@ struct Nvram
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
+///////////////////////////////////////////////////////////////////////////////
+// struct LifecycleAction
+
+struct LifecycleAction
+{
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
+};
+
 namespace RemoteDisplay
 {
 ///////////////////////////////////////////////////////////////////////////////
@@ -389,7 +397,7 @@ struct Reviser<N, void>
 	}
 };
 
-typedef boost::mpl::vector<Nvram, Patch::Runtime> revise_types;
+typedef boost::mpl::vector<LifecycleAction, Nvram, Patch::Runtime> revise_types;
 typedef boost::mpl::vector<Identification, OsInfo, NvramInfo, BackupDirectory, RuntimeOptions, GlobalNetwork,
 		Patch::Index, Cpu::Copy, NetworkDevices, HardDisks, OpticalDisks, Patch::State,
 		HighAvailability, Tools, RemoteDisplay::Pivot>
