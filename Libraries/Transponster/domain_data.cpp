@@ -2023,42 +2023,6 @@ QString Traits<Domain::Xml::VUUID>::generate(const Domain::Xml::VUUID& src_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VAdjustment
-
-bool Traits<Domain::Xml::VAdjustment>::parse(const QString& src_, Domain::Xml::VAdjustment& dst_)
-{
-	int x;
-	mpl::at_c<Domain::Xml::VAdjustment::types, 0>::type a0;
-	x = Marshal<Domain::Xml::EAdjustment>::setString(src_, a0);
-	if (0 < x)
-	{
-		dst_ = a0;
-		return true;
-	}
-	mpl::at_c<Domain::Xml::VAdjustment::types, 1>::type a1;
-	x = Marshal<Domain::Xml::PTimeDelta>::setString(src_, a1);
-	if (0 < x)
-	{
-		dst_ = a1;
-		return true;
-	}
-
-	return false;
-}
-
-QString Traits<Domain::Xml::VAdjustment>::generate(const Domain::Xml::VAdjustment& src_)
-{
-	switch (src_.which())
-	{
-	case 0:
-		return Marshal<Domain::Xml::EAdjustment>::getString(boost::get<mpl::at_c<Domain::Xml::VAdjustment::types, 0>::type>(src_));
-	case 1:
-		return Marshal<Domain::Xml::PTimeDelta>::getString(boost::get<mpl::at_c<Domain::Xml::VAdjustment::types, 1>::type>(src_));
-	}
-	return QString();
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct VIpAddr
 
 bool Traits<Domain::Xml::VIpAddr>::parse(const QString& src_, Domain::Xml::VIpAddr& dst_)
@@ -2126,6 +2090,42 @@ QString Traits<Domain::Xml::VName>::generate(const Domain::Xml::VName& src_)
 		return Marshal<Domain::Xml::PDnsName>::getString(boost::get<mpl::at_c<Domain::Xml::VName::types, 0>::type>(src_));
 	case 1:
 		return Marshal<Domain::Xml::VIpAddr>::getString(boost::get<mpl::at_c<Domain::Xml::VName::types, 1>::type>(src_));
+	}
+	return QString();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VAdjustment
+
+bool Traits<Domain::Xml::VAdjustment>::parse(const QString& src_, Domain::Xml::VAdjustment& dst_)
+{
+	int x;
+	mpl::at_c<Domain::Xml::VAdjustment::types, 0>::type a0;
+	x = Marshal<Domain::Xml::EAdjustment>::setString(src_, a0);
+	if (0 < x)
+	{
+		dst_ = a0;
+		return true;
+	}
+	mpl::at_c<Domain::Xml::VAdjustment::types, 1>::type a1;
+	x = Marshal<Domain::Xml::PTimeDelta>::setString(src_, a1);
+	if (0 < x)
+	{
+		dst_ = a1;
+		return true;
+	}
+
+	return false;
+}
+
+QString Traits<Domain::Xml::VAdjustment>::generate(const Domain::Xml::VAdjustment& src_)
+{
+	switch (src_.which())
+	{
+	case 0:
+		return Marshal<Domain::Xml::EAdjustment>::getString(boost::get<mpl::at_c<Domain::Xml::VAdjustment::types, 0>::type>(src_));
+	case 1:
+		return Marshal<Domain::Xml::PTimeDelta>::getString(boost::get<mpl::at_c<Domain::Xml::VAdjustment::types, 1>::type>(src_));
 	}
 	return QString();
 }

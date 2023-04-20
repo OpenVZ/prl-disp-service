@@ -3239,28 +3239,6 @@ struct Traits<Domain::Xml::VUUID>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VAdjustment
-
-namespace Domain
-{
-namespace Xml
-{
-typedef Choice<mpl::vector<EAdjustment, PTimeDelta > > VAdjustmentImpl;
-typedef VAdjustmentImpl::value_type VAdjustment;
-
-} // namespace Xml
-} // namespace Domain
-
-template<>
-struct Traits<Domain::Xml::VAdjustment>
-{
-	static bool parse(const QString& src_, Domain::Xml::VAdjustment& dst_);
-
-	static QString generate(const Domain::Xml::VAdjustment& src_);
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct VIpAddr
 
 namespace Domain
@@ -3301,6 +3279,28 @@ struct Traits<Domain::Xml::VName>
 	static bool parse(const QString& src_, Domain::Xml::VName& dst_);
 
 	static QString generate(const Domain::Xml::VName& src_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VAdjustment
+
+namespace Domain
+{
+namespace Xml
+{
+typedef Choice<mpl::vector<EAdjustment, PTimeDelta > > VAdjustmentImpl;
+typedef VAdjustmentImpl::value_type VAdjustment;
+
+} // namespace Xml
+} // namespace Domain
+
+template<>
+struct Traits<Domain::Xml::VAdjustment>
+{
+	static bool parse(const QString& src_, Domain::Xml::VAdjustment& dst_);
+
+	static QString generate(const Domain::Xml::VAdjustment& src_);
 
 };
 

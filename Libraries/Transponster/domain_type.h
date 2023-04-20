@@ -1640,6 +1640,630 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Seclabel6973
+
+namespace Domain
+{
+namespace Xml
+{
+struct Seclabel6973
+{
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Seclabel6974
+
+namespace Domain
+{
+namespace Xml
+{
+struct Seclabel6974
+{
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VSeclabel
+
+namespace Domain
+{
+namespace Xml
+{
+typedef Choice<mpl::vector<Seclabel6973, Seclabel6974, Ordered<mpl::vector<Optional<Attribute<mpl::int_<135>, Name::Strict<233> > >, OneOrMore<Element<Text<QString >, Name::Strict<234> > > > > > > VSeclabelImpl;
+typedef VSeclabelImpl::value_type VSeclabel;
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Seclabel
+
+namespace Domain
+{
+namespace Xml
+{
+struct Seclabel
+{
+	const boost::optional<QString >& getModel() const
+	{
+		return m_model;
+	}
+	void setModel(const boost::optional<QString >& value_)
+	{
+		m_model = value_;
+	}
+	const VSeclabel& getSeclabel() const
+	{
+		return m_seclabel;
+	}
+	void setSeclabel(const VSeclabel& value_)
+	{
+		m_seclabel = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	boost::optional<QString > m_model;
+	VSeclabel m_seclabel;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Source
+
+namespace Domain
+{
+namespace Xml
+{
+struct Source
+{
+	const boost::optional<PAbsFilePath::value_type >& getDev() const
+	{
+		return m_dev;
+	}
+	void setDev(const boost::optional<PAbsFilePath::value_type >& value_)
+	{
+		m_dev = value_;
+	}
+	const boost::optional<EStartupPolicy >& getStartupPolicy() const
+	{
+		return m_startupPolicy;
+	}
+	void setStartupPolicy(const boost::optional<EStartupPolicy >& value_)
+	{
+		m_startupPolicy = value_;
+	}
+	const QList<Seclabel >& getSeclabelList() const
+	{
+		return m_seclabelList;
+	}
+	void setSeclabelList(const QList<Seclabel >& value_)
+	{
+		m_seclabelList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	boost::optional<PAbsFilePath::value_type > m_dev;
+	boost::optional<EStartupPolicy > m_startupPolicy;
+	QList<Seclabel > m_seclabelList;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VSecret
+
+namespace Domain
+{
+namespace Xml
+{
+typedef Choice<mpl::vector<Attribute<Domain::Xml::VUUID, Name::Strict<151> >, Attribute<QString, Name::Strict<640> > > > VSecretImpl;
+typedef VSecretImpl::value_type VSecret;
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous7117
+
+namespace Domain
+{
+namespace Xml
+{
+struct Anonymous7117
+{
+	const QString& getMode() const
+	{
+		return m_mode;
+	}
+	void setMode(const QString& value_)
+	{
+		m_mode = value_;
+	}
+	const QString& getHash() const
+	{
+		return m_hash;
+	}
+	void setHash(const QString& value_)
+	{
+		m_hash = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+
+private:
+	QString m_mode;
+	QString m_hash;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Keycipher
+
+namespace Domain
+{
+namespace Xml
+{
+struct Keycipher
+{
+	Keycipher();
+
+	const QString& getName() const
+	{
+		return m_name;
+	}
+	void setName(const QString& value_)
+	{
+		m_name = value_;
+	}
+	PUnsignedInt::value_type getSize() const
+	{
+		return m_size;
+	}
+	void setSize(PUnsignedInt::value_type value_)
+	{
+		m_size = value_;
+	}
+	const boost::optional<Anonymous7117 >& getAnonymous7117() const
+	{
+		return m_anonymous7117;
+	}
+	void setAnonymous7117(const boost::optional<Anonymous7117 >& value_)
+	{
+		m_anonymous7117 = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	QString m_name;
+	PUnsignedInt::value_type m_size;
+	boost::optional<Anonymous7117 > m_anonymous7117;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Keyivgen
+
+namespace Domain
+{
+namespace Xml
+{
+struct Keyivgen
+{
+	const QString& getName() const
+	{
+		return m_name;
+	}
+	void setName(const QString& value_)
+	{
+		m_name = value_;
+	}
+	const boost::optional<QString >& getHash() const
+	{
+		return m_hash;
+	}
+	void setHash(const boost::optional<QString >& value_)
+	{
+		m_hash = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	QString m_name;
+	boost::optional<QString > m_hash;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous7118
+
+namespace Domain
+{
+namespace Xml
+{
+struct Anonymous7118
+{
+	const Keycipher& getCipher() const
+	{
+		return m_cipher;
+	}
+	void setCipher(const Keycipher& value_)
+	{
+		m_cipher = value_;
+	}
+	const Keyivgen& getIvgen() const
+	{
+		return m_ivgen;
+	}
+	void setIvgen(const Keyivgen& value_)
+	{
+		m_ivgen = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+
+private:
+	Keycipher m_cipher;
+	Keyivgen m_ivgen;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Encryption
+
+namespace Domain
+{
+namespace Xml
+{
+struct Encryption
+{
+	Encryption();
+
+	EFormat getFormat() const
+	{
+		return m_format;
+	}
+	void setFormat(EFormat value_)
+	{
+		m_format = value_;
+	}
+	const VSecret& getSecret() const
+	{
+		return m_secret;
+	}
+	void setSecret(const VSecret& value_)
+	{
+		m_secret = value_;
+	}
+	const boost::optional<Anonymous7118 >& getAnonymous7118() const
+	{
+		return m_anonymous7118;
+	}
+	void setAnonymous7118(const boost::optional<Anonymous7118 >& value_)
+	{
+		m_anonymous7118 = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EFormat m_format;
+	VSecret m_secret;
+	boost::optional<Anonymous7118 > m_anonymous7118;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Source1
+
+namespace Domain
+{
+namespace Xml
+{
+struct Source1
+{
+	const PAbsFilePath::value_type& getDir() const
+	{
+		return m_dir;
+	}
+	void setDir(const PAbsFilePath::value_type& value_)
+	{
+		m_dir = value_;
+	}
+	const boost::optional<EStartupPolicy >& getStartupPolicy() const
+	{
+		return m_startupPolicy;
+	}
+	void setStartupPolicy(const boost::optional<EStartupPolicy >& value_)
+	{
+		m_startupPolicy = value_;
+	}
+	const boost::optional<Encryption >& getEncryption() const
+	{
+		return m_encryption;
+	}
+	void setEncryption(const boost::optional<Encryption >& value_)
+	{
+		m_encryption = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	PAbsFilePath::value_type m_dir;
+	boost::optional<EStartupPolicy > m_startupPolicy;
+	boost::optional<Encryption > m_encryption;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Host7010
+
+namespace Domain
+{
+namespace Xml
+{
+struct Host7010
+{
+	const boost::optional<ETransport >& getTransport() const
+	{
+		return m_transport;
+	}
+	void setTransport(const boost::optional<ETransport >& value_)
+	{
+		m_transport = value_;
+	}
+	const VName& getName() const
+	{
+		return m_name;
+	}
+	void setName(const VName& value_)
+	{
+		m_name = value_;
+	}
+	const boost::optional<PUnsignedInt::value_type >& getPort() const
+	{
+		return m_port;
+	}
+	void setPort(const boost::optional<PUnsignedInt::value_type >& value_)
+	{
+		m_port = value_;
+	}
+
+private:
+	boost::optional<ETransport > m_transport;
+	VName m_name;
+	boost::optional<PUnsignedInt::value_type > m_port;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VHost
+
+namespace Domain
+{
+namespace Xml
+{
+typedef Choice<mpl::vector<Host7010, Ordered<mpl::vector<Attribute<mpl::int_<520>, Name::Strict<514> >, Attribute<Domain::Xml::PAbsFilePath, Name::Strict<521> > > > > > VHostImpl;
+typedef VHostImpl::value_type VHost;
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Source2
+
+namespace Domain
+{
+namespace Xml
+{
+struct Source2
+{
+	Source2();
+
+	EProtocol getProtocol() const
+	{
+		return m_protocol;
+	}
+	void setProtocol(EProtocol value_)
+	{
+		m_protocol = value_;
+	}
+	const boost::optional<QString >& getName() const
+	{
+		return m_name;
+	}
+	void setName(const boost::optional<QString >& value_)
+	{
+		m_name = value_;
+	}
+	const QList<VHost >& getHostList() const
+	{
+		return m_hostList;
+	}
+	void setHostList(const QList<VHost >& value_)
+	{
+		m_hostList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EProtocol m_protocol;
+	boost::optional<QString > m_name;
+	QList<VHost > m_hostList;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Source3
+
+namespace Domain
+{
+namespace Xml
+{
+struct Source3
+{
+	const PGenericName::value_type& getPool() const
+	{
+		return m_pool;
+	}
+	void setPool(const PGenericName::value_type& value_)
+	{
+		m_pool = value_;
+	}
+	const PVolName::value_type& getVolume() const
+	{
+		return m_volume;
+	}
+	void setVolume(const PVolName::value_type& value_)
+	{
+		m_volume = value_;
+	}
+	const boost::optional<EMode2 >& getMode() const
+	{
+		return m_mode;
+	}
+	void setMode(const boost::optional<EMode2 >& value_)
+	{
+		m_mode = value_;
+	}
+	const boost::optional<EStartupPolicy >& getStartupPolicy() const
+	{
+		return m_startupPolicy;
+	}
+	void setStartupPolicy(const boost::optional<EStartupPolicy >& value_)
+	{
+		m_startupPolicy = value_;
+	}
+	const boost::optional<Encryption >& getEncryption() const
+	{
+		return m_encryption;
+	}
+	void setEncryption(const boost::optional<Encryption >& value_)
+	{
+		m_encryption = value_;
+	}
+	const QList<Seclabel >& getSeclabelList() const
+	{
+		return m_seclabelList;
+	}
+	void setSeclabelList(const QList<Seclabel >& value_)
+	{
+		m_seclabelList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	PGenericName::value_type m_pool;
+	PVolName::value_type m_volume;
+	boost::optional<EMode2 > m_mode;
+	boost::optional<EStartupPolicy > m_startupPolicy;
+	boost::optional<Encryption > m_encryption;
+	QList<Seclabel > m_seclabelList;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Source4
+
+namespace Domain
+{
+namespace Xml
+{
+struct Source4
+{
+	const boost::optional<PAbsFilePath::value_type >& getFile() const
+	{
+		return m_file;
+	}
+	void setFile(const boost::optional<PAbsFilePath::value_type >& value_)
+	{
+		m_file = value_;
+	}
+	const boost::optional<EStartupPolicy >& getStartupPolicy() const
+	{
+		return m_startupPolicy;
+	}
+	void setStartupPolicy(const boost::optional<EStartupPolicy >& value_)
+	{
+		m_startupPolicy = value_;
+	}
+	const QList<Seclabel >& getSeclabelList() const
+	{
+		return m_seclabelList;
+	}
+	void setSeclabelList(const QList<Seclabel >& value_)
+	{
+		m_seclabelList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	boost::optional<PAbsFilePath::value_type > m_file;
+	boost::optional<EStartupPolicy > m_startupPolicy;
+	QList<Seclabel > m_seclabelList;
+};
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
+// struct VDiskSource
+
+namespace Domain
+{
+namespace Xml
+{
+typedef Choice<mpl::vector<Ordered<mpl::vector<Attribute<mpl::int_<502>, Name::Strict<105> >, Optional<Element<Domain::Xml::Source, Name::Strict<501> > > > >, Ordered<mpl::vector<Attribute<mpl::int_<164>, Name::Strict<105> >, Optional<Element<Domain::Xml::Source1, Name::Strict<501> > > > >, Ordered<mpl::vector<Attribute<mpl::int_<445>, Name::Strict<105> >, Element<Domain::Xml::Source2, Name::Strict<501> > > >, Ordered<mpl::vector<Attribute<mpl::int_<523>, Name::Strict<105> >, Optional<Element<Domain::Xml::Source3, Name::Strict<501> > > > >, Ordered<mpl::vector<Optional<Attribute<mpl::int_<500>, Name::Strict<105> > >, Optional<Element<Domain::Xml::Source4, Name::Strict<501> > > > > > > VDiskSourceImpl;
+typedef VDiskSourceImpl::value_type VDiskSource;
+
+} // namespace Xml
+} // namespace Domain
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Nvram
 
 namespace Domain
@@ -1656,21 +2280,21 @@ struct Nvram
 	{
 		m_template = value_;
 	}
-	const boost::optional<EFormat >& getFormat() const
+	const boost::optional<VDiskSource >& getDiskSource() const
+	{
+		return m_diskSource;
+	}
+	void setDiskSource(const boost::optional<VDiskSource >& value_)
+	{
+		m_diskSource = value_;
+	}
+	const boost::optional<EFormat1 >& getFormat() const
 	{
 		return m_format;
 	}
-	void setFormat(const boost::optional<EFormat >& value_)
+	void setFormat(const boost::optional<EFormat1 >& value_)
 	{
 		m_format = value_;
-	}
-	const boost::optional<PAbsFilePath::value_type >& getOwnValue() const
-	{
-		return m_ownValue;
-	}
-	void setOwnValue(const boost::optional<PAbsFilePath::value_type >& value_)
-	{
-		m_ownValue = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -1678,8 +2302,8 @@ struct Nvram
 
 private:
 	boost::optional<PAbsFilePath::value_type > m_template;
-	boost::optional<EFormat > m_format;
-	boost::optional<PAbsFilePath::value_type > m_ownValue;
+	boost::optional<VDiskSource > m_diskSource;
+	boost::optional<EFormat1 > m_format;
 };
 
 } // namespace Xml
@@ -1818,11 +2442,11 @@ struct Os2
 	{
 		m_bootmenu = value_;
 	}
-	const boost::optional<EMode2 >& getSmbios() const
+	const boost::optional<EMode3 >& getSmbios() const
 	{
 		return m_smbios;
 	}
-	void setSmbios(const boost::optional<EMode2 >& value_)
+	void setSmbios(const boost::optional<EMode3 >& value_)
 	{
 		m_smbios = value_;
 	}
@@ -1853,7 +2477,7 @@ private:
 	boost::optional<Osbootkernel > m_osbootkernel;
 	QList<EDev > m_bootList;
 	boost::optional<Bootmenu > m_bootmenu;
-	boost::optional<EMode2 > m_smbios;
+	boost::optional<EMode3 > m_smbios;
 	boost::optional<Bios > m_bios;
 	boost::optional<QList<PAbsFilePath::value_type > > m_acpi;
 };
@@ -2205,11 +2829,11 @@ struct Timer6995
 	{
 		m_frequency = value_;
 	}
-	const boost::optional<EMode3 >& getMode() const
+	const boost::optional<EMode4 >& getMode() const
 	{
 		return m_mode;
 	}
-	void setMode(const boost::optional<EMode3 >& value_)
+	void setMode(const boost::optional<EMode4 >& value_)
 	{
 		m_mode = value_;
 	}
@@ -2217,7 +2841,7 @@ struct Timer6995
 private:
 	boost::optional<VTickpolicy > m_tickpolicy;
 	boost::optional<PUnsignedInt::value_type > m_frequency;
-	boost::optional<EMode3 > m_mode;
+	boost::optional<EMode4 > m_mode;
 };
 
 } // namespace Xml
@@ -2552,19 +3176,19 @@ struct MemoryBacking
 	{
 		m_source = value_;
 	}
-	const boost::optional<EMode4 >& getAccess() const
+	const boost::optional<EMode5 >& getAccess() const
 	{
 		return m_access;
 	}
-	void setAccess(const boost::optional<EMode4 >& value_)
+	void setAccess(const boost::optional<EMode5 >& value_)
 	{
 		m_access = value_;
 	}
-	const boost::optional<EMode5 >& getAllocation() const
+	const boost::optional<EMode6 >& getAllocation() const
 	{
 		return m_allocation;
 	}
-	void setAllocation(const boost::optional<EMode5 >& value_)
+	void setAllocation(const boost::optional<EMode6 >& value_)
 	{
 		m_allocation = value_;
 	}
@@ -2585,8 +3209,8 @@ private:
 	bool m_nosharepages;
 	bool m_locked;
 	boost::optional<EType5 > m_source;
-	boost::optional<EMode4 > m_access;
-	boost::optional<EMode5 > m_allocation;
+	boost::optional<EMode5 > m_access;
+	boost::optional<EMode6 > m_allocation;
 	bool m_discard;
 };
 
@@ -3547,11 +4171,11 @@ namespace Xml
 {
 struct Memory1
 {
-	const boost::optional<EMode6 >& getMode() const
+	const boost::optional<EMode7 >& getMode() const
 	{
 		return m_mode;
 	}
-	void setMode(const boost::optional<EMode6 >& value_)
+	void setMode(const boost::optional<EMode7 >& value_)
 	{
 		m_mode = value_;
 	}
@@ -3568,7 +4192,7 @@ struct Memory1
 	bool save(QDomDocument& ) const;
 
 private:
-	boost::optional<EMode6 > m_mode;
+	boost::optional<EMode7 > m_mode;
 	VMemory m_memory;
 };
 
@@ -3594,11 +4218,11 @@ struct Memnode
 	{
 		m_cellid = value_;
 	}
-	EMode7 getMode() const
+	EMode8 getMode() const
 	{
 		return m_mode;
 	}
-	void setMode(EMode7 value_)
+	void setMode(EMode8 value_)
 	{
 		m_mode = value_;
 	}
@@ -3616,7 +4240,7 @@ struct Memnode
 
 private:
 	PUnsignedInt::value_type m_cellid;
-	EMode7 m_mode;
+	EMode8 m_mode;
 	PCpuset::value_type m_nodeset;
 };
 
@@ -5369,630 +5993,6 @@ typedef VDiskImpl::value_type VDisk;
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Seclabel6973
-
-namespace Domain
-{
-namespace Xml
-{
-struct Seclabel6973
-{
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Seclabel6974
-
-namespace Domain
-{
-namespace Xml
-{
-struct Seclabel6974
-{
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct VSeclabel
-
-namespace Domain
-{
-namespace Xml
-{
-typedef Choice<mpl::vector<Seclabel6973, Seclabel6974, Ordered<mpl::vector<Optional<Attribute<mpl::int_<135>, Name::Strict<233> > >, OneOrMore<Element<Text<QString >, Name::Strict<234> > > > > > > VSeclabelImpl;
-typedef VSeclabelImpl::value_type VSeclabel;
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Seclabel
-
-namespace Domain
-{
-namespace Xml
-{
-struct Seclabel
-{
-	const boost::optional<QString >& getModel() const
-	{
-		return m_model;
-	}
-	void setModel(const boost::optional<QString >& value_)
-	{
-		m_model = value_;
-	}
-	const VSeclabel& getSeclabel() const
-	{
-		return m_seclabel;
-	}
-	void setSeclabel(const VSeclabel& value_)
-	{
-		m_seclabel = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	boost::optional<QString > m_model;
-	VSeclabel m_seclabel;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Source
-
-namespace Domain
-{
-namespace Xml
-{
-struct Source
-{
-	const boost::optional<PAbsFilePath::value_type >& getDev() const
-	{
-		return m_dev;
-	}
-	void setDev(const boost::optional<PAbsFilePath::value_type >& value_)
-	{
-		m_dev = value_;
-	}
-	const boost::optional<EStartupPolicy >& getStartupPolicy() const
-	{
-		return m_startupPolicy;
-	}
-	void setStartupPolicy(const boost::optional<EStartupPolicy >& value_)
-	{
-		m_startupPolicy = value_;
-	}
-	const QList<Seclabel >& getSeclabelList() const
-	{
-		return m_seclabelList;
-	}
-	void setSeclabelList(const QList<Seclabel >& value_)
-	{
-		m_seclabelList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	boost::optional<PAbsFilePath::value_type > m_dev;
-	boost::optional<EStartupPolicy > m_startupPolicy;
-	QList<Seclabel > m_seclabelList;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct VSecret
-
-namespace Domain
-{
-namespace Xml
-{
-typedef Choice<mpl::vector<Attribute<Domain::Xml::VUUID, Name::Strict<151> >, Attribute<QString, Name::Strict<640> > > > VSecretImpl;
-typedef VSecretImpl::value_type VSecret;
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous2358
-
-namespace Domain
-{
-namespace Xml
-{
-struct Anonymous2358
-{
-	const QString& getMode() const
-	{
-		return m_mode;
-	}
-	void setMode(const QString& value_)
-	{
-		m_mode = value_;
-	}
-	const QString& getHash() const
-	{
-		return m_hash;
-	}
-	void setHash(const QString& value_)
-	{
-		m_hash = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-
-private:
-	QString m_mode;
-	QString m_hash;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Keycipher
-
-namespace Domain
-{
-namespace Xml
-{
-struct Keycipher
-{
-	Keycipher();
-
-	const QString& getName() const
-	{
-		return m_name;
-	}
-	void setName(const QString& value_)
-	{
-		m_name = value_;
-	}
-	PUnsignedInt::value_type getSize() const
-	{
-		return m_size;
-	}
-	void setSize(PUnsignedInt::value_type value_)
-	{
-		m_size = value_;
-	}
-	const boost::optional<Anonymous2358 >& getAnonymous2358() const
-	{
-		return m_anonymous2358;
-	}
-	void setAnonymous2358(const boost::optional<Anonymous2358 >& value_)
-	{
-		m_anonymous2358 = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	QString m_name;
-	PUnsignedInt::value_type m_size;
-	boost::optional<Anonymous2358 > m_anonymous2358;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Keyivgen
-
-namespace Domain
-{
-namespace Xml
-{
-struct Keyivgen
-{
-	const QString& getName() const
-	{
-		return m_name;
-	}
-	void setName(const QString& value_)
-	{
-		m_name = value_;
-	}
-	const boost::optional<QString >& getHash() const
-	{
-		return m_hash;
-	}
-	void setHash(const boost::optional<QString >& value_)
-	{
-		m_hash = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	QString m_name;
-	boost::optional<QString > m_hash;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous7117
-
-namespace Domain
-{
-namespace Xml
-{
-struct Anonymous7117
-{
-	const Keycipher& getCipher() const
-	{
-		return m_cipher;
-	}
-	void setCipher(const Keycipher& value_)
-	{
-		m_cipher = value_;
-	}
-	const Keyivgen& getIvgen() const
-	{
-		return m_ivgen;
-	}
-	void setIvgen(const Keyivgen& value_)
-	{
-		m_ivgen = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-
-private:
-	Keycipher m_cipher;
-	Keyivgen m_ivgen;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Encryption
-
-namespace Domain
-{
-namespace Xml
-{
-struct Encryption
-{
-	Encryption();
-
-	EFormat1 getFormat() const
-	{
-		return m_format;
-	}
-	void setFormat(EFormat1 value_)
-	{
-		m_format = value_;
-	}
-	const VSecret& getSecret() const
-	{
-		return m_secret;
-	}
-	void setSecret(const VSecret& value_)
-	{
-		m_secret = value_;
-	}
-	const boost::optional<Anonymous7117 >& getAnonymous7117() const
-	{
-		return m_anonymous7117;
-	}
-	void setAnonymous7117(const boost::optional<Anonymous7117 >& value_)
-	{
-		m_anonymous7117 = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	EFormat1 m_format;
-	VSecret m_secret;
-	boost::optional<Anonymous7117 > m_anonymous7117;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Source1
-
-namespace Domain
-{
-namespace Xml
-{
-struct Source1
-{
-	const PAbsFilePath::value_type& getDir() const
-	{
-		return m_dir;
-	}
-	void setDir(const PAbsFilePath::value_type& value_)
-	{
-		m_dir = value_;
-	}
-	const boost::optional<EStartupPolicy >& getStartupPolicy() const
-	{
-		return m_startupPolicy;
-	}
-	void setStartupPolicy(const boost::optional<EStartupPolicy >& value_)
-	{
-		m_startupPolicy = value_;
-	}
-	const boost::optional<Encryption >& getEncryption() const
-	{
-		return m_encryption;
-	}
-	void setEncryption(const boost::optional<Encryption >& value_)
-	{
-		m_encryption = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	PAbsFilePath::value_type m_dir;
-	boost::optional<EStartupPolicy > m_startupPolicy;
-	boost::optional<Encryption > m_encryption;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Host7010
-
-namespace Domain
-{
-namespace Xml
-{
-struct Host7010
-{
-	const boost::optional<ETransport >& getTransport() const
-	{
-		return m_transport;
-	}
-	void setTransport(const boost::optional<ETransport >& value_)
-	{
-		m_transport = value_;
-	}
-	const VName& getName() const
-	{
-		return m_name;
-	}
-	void setName(const VName& value_)
-	{
-		m_name = value_;
-	}
-	const boost::optional<PUnsignedInt::value_type >& getPort() const
-	{
-		return m_port;
-	}
-	void setPort(const boost::optional<PUnsignedInt::value_type >& value_)
-	{
-		m_port = value_;
-	}
-
-private:
-	boost::optional<ETransport > m_transport;
-	VName m_name;
-	boost::optional<PUnsignedInt::value_type > m_port;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct VHost
-
-namespace Domain
-{
-namespace Xml
-{
-typedef Choice<mpl::vector<Host7010, Ordered<mpl::vector<Attribute<mpl::int_<520>, Name::Strict<514> >, Attribute<Domain::Xml::PAbsFilePath, Name::Strict<521> > > > > > VHostImpl;
-typedef VHostImpl::value_type VHost;
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Source2
-
-namespace Domain
-{
-namespace Xml
-{
-struct Source2
-{
-	Source2();
-
-	EProtocol getProtocol() const
-	{
-		return m_protocol;
-	}
-	void setProtocol(EProtocol value_)
-	{
-		m_protocol = value_;
-	}
-	const boost::optional<QString >& getName() const
-	{
-		return m_name;
-	}
-	void setName(const boost::optional<QString >& value_)
-	{
-		m_name = value_;
-	}
-	const QList<VHost >& getHostList() const
-	{
-		return m_hostList;
-	}
-	void setHostList(const QList<VHost >& value_)
-	{
-		m_hostList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	EProtocol m_protocol;
-	boost::optional<QString > m_name;
-	QList<VHost > m_hostList;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Source3
-
-namespace Domain
-{
-namespace Xml
-{
-struct Source3
-{
-	const PGenericName::value_type& getPool() const
-	{
-		return m_pool;
-	}
-	void setPool(const PGenericName::value_type& value_)
-	{
-		m_pool = value_;
-	}
-	const PVolName::value_type& getVolume() const
-	{
-		return m_volume;
-	}
-	void setVolume(const PVolName::value_type& value_)
-	{
-		m_volume = value_;
-	}
-	const boost::optional<EMode8 >& getMode() const
-	{
-		return m_mode;
-	}
-	void setMode(const boost::optional<EMode8 >& value_)
-	{
-		m_mode = value_;
-	}
-	const boost::optional<EStartupPolicy >& getStartupPolicy() const
-	{
-		return m_startupPolicy;
-	}
-	void setStartupPolicy(const boost::optional<EStartupPolicy >& value_)
-	{
-		m_startupPolicy = value_;
-	}
-	const boost::optional<Encryption >& getEncryption() const
-	{
-		return m_encryption;
-	}
-	void setEncryption(const boost::optional<Encryption >& value_)
-	{
-		m_encryption = value_;
-	}
-	const QList<Seclabel >& getSeclabelList() const
-	{
-		return m_seclabelList;
-	}
-	void setSeclabelList(const QList<Seclabel >& value_)
-	{
-		m_seclabelList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	PGenericName::value_type m_pool;
-	PVolName::value_type m_volume;
-	boost::optional<EMode8 > m_mode;
-	boost::optional<EStartupPolicy > m_startupPolicy;
-	boost::optional<Encryption > m_encryption;
-	QList<Seclabel > m_seclabelList;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Source4
-
-namespace Domain
-{
-namespace Xml
-{
-struct Source4
-{
-	const boost::optional<PAbsFilePath::value_type >& getFile() const
-	{
-		return m_file;
-	}
-	void setFile(const boost::optional<PAbsFilePath::value_type >& value_)
-	{
-		m_file = value_;
-	}
-	const boost::optional<EStartupPolicy >& getStartupPolicy() const
-	{
-		return m_startupPolicy;
-	}
-	void setStartupPolicy(const boost::optional<EStartupPolicy >& value_)
-	{
-		m_startupPolicy = value_;
-	}
-	const QList<Seclabel >& getSeclabelList() const
-	{
-		return m_seclabelList;
-	}
-	void setSeclabelList(const QList<Seclabel >& value_)
-	{
-		m_seclabelList = value_;
-	}
-	bool load(const QDomElement& );
-	bool save(QDomElement& ) const;
-	bool save(QDomDocument& ) const;
-
-private:
-	boost::optional<PAbsFilePath::value_type > m_file;
-	boost::optional<EStartupPolicy > m_startupPolicy;
-	QList<Seclabel > m_seclabelList;
-};
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
-// struct VDiskSource
-
-namespace Domain
-{
-namespace Xml
-{
-typedef Choice<mpl::vector<Ordered<mpl::vector<Attribute<mpl::int_<502>, Name::Strict<105> >, Optional<Element<Domain::Xml::Source, Name::Strict<501> > > > >, Ordered<mpl::vector<Attribute<mpl::int_<164>, Name::Strict<105> >, Optional<Element<Domain::Xml::Source1, Name::Strict<501> > > > >, Ordered<mpl::vector<Attribute<mpl::int_<445>, Name::Strict<105> >, Element<Domain::Xml::Source2, Name::Strict<501> > > >, Ordered<mpl::vector<Attribute<mpl::int_<523>, Name::Strict<105> >, Optional<Element<Domain::Xml::Source3, Name::Strict<501> > > > >, Ordered<mpl::vector<Optional<Attribute<mpl::int_<500>, Name::Strict<105> > >, Optional<Element<Domain::Xml::Source4, Name::Strict<501> > > > > > > VDiskSourceImpl;
-typedef VDiskSourceImpl::value_type VDiskSource;
-
-} // namespace Xml
-} // namespace Domain
-
-///////////////////////////////////////////////////////////////////////////////
 // struct DriverFormat
 
 namespace Domain
@@ -6331,13 +6331,13 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous7118
+// struct Anonymous2358
 
 namespace Domain
 {
 namespace Xml
 {
-struct Anonymous7118
+struct Anonymous2358
 {
 	const boost::optional<Source4 >& getSource() const
 	{
@@ -6399,20 +6399,20 @@ struct Mirror4765
 	{
 		m_job = value_;
 	}
-	const boost::optional<Anonymous7118 >& getAnonymous7118() const
+	const boost::optional<Anonymous2358 >& getAnonymous2358() const
 	{
-		return m_anonymous7118;
+		return m_anonymous2358;
 	}
-	void setAnonymous7118(const boost::optional<Anonymous7118 >& value_)
+	void setAnonymous2358(const boost::optional<Anonymous2358 >& value_)
 	{
-		m_anonymous7118 = value_;
+		m_anonymous2358 = value_;
 	}
 
 private:
 	PAbsFilePath::value_type m_file;
 	boost::optional<VStorageFormat > m_format;
 	boost::optional<EJob > m_job;
-	boost::optional<Anonymous7118 > m_anonymous7118;
+	boost::optional<Anonymous2358 > m_anonymous2358;
 };
 
 } // namespace Xml
@@ -7852,13 +7852,13 @@ typedef VChoice2355Impl::value_type VChoice2355;
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant8003
+// struct Variant8014
 
 namespace Domain
 {
 namespace Xml
 {
-struct Variant8003
+struct Variant8014
 {
 	const boost::optional<EName4 >& getModel() const
 	{
@@ -7895,13 +7895,13 @@ private:
 } // namespace Domain
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant8014
+// struct Variant9522
 
 namespace Domain
 {
 namespace Xml
 {
-struct Variant8014
+struct Variant9522
 {
 	const boost::optional<EModel5 >& getModel() const
 	{
@@ -7978,7 +7978,7 @@ namespace Domain
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Attribute<Domain::Xml::EType9, Name::Strict<105> >, Ordered<mpl::vector<Attribute<mpl::int_<529>, Name::Strict<105> >, Optional<Attribute<Domain::Xml::EModel, Name::Strict<231> > > > >, Variant5121, Ordered<mpl::vector<Attribute<mpl::int_<527>, Name::Strict<105> >, Optional<Attribute<Domain::Xml::EModel2, Name::Strict<231> > > > >, Variant7013, Variant8003, Variant8014, Variant8018 > > VChoice5123Impl;
+typedef Choice<mpl::vector<Attribute<Domain::Xml::EType9, Name::Strict<105> >, Ordered<mpl::vector<Attribute<mpl::int_<529>, Name::Strict<105> >, Optional<Attribute<Domain::Xml::EModel, Name::Strict<231> > > > >, Variant5121, Ordered<mpl::vector<Attribute<mpl::int_<527>, Name::Strict<105> >, Optional<Attribute<Domain::Xml::EModel2, Name::Strict<231> > > > >, Variant7013, Variant8014, Variant9522, Variant8018 > > VChoice5123Impl;
 typedef VChoice5123Impl::value_type VChoice5123;
 
 } // namespace Xml
@@ -18048,12 +18048,180 @@ struct Traits<Domain::Xml::Loader>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Seclabel6973 traits
+
+template<>
+struct Traits<Domain::Xml::Seclabel6973>
+{
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<136>, Name::Strict<233> > > > marshal_type;
+
+	static int parse(Domain::Xml::Seclabel6973& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Seclabel6973& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Seclabel6974 traits
+
+template<>
+struct Traits<Domain::Xml::Seclabel6974>
+{
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<135>, Name::Strict<244> > > > marshal_type;
+
+	static int parse(Domain::Xml::Seclabel6974& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Seclabel6974& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Seclabel traits
+
+template<>
+struct Traits<Domain::Xml::Seclabel>
+{
+	typedef Ordered<mpl::vector<Optional<Attribute<QString, Name::Strict<231> > >, Domain::Xml::VSeclabelImpl > > marshal_type;
+
+	static int parse(Domain::Xml::Seclabel& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Seclabel& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Source traits
+
+template<>
+struct Traits<Domain::Xml::Source>
+{
+	typedef Unordered<mpl::vector<Optional<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<441> > >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<468> > >, ZeroOrMore<Element<Domain::Xml::Seclabel, Name::Strict<229> > > > > marshal_type;
+
+	static int parse(Domain::Xml::Source& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Source& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous7117 traits
+
+template<>
+struct Traits<Domain::Xml::Anonymous7117>
+{
+	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<379> >, Attribute<QString, Name::Strict<5769> > > > marshal_type;
+
+	static int parse(Domain::Xml::Anonymous7117& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Anonymous7117& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Keycipher traits
+
+template<>
+struct Traits<Domain::Xml::Keycipher>
+{
+	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<107> >, Attribute<Domain::Xml::PUnsignedInt, Name::Strict<334> >, Optional<Fragment<Domain::Xml::Anonymous7117 > > > > marshal_type;
+
+	static int parse(Domain::Xml::Keycipher& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Keycipher& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Keyivgen traits
+
+template<>
+struct Traits<Domain::Xml::Keyivgen>
+{
+	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<107> >, Optional<Attribute<QString, Name::Strict<5769> > > > > marshal_type;
+
+	static int parse(Domain::Xml::Keyivgen& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Keyivgen& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous7118 traits
+
+template<>
+struct Traits<Domain::Xml::Anonymous7118>
+{
+	typedef Ordered<mpl::vector<Element<Domain::Xml::Keycipher, Name::Strict<5049> >, Element<Domain::Xml::Keyivgen, Name::Strict<5751> > > > marshal_type;
+
+	static int parse(Domain::Xml::Anonymous7118& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Anonymous7118& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Encryption traits
+
+template<>
+struct Traits<Domain::Xml::Encryption>
+{
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::EFormat, Name::Strict<146> >, Unordered<mpl::vector<Element<Ordered<mpl::vector<Attribute<mpl::int_<150>, Name::Strict<105> >, Domain::Xml::VSecretImpl > >, Name::Strict<149> >, Optional<Fragment<Domain::Xml::Anonymous7118 > > > > > > marshal_type;
+
+	static int parse(Domain::Xml::Encryption& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Encryption& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Source1 traits
+
+template<>
+struct Traits<Domain::Xml::Source1>
+{
+	typedef Unordered<mpl::vector<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<164> >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<468> > >, Optional<Element<Domain::Xml::Encryption, Name::Strict<145> > > > > marshal_type;
+
+	static int parse(Domain::Xml::Source1& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Source1& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Host7010 traits
+
+template<>
+struct Traits<Domain::Xml::Host7010>
+{
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::ETransport, Name::Strict<514> > >, Attribute<Domain::Xml::VName, Name::Strict<107> >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<212> > > > > marshal_type;
+
+	static int parse(Domain::Xml::Host7010& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Host7010& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Source2 traits
+
+template<>
+struct Traits<Domain::Xml::Source2>
+{
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::EProtocol, Name::Strict<203> >, Optional<Attribute<QString, Name::Strict<107> > >, ZeroOrMore<Element<Domain::Xml::VHostImpl, Name::Strict<513> > > > > marshal_type;
+
+	static int parse(Domain::Xml::Source2& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Source2& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Source3 traits
+
+template<>
+struct Traits<Domain::Xml::Source3>
+{
+	typedef Unordered<mpl::vector<Attribute<Domain::Xml::PGenericName, Name::Strict<524> >, Attribute<Domain::Xml::PVolName, Name::Strict<523> >, Optional<Attribute<Domain::Xml::EMode2, Name::Strict<379> > >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<468> > >, Optional<Element<Domain::Xml::Encryption, Name::Strict<145> > >, ZeroOrMore<Element<Domain::Xml::Seclabel, Name::Strict<229> > > > > marshal_type;
+
+	static int parse(Domain::Xml::Source3& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Source3& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Source4 traits
+
+template<>
+struct Traits<Domain::Xml::Source4>
+{
+	typedef Unordered<mpl::vector<Optional<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<500> > >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<468> > >, ZeroOrMore<Element<Domain::Xml::Seclabel, Name::Strict<229> > > > > marshal_type;
+
+	static int parse(Domain::Xml::Source4& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Source4& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Nvram traits
 
 template<>
 struct Traits<Domain::Xml::Nvram>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<278> > >, Optional<Attribute<Domain::Xml::EFormat, Name::Strict<146> > >, Optional<Text<Domain::Xml::PAbsFilePath > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<278> > >, Optional<Domain::Xml::VDiskSourceImpl >, Optional<Attribute<Domain::Xml::EFormat1, Name::Strict<146> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Nvram& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Nvram& , QDomElement& );
@@ -18089,7 +18257,7 @@ struct Traits<Domain::Xml::Bios>
 template<>
 struct Traits<Domain::Xml::Os2>
 {
-	typedef Ordered<mpl::vector<Element<Ordered<mpl::vector<Optional<Domain::Xml::VChoice5114Impl >, Text<mpl::int_<307> > > >, Name::Strict<105> >, Unordered<mpl::vector<Optional<Element<Domain::Xml::Loader, Name::Strict<273> > >, Optional<Element<Domain::Xml::Nvram, Name::Strict<277> > >, Optional<Fragment<Domain::Xml::Osbootkernel > >, ZeroOrMore<Element<Attribute<Domain::Xml::EDev, Name::Strict<441> >, Name::Strict<407> > >, Optional<Element<Domain::Xml::Bootmenu, Name::Strict<280> > >, Optional<Element<Attribute<Domain::Xml::EMode2, Name::Strict<379> >, Name::Strict<283> > >, Optional<Element<Domain::Xml::Bios, Name::Strict<284> > >, Optional<Element<ZeroOrMore<Element<Ordered<mpl::vector<Attribute<mpl::int_<5089>, Name::Strict<105> >, Text<Domain::Xml::PAbsFilePath > > >, Name::Strict<5088> > >, Name::Strict<993> > > > > > > marshal_type;
+	typedef Ordered<mpl::vector<Element<Ordered<mpl::vector<Optional<Domain::Xml::VChoice5114Impl >, Text<mpl::int_<307> > > >, Name::Strict<105> >, Unordered<mpl::vector<Optional<Element<Domain::Xml::Loader, Name::Strict<273> > >, Optional<Element<Domain::Xml::Nvram, Name::Strict<277> > >, Optional<Fragment<Domain::Xml::Osbootkernel > >, ZeroOrMore<Element<Attribute<Domain::Xml::EDev, Name::Strict<441> >, Name::Strict<407> > >, Optional<Element<Domain::Xml::Bootmenu, Name::Strict<280> > >, Optional<Element<Attribute<Domain::Xml::EMode3, Name::Strict<379> >, Name::Strict<283> > >, Optional<Element<Domain::Xml::Bios, Name::Strict<284> > >, Optional<Element<ZeroOrMore<Element<Ordered<mpl::vector<Attribute<mpl::int_<5089>, Name::Strict<105> >, Text<Domain::Xml::PAbsFilePath > > >, Name::Strict<5088> > >, Name::Strict<993> > > > > > > marshal_type;
 
 	static int parse(Domain::Xml::Os2& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Os2& , QDomElement& );
@@ -18173,7 +18341,7 @@ struct Traits<Domain::Xml::Timer6994>
 template<>
 struct Traits<Domain::Xml::Timer6995>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<412>, Name::Strict<107> >, Optional<Domain::Xml::VTickpolicyImpl >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<413> > >, Optional<Attribute<Domain::Xml::EMode3, Name::Strict<379> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<412>, Name::Strict<107> >, Optional<Domain::Xml::VTickpolicyImpl >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<413> > >, Optional<Attribute<Domain::Xml::EMode4, Name::Strict<379> > > > > marshal_type;
 
 	static int parse(Domain::Xml::Timer6995& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Timer6995& , QDomElement& );
@@ -18269,7 +18437,7 @@ struct Traits<Domain::Xml::Page>
 template<>
 struct Traits<Domain::Xml::MemoryBacking>
 {
-	typedef Unordered<mpl::vector<Optional<Element<ZeroOrMore<Element<Domain::Xml::Page, Name::Strict<333> > >, Name::Strict<332> > >, Optional<Element<Empty, Name::Strict<336> > >, Optional<Element<Empty, Name::Strict<337> > >, Optional<Element<Attribute<Domain::Xml::EType5, Name::Strict<105> >, Name::Strict<501> > >, Optional<Element<Attribute<Domain::Xml::EMode4, Name::Strict<379> >, Name::Strict<5790> > >, Optional<Element<Attribute<Domain::Xml::EMode5, Name::Strict<379> >, Name::Strict<9184> > >, Optional<Element<Empty, Name::Strict<428> > > > > marshal_type;
+	typedef Unordered<mpl::vector<Optional<Element<ZeroOrMore<Element<Domain::Xml::Page, Name::Strict<333> > >, Name::Strict<332> > >, Optional<Element<Empty, Name::Strict<336> > >, Optional<Element<Empty, Name::Strict<337> > >, Optional<Element<Attribute<Domain::Xml::EType5, Name::Strict<105> >, Name::Strict<501> > >, Optional<Element<Attribute<Domain::Xml::EMode5, Name::Strict<379> >, Name::Strict<5790> > >, Optional<Element<Attribute<Domain::Xml::EMode6, Name::Strict<379> >, Name::Strict<9184> > >, Optional<Element<Empty, Name::Strict<428> > > > > marshal_type;
 
 	static int parse(Domain::Xml::MemoryBacking& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::MemoryBacking& , QDomElement& );
@@ -18485,7 +18653,7 @@ struct Traits<Domain::Xml::Memory2356>
 template<>
 struct Traits<Domain::Xml::Memory1>
 {
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EMode6, Name::Strict<379> > >, Domain::Xml::VMemoryImpl > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::EMode7, Name::Strict<379> > >, Domain::Xml::VMemoryImpl > > marshal_type;
 
 	static int parse(Domain::Xml::Memory1& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Memory1& , QDomElement& );
@@ -18497,7 +18665,7 @@ struct Traits<Domain::Xml::Memory1>
 template<>
 struct Traits<Domain::Xml::Memnode>
 {
-	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<386> >, Attribute<Domain::Xml::EMode7, Name::Strict<379> >, Attribute<Domain::Xml::PCpuset, Name::Strict<335> > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<386> >, Attribute<Domain::Xml::EMode8, Name::Strict<379> >, Attribute<Domain::Xml::PCpuset, Name::Strict<335> > > > marshal_type;
 
 	static int parse(Domain::Xml::Memnode& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Memnode& , QDomElement& );
@@ -18876,174 +19044,6 @@ struct Traits<Domain::Xml::Disk7002>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Seclabel6973 traits
-
-template<>
-struct Traits<Domain::Xml::Seclabel6973>
-{
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<136>, Name::Strict<233> > > > marshal_type;
-
-	static int parse(Domain::Xml::Seclabel6973& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Seclabel6973& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Seclabel6974 traits
-
-template<>
-struct Traits<Domain::Xml::Seclabel6974>
-{
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<135>, Name::Strict<244> > > > marshal_type;
-
-	static int parse(Domain::Xml::Seclabel6974& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Seclabel6974& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Seclabel traits
-
-template<>
-struct Traits<Domain::Xml::Seclabel>
-{
-	typedef Ordered<mpl::vector<Optional<Attribute<QString, Name::Strict<231> > >, Domain::Xml::VSeclabelImpl > > marshal_type;
-
-	static int parse(Domain::Xml::Seclabel& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Seclabel& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Source traits
-
-template<>
-struct Traits<Domain::Xml::Source>
-{
-	typedef Unordered<mpl::vector<Optional<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<441> > >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<468> > >, ZeroOrMore<Element<Domain::Xml::Seclabel, Name::Strict<229> > > > > marshal_type;
-
-	static int parse(Domain::Xml::Source& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Source& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous2358 traits
-
-template<>
-struct Traits<Domain::Xml::Anonymous2358>
-{
-	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<379> >, Attribute<QString, Name::Strict<5769> > > > marshal_type;
-
-	static int parse(Domain::Xml::Anonymous2358& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Anonymous2358& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Keycipher traits
-
-template<>
-struct Traits<Domain::Xml::Keycipher>
-{
-	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<107> >, Attribute<Domain::Xml::PUnsignedInt, Name::Strict<334> >, Optional<Fragment<Domain::Xml::Anonymous2358 > > > > marshal_type;
-
-	static int parse(Domain::Xml::Keycipher& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Keycipher& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Keyivgen traits
-
-template<>
-struct Traits<Domain::Xml::Keyivgen>
-{
-	typedef Ordered<mpl::vector<Attribute<QString, Name::Strict<107> >, Optional<Attribute<QString, Name::Strict<5769> > > > > marshal_type;
-
-	static int parse(Domain::Xml::Keyivgen& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Keyivgen& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous7117 traits
-
-template<>
-struct Traits<Domain::Xml::Anonymous7117>
-{
-	typedef Ordered<mpl::vector<Element<Domain::Xml::Keycipher, Name::Strict<5049> >, Element<Domain::Xml::Keyivgen, Name::Strict<5751> > > > marshal_type;
-
-	static int parse(Domain::Xml::Anonymous7117& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Anonymous7117& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Encryption traits
-
-template<>
-struct Traits<Domain::Xml::Encryption>
-{
-	typedef Ordered<mpl::vector<Attribute<Domain::Xml::EFormat1, Name::Strict<146> >, Unordered<mpl::vector<Element<Ordered<mpl::vector<Attribute<mpl::int_<150>, Name::Strict<105> >, Domain::Xml::VSecretImpl > >, Name::Strict<149> >, Optional<Fragment<Domain::Xml::Anonymous7117 > > > > > > marshal_type;
-
-	static int parse(Domain::Xml::Encryption& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Encryption& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Source1 traits
-
-template<>
-struct Traits<Domain::Xml::Source1>
-{
-	typedef Unordered<mpl::vector<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<164> >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<468> > >, Optional<Element<Domain::Xml::Encryption, Name::Strict<145> > > > > marshal_type;
-
-	static int parse(Domain::Xml::Source1& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Source1& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Host7010 traits
-
-template<>
-struct Traits<Domain::Xml::Host7010>
-{
-	typedef Ordered<mpl::vector<Optional<Attribute<Domain::Xml::ETransport, Name::Strict<514> > >, Attribute<Domain::Xml::VName, Name::Strict<107> >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<212> > > > > marshal_type;
-
-	static int parse(Domain::Xml::Host7010& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Host7010& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Source2 traits
-
-template<>
-struct Traits<Domain::Xml::Source2>
-{
-	typedef Ordered<mpl::vector<Attribute<Domain::Xml::EProtocol, Name::Strict<203> >, Optional<Attribute<QString, Name::Strict<107> > >, ZeroOrMore<Element<Domain::Xml::VHostImpl, Name::Strict<513> > > > > marshal_type;
-
-	static int parse(Domain::Xml::Source2& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Source2& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Source3 traits
-
-template<>
-struct Traits<Domain::Xml::Source3>
-{
-	typedef Unordered<mpl::vector<Attribute<Domain::Xml::PGenericName, Name::Strict<524> >, Attribute<Domain::Xml::PVolName, Name::Strict<523> >, Optional<Attribute<Domain::Xml::EMode8, Name::Strict<379> > >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<468> > >, Optional<Element<Domain::Xml::Encryption, Name::Strict<145> > >, ZeroOrMore<Element<Domain::Xml::Seclabel, Name::Strict<229> > > > > marshal_type;
-
-	static int parse(Domain::Xml::Source3& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Source3& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
-// struct Source4 traits
-
-template<>
-struct Traits<Domain::Xml::Source4>
-{
-	typedef Unordered<mpl::vector<Optional<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<500> > >, Optional<Attribute<Domain::Xml::EStartupPolicy, Name::Strict<468> > >, ZeroOrMore<Element<Domain::Xml::Seclabel, Name::Strict<229> > > > > marshal_type;
-
-	static int parse(Domain::Xml::Source4& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Source4& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct DriverFormat traits
 
 template<>
@@ -19116,15 +19116,15 @@ struct Traits<Domain::Xml::Format>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous7118 traits
+// struct Anonymous2358 traits
 
 template<>
-struct Traits<Domain::Xml::Anonymous7118>
+struct Traits<Domain::Xml::Anonymous2358>
 {
 	typedef Unordered<mpl::vector<Ordered<mpl::vector<Optional<Attribute<mpl::int_<500>, Name::Strict<105> > >, Optional<Element<Domain::Xml::Source4, Name::Strict<501> > > > >, Optional<Element<Domain::Xml::Format, Name::Strict<146> > > > > marshal_type;
 
-	static int parse(Domain::Xml::Anonymous7118& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Anonymous7118& , QDomElement& );
+	static int parse(Domain::Xml::Anonymous2358& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Anonymous2358& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -19133,7 +19133,7 @@ struct Traits<Domain::Xml::Anonymous7118>
 template<>
 struct Traits<Domain::Xml::Mirror4765>
 {
-	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<500> >, Optional<Attribute<Domain::Xml::VStorageFormat, Name::Strict<146> > >, Optional<Attribute<Domain::Xml::EJob, Name::Strict<1089> > >, Optional<Fragment<Domain::Xml::Anonymous7118 > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Domain::Xml::PAbsFilePath, Name::Strict<500> >, Optional<Attribute<Domain::Xml::VStorageFormat, Name::Strict<146> > >, Optional<Attribute<Domain::Xml::EJob, Name::Strict<1089> > >, Optional<Fragment<Domain::Xml::Anonymous2358 > > > > marshal_type;
 
 	static int parse(Domain::Xml::Mirror4765& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Mirror4765& , QDomElement& );
@@ -19464,27 +19464,27 @@ struct Traits<Domain::Xml::Variant7014>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Variant8003 traits
-
-template<>
-struct Traits<Domain::Xml::Variant8003>
-{
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<596>, Name::Strict<105> >, Optional<Element<Attribute<Domain::Xml::EName4, Name::Strict<107> >, Name::Strict<231> > >, Optional<Element<Domain::Xml::Target1, Name::Strict<323> > >, Domain::Xml::VChoice2355Impl > > marshal_type;
-
-	static int parse(Domain::Xml::Variant8003& , QStack<QDomElement>& );
-	static int generate(const Domain::Xml::Variant8003& , QDomElement& );
-};
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Variant8014 traits
 
 template<>
 struct Traits<Domain::Xml::Variant8014>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<622>, Name::Strict<105> >, Optional<Attribute<Domain::Xml::EModel5, Name::Strict<231> > >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<623> > >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<624> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<596>, Name::Strict<105> >, Optional<Element<Attribute<Domain::Xml::EName4, Name::Strict<107> >, Name::Strict<231> > >, Optional<Element<Domain::Xml::Target1, Name::Strict<323> > >, Domain::Xml::VChoice2355Impl > > marshal_type;
 
 	static int parse(Domain::Xml::Variant8014& , QStack<QDomElement>& );
 	static int generate(const Domain::Xml::Variant8014& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Variant9522 traits
+
+template<>
+struct Traits<Domain::Xml::Variant9522>
+{
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<622>, Name::Strict<105> >, Optional<Attribute<Domain::Xml::EModel5, Name::Strict<231> > >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<623> > >, Optional<Attribute<Domain::Xml::PUnsignedInt, Name::Strict<624> > > > > marshal_type;
+
+	static int parse(Domain::Xml::Variant9522& , QStack<QDomElement>& );
+	static int generate(const Domain::Xml::Variant9522& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////

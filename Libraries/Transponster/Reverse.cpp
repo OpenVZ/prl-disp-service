@@ -1707,7 +1707,7 @@ PRL_RESULT Cpu::setNode()
 		return PRL_ERR_UNINITIALIZED;
 
 	Libvirt::Domain::Xml::Memory1 d;
-	d.setMode(Libvirt::Domain::Xml::EMode6Strict);
+	d.setMode(Libvirt::Domain::Xml::EMode7Strict);
 	mpl::at_c<Libvirt::Domain::Xml::VMemory::types, 0>::type v;
 	v.setValue(m);
 	d.setMemory(Libvirt::Domain::Xml::VMemory(v));
@@ -2215,15 +2215,16 @@ bool Builder::getStartupOptions(Libvirt::Domain::Xml::Os2& os_) const
 		if (!x.isEmpty())
 		{
 			Libvirt::Domain::Xml::Nvram n;
-			n.setOwnValue(x);
-			n.setFormat(Libvirt::Domain::Xml::EFormatQcow2);
+
+			setNvramFilePath(n, x);
+			n.setFormat(Libvirt::Domain::Xml::EFormat1Qcow2);
 			os_.setNvram(n);
 		}
-	} else {
-		os_.setLoader(boost::optional <Libvirt::Domain::Xml::Loader>());
-		if (b->getNVRAM().isEmpty())
-			os_.setNvram(boost::optional <Libvirt::Domain::Xml::Nvram>());
-	}
+		} else {
+			os_.setLoader(boost::optional <Libvirt::Domain::Xml::Loader>());
+			if (b->getNVRAM().isEmpty())
+				os_.setNvram(boost::optional <Libvirt::Domain::Xml::Nvram>());
+		}
 
 	return true;
 }
@@ -2651,6 +2652,14 @@ PRL_RESULT Mixer::setBlank()
 	m_result->setCommandline(CommandLine(m_input).seed(m_result->getCommandline())
 		.addDebug().workaroundEfi2008R2().takeResult());
 	m_result->setOs(boost::apply_visitor(Visitor::Mixer::Os::Unit(), b, m_result->getOs()));
+
+	CVmStartupBios* bios = m_input.getVmSettings()->getVmStartupOptions()->getBios();
+	if (bios == NULL || bios->getNVRAM().isEmpty())
+		return PRL_ERR_SUCCESS;
+
+	m_result->setOs(boost::apply_visitor
+		(Visitor::Fixup::Os(bios->getNVRAM()), m_result->getOs()));
+
 	return r;
 }
 
