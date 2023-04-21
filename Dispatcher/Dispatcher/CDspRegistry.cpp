@@ -115,6 +115,8 @@ struct Vm: ::Vm::State::Machine
 	enum class VmOnRebootState {
 		NONE,
 		CONFIG_DESTROY, //configured destroy action in domain.xml by 'virsh edit'
+		UPGRADE_TMP_DESTROY, //dispatcher set 'on_reboot' action to 'destroy' value for upgrade
+		UPGRADED_NEED_START, //reboot has happened we should start domain after upgrade
 	};
 
 	Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
@@ -136,8 +138,12 @@ struct Vm: ::Vm::State::Machine
 	void upgrade(CVmConfiguration &config_);
 	void updateConfig(CVmConfiguration value_);
 
+
 	void initOnRebootState(bool destroyEnabled) { m_upgradeState = destroyEnabled ? VmOnRebootState::CONFIG_DESTROY : VmOnRebootState::NONE; };
-	bool isOnRebootDestroy() const { return m_upgradeState == VmOnRebootState::CONFIG_DESTROY; };
+	bool isOnRebootDestroy() const { return m_upgradeState == VmOnRebootState::UPGRADE_TMP_DESTROY || m_upgradeState == VmOnRebootState::CONFIG_DESTROY; };
+	bool isOnRebootUpgradeDestroy() const { return m_upgradeState == VmOnRebootState::UPGRADE_TMP_DESTROY; };
+	void setNeedStartState() { m_upgradeState = VmOnRebootState::UPGRADED_NEED_START; };
+	bool isStartNeeded() const { return m_upgradeState == VmOnRebootState::UPGRADED_NEED_START; };
 
 	QWeakPointer<Stat::Storage> getStorage()
 	{
@@ -390,18 +396,32 @@ void Vm::updateConfig(CVmConfiguration value_)
 		s.connect(boost::bind(&::Vm::Config::Repairer< ::Vm::Config::untranslatable_types>
 					::type::do_, boost::ref(value_), _1));
 	}
-
+	bool should_start = isStartNeeded();
 	initOnRebootState(value_.getVmSettings()->getVmStartupOptions()->getOnRebootAction() == "destroy");
 
 	if (is_flag_active< ::Vm::State::Running>())
 	{
 		s.connect(boost::bind(&Network::Routing::reconfigure,
 			m_routing.data(), _1, boost::cref(value_)));
+
+		CVmStartupOptions* pStartupOptions = value_.getVmSettings()->getVmStartupOptions();
+		//set destroy action on_reboot for running VM when we need upgrade NVRAM
+		if (pStartupOptions->getBios()->isEfiEnabled() &&
+				!pStartupOptions->getBios()->getNVRAM().endsWith(VZ_VM_NVRAM_FILE_NAME) &&
+				m_upgradeState != VmOnRebootState::CONFIG_DESTROY)
+		{
+			pStartupOptions->setOnEfiUpdateAction(pStartupOptions->getOnRebootAction());
+			Libvirt::Kit.vms().at(value_.getVmIdentification()->getVmUuid()).getEditor().setOnRebootLifecycleAction(VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY);
+			m_upgradeState = VmOnRebootState::UPGRADE_TMP_DESTROY;
+		}
 	}
 	else
 	{
 		upgrade(value_);
 	}
+
+	if (should_start)
+		Libvirt::Kit.vms().at(value_.getVmIdentification()->getVmUuid()).getState().start();
 
 	s.connect(boost::phoenix::placeholders::arg1 = boost::phoenix::cref(value_));
 	Update::Workbench w(*this, getUser(), Update::Workbench::base_type(getService()));
@@ -474,6 +494,11 @@ void Reactor::reboot()
 	QSharedPointer<Vm> x = m_vm.toStrongRef();
 	if (x->isOnRebootDestroy())
 	{
+		//start after upgrade need only in cases when Disp changed on_reboot action
+		if (x->isOnRebootUpgradeDestroy())
+		{
+			x->setNeedStartState();
+		}
 		forward(::Vm::State::Conventional<VMS_STOPPED>());
 	}
 	else
