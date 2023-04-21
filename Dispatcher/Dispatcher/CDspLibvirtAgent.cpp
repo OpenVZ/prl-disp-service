@@ -1819,6 +1819,12 @@ Result Editor::setMemory(quint64 memory_)
 			_1, memory_ << 10, VIR_DOMAIN_AFFECT_LIVE));
 }
 
+Result Editor::setOnRebootLifecycleAction(const virDomainLifecycleAction action_)
+{
+	return do_(getDomain().data(), boost::bind(&virDomainSetLifecycleAction,
+			_1, VIR_DOMAIN_LIFECYCLE_REBOOT, action_, VIR_DOMAIN_AFFECT_LIVE));
+}
+
 Result Editor::setMemGuarantee(const CVmMemory& memory_)
 {
 	Libvirt::Instrument::Agent::Parameters::Builder param;

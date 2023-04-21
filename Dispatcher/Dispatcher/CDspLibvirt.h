@@ -53,6 +53,7 @@
 #include <prlxmlmodel/BackupActivity/SnapshotComponent.h>
 #include <prlcommon/PrlCommonUtilsBase/PrlStringifyConsts.h>
 #include <prlxmlmodel/HostHardwareInfo/CHwGenericPciDevice.h>
+#include <libvirt/libvirt.h>
 
 struct _virDomain;
 typedef struct _virDomain virDomain;
@@ -749,6 +750,7 @@ struct Editor: private Limb::Abstract
 	Result setMemory(quint64 memory_);
 	Result setMemGuarantee(const CVmMemory& memory_);
 	Result updateVncPort(const CVmRemoteDisplay* vnc_);
+	Result setOnRebootLifecycleAction(const virDomainLifecycleAction action_);
 
 	template<class T>
 	Result plug(const T& device_);
