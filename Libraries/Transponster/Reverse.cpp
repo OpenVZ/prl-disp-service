@@ -2279,7 +2279,7 @@ PRL_RESULT Builder::setResources(const VtInfo& vt_)
 		m_result->setOnPoweroff(str2EOffOption(m_input.getVmSettings()->getVmStartupOptions()->getOnPoweroffAction(), false));
 
 	if (!m_input.getVmSettings()->getVmStartupOptions()->getOnRebootAction().isEmpty())
-		m_result->setOnPoweroff(str2EOffOption(m_input.getVmSettings()->getVmStartupOptions()->getOnRebootAction(), true));
+		m_result->setOnReboot(str2EOffOption(m_input.getVmSettings()->getVmStartupOptions()->getOnRebootAction(), true));
 
 	if (!m_input.getVmSettings()->getVmStartupOptions()->getOnCrashAction().isEmpty())
 		m_result->setOnCrash(str2ECrashOption(m_input.getVmSettings()->getVmStartupOptions()->getOnCrashAction()));
