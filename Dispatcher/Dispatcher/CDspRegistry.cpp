@@ -359,6 +359,23 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	m_storage->addAbsolute("cpu_time");
 }
 
+void Vm::upgrade(CVmConfiguration &config_)
+{
+	//upgrade old NVRAM to new 4M only for non Chipset_type::Q35.
+	//Chipset_type::Q35 uses OVMF_CODE_SECBOOT. It is not need update
+	//do not upgrade running VM, because their NVRAM is locked
+	CVmStartupBios* pBios = config_.getVmSettings()->getVmStartupOptions()->getBios();
+	if (pBios && pBios->isEfiEnabled() && config_.getVmSettings()->getClusterOptions()->isRunning())
+	{
+		NvramUpdater n(pBios->getNVRAM(), static_cast<Chipset_type>(config_.getVmHardwareList()->getChipset()->getType()));
+		if (n.isOldVerison() && n.updateNVRAM())
+		{
+			WRITE_TRACE(DBG_INFO, "NVRAM Updated successfully for VM '%s'", QSTR2UTF8(config_.getVmIdentification()->getVmName()));
+			pBios->setNVRAM(n.getNewNvramPath());
+		}
+	}
+}
+
 void Vm::updateConfig(CVmConfiguration value_)
 {
 	QMutexLocker l(&m_mutex);
@@ -380,6 +397,11 @@ void Vm::updateConfig(CVmConfiguration value_)
 		s.connect(boost::bind(&Network::Routing::reconfigure,
 			m_routing.data(), _1, boost::cref(value_)));
 	}
+	else
+	{
+		upgrade(value_);
+	}
+
 	s.connect(boost::phoenix::placeholders::arg1 = boost::phoenix::cref(value_));
 	Update::Workbench w(*this, getUser(), Update::Workbench::base_type(getService()));
 	Update::Adoption(value_, w,
