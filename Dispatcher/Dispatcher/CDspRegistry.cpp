@@ -7,7 +7,7 @@
 /// @author alkurbatov
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -112,6 +112,11 @@ void State::operator()(CVmConfiguration& config_) const
 
 struct Vm: ::Vm::State::Machine
 {
+	enum class VmOnRebootState {
+		NONE,
+		CONFIG_DESTROY, //configured destroy action in domain.xml by 'virsh edit'
+	};
+
 	Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 			const QSharedPointer<Network::Routing>& routing_);
 
@@ -130,6 +135,9 @@ struct Vm: ::Vm::State::Machine
 
 	void updateConfig(CVmConfiguration value_);
 
+	void initOnRebootState(bool destroyEnabled) { m_upgradeState = destroyEnabled ? VmOnRebootState::CONFIG_DESTROY : VmOnRebootState::NONE; };
+	bool isOnRebootDestroy() const { return m_upgradeState == VmOnRebootState::CONFIG_DESTROY; };
+
 	QWeakPointer<Stat::Storage> getStorage()
 	{
 		return m_storage.toWeakRef();
@@ -145,6 +153,7 @@ private:
 	QMutex m_mutex;
 	QSharedPointer<Stat::Storage> m_storage;
 	QSharedPointer<Network::Routing> m_routing;
+	VmOnRebootState		m_upgradeState;
 };
 
 namespace Update
@@ -327,7 +336,8 @@ Complement::result_type Complement::operator()(PRL_RESULT request_)
 Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 		const QSharedPointer<Network::Routing>& routing_):
 	::Vm::State::Machine(uuid_, user_, routing_),
-	m_storage(new Stat::Storage(uuid_)), m_routing(routing_)
+	m_storage(new Stat::Storage(uuid_)), m_routing(routing_),
+	m_upgradeState(VmOnRebootState::NONE)
 {
 	typedef ::Vm::State::Started::factory_type factory_type;
 
@@ -362,6 +372,9 @@ void Vm::updateConfig(CVmConfiguration value_)
 		s.connect(boost::bind(&::Vm::Config::Repairer< ::Vm::Config::untranslatable_types>
 					::type::do_, boost::ref(value_), _1));
 	}
+
+	initOnRebootState(value_.getVmSettings()->getVmStartupOptions()->getOnRebootAction() == "destroy");
+
 	if (is_flag_active< ::Vm::State::Running>())
 	{
 		s.connect(boost::bind(&Network::Routing::reconfigure,
@@ -435,7 +448,15 @@ void Reactor::prepareToSwitch()
 
 void Reactor::reboot()
 {
-	forward(::Vm::State::Reboot());
+	QSharedPointer<Vm> x = m_vm.toStrongRef();
+	if (x->isOnRebootDestroy())
+	{
+		forward(::Vm::State::Conventional<VMS_STOPPED>());
+	}
+	else
+	{
+		forward(::Vm::State::Reboot());
+	}
 }
 
 void Reactor::upgrade()
