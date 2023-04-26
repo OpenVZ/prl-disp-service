@@ -1076,14 +1076,14 @@ void CDspShellHelper::updateVmNvram(SmartPtr<CDspClient> &pUser, const SmartPtr<
 	if (!pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->isEfiEnabled())
 	{
 		WRITE_TRACE(DBG_FATAL, "Failed update NVRAM for VM '%s' with disabled EFI", QSTR2UTF8(vmuuid));
-		pUser->sendSimpleResponse( p, PRL_ERR_INVALID_ARG );
+		pUser->sendSimpleResponse( p, PRL_ERR_UPDATE_NVRAM_EFI_DISABLED );
 		return;
 	}
 
 	if (pVmConfig->getVmSettings()->getClusterOptions()->isRunning())
 	{
 		WRITE_TRACE(DBG_FATAL, "Failed update NVRAM for running VM '%s'", QSTR2UTF8(vmuuid));
-		pUser->sendSimpleResponse( p, PRL_ERR_VM_ALREADY_RUNNING );
+		pUser->sendSimpleResponse( p, PRL_ERR_UPDATE_NVRAM_VM_IS_RUNNING );
 		return;
 	}
 
@@ -1093,14 +1093,14 @@ void CDspShellHelper::updateVmNvram(SmartPtr<CDspClient> &pUser, const SmartPtr<
 	if (!n.isOldVerison())
 	{
 		WRITE_TRACE(DBG_FATAL, "VM '%s' has already updated NVRAM", QSTR2UTF8(vmuuid));
-		pUser->sendSimpleResponse( p, PRL_ERR_INVALID_ARG );
+		pUser->sendSimpleResponse( p, PRL_ERR_UPDATE_NVRAM_ALREADY_UPDATED );
 		return;
 	}
 
 	if (!n.updateNVRAM())
 	{
 		WRITE_TRACE(DBG_FATAL, "Can not update NVRAM for VM '%s'", QSTR2UTF8(vmuuid));
-		pUser->sendSimpleResponse( p, PRL_ERR_OPERATION_FAILED );
+		pUser->sendSimpleResponse( p, PRL_ERR_UPDATE_NVRAM_OPERATION_FAILED );
 		return;
 	}
 
