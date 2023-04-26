@@ -133,6 +133,7 @@ struct Vm: ::Vm::State::Machine
 		process_event(event_);
 	}
 
+	void upgrade(CVmConfiguration &config_);
 	void updateConfig(CVmConfiguration value_);
 
 	void initOnRebootState(bool destroyEnabled) { m_upgradeState = destroyEnabled ? VmOnRebootState::CONFIG_DESTROY : VmOnRebootState::NONE; };
