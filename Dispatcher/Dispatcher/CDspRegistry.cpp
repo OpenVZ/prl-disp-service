@@ -366,7 +366,7 @@ void Vm::upgrade(CVmConfiguration &config_)
 	//Chipset_type::Q35 uses OVMF_CODE_SECBOOT. It is not need update
 	//do not upgrade running VM, because their NVRAM is locked
 	CVmStartupBios* pBios = config_.getVmSettings()->getVmStartupOptions()->getBios();
-	if (pBios && pBios->isEfiEnabled() && config_.getVmSettings()->getClusterOptions()->isRunning())
+	if (pBios && pBios->isEfiEnabled() && !config_.getVmSettings()->getClusterOptions()->isRunning())
 	{
 		NvramUpdater n(pBios->getNVRAM(), static_cast<Chipset_type>(config_.getVmHardwareList()->getChipset()->getType()));
 		if (n.isOldVerison() && n.updateNVRAM())
