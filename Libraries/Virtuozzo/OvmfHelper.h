@@ -57,11 +57,17 @@ private:
 	bool sendUefiEscape(QProcess &p);
 	bool runCmd(const QStringList &cmd);
 
+	bool lock();
+	void unlock();
+
 private:
 	QFileInfo		m_oldNvram;
 	Chipset_type	m_chip;
 	QString			m_newNvram;
 	QString			m_storage;
+
+	static QMutex s_mutexNvramList;
+	static QList<QString> s_NvramList;
 };
 
 #endif // OVMFHELPER_H

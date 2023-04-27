@@ -19,6 +19,10 @@ constexpr const int DEFAULT_OUTPUT_WAIT_TIMER			= 1 * 1000;
 constexpr const int DEFAULT_STORAGE_SIZE				= 256 * 1024 * 1024;
 constexpr const int UEFISHELL_WELCOME_MESSAGE_SIZE		= 1000;
 
+
+QMutex NvramUpdater::s_mutexNvramList;
+QList<QString> NvramUpdater::s_NvramList;
+
 // return NVRAM template for vz8 and vz7
 QString OVMF::getTemplate(Chipset_type machine_type)
 {
@@ -42,6 +46,23 @@ NvramUpdater::NvramUpdater(const QString &path_, const Chipset_type chip) :
 NvramUpdater::~NvramUpdater()
 {
 	QFile::remove(m_storage);
+	unlock();
+}
+
+bool NvramUpdater::lock()
+{
+	QMutexLocker lock(&s_mutexNvramList);
+	if (s_NvramList.contains(m_newNvram))
+		return false;
+
+	s_NvramList.append(m_newNvram);
+	return true;
+}
+
+void NvramUpdater::unlock()
+{
+	QMutexLocker lock(&s_mutexNvramList);
+	s_NvramList.removeAll(m_newNvram);
 }
 
 QStringList NvramUpdater::generateQemuArgs(const QString &ovmfCode, const QString &ovmfVars, const QString &disk)
@@ -231,6 +252,13 @@ bool NvramUpdater::isOldVerison()
 {
 	if (m_oldNvram.filePath() == m_newNvram)
 		return false;
+
+	if (!lock())
+	{
+		WRITE_TRACE(DBG_WARNING, "NVRAM Updater: trying to update NVRAM simultaneously '%s'",
+					QSTR2UTF8(m_oldNvram.filePath()));
+		return false;
+	}
 
 	if (!m_oldNvram.exists())
 	{
