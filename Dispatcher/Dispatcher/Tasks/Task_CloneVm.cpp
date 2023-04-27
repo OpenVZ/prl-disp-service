@@ -351,7 +351,7 @@ PRL_RESULT Content::copyNvram(CVmStartupBios& bios_)
 	if (o.isEmpty())
 		return PRL_ERR_SUCCESS;
 
-	QString n = m_sink.getPath(PRL_VM_NVRAM_FILE_NAME);
+	QString n = m_sink.getPath(VZ_VM_NVRAM_OLD_FILE_NAME);
 	bios_.setNVRAM(n);
 
 	PRL_RESULT e = addExternalFile(o, n);
