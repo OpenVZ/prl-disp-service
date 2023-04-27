@@ -60,6 +60,7 @@ private:
 private:
 	QFileInfo		m_oldNvram;
 	Chipset_type	m_chip;
+	QFileInfo		m_tmpNvram;
 	QString			m_newNvram;
 	QString			m_storage;
 };
