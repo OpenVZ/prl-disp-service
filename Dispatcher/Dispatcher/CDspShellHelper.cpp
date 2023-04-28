@@ -1087,6 +1087,31 @@ void CDspShellHelper::updateVmNvram(SmartPtr<CDspClient> &pUser, const SmartPtr<
 		return;
 	}
 
+	if (pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM().endsWith(VZ_VM_NVRAM_FILE_NAME))
+	{
+		Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(vmuuid);
+		CVmConfiguration currentCfg;
+		Libvirt::Result r = v.getConfig(currentCfg, false);
+
+		if (r.isFailed())
+		{
+			WRITE_TRACE(DBG_FATAL, "Unable to get VM [%s] inactive configuration: %d",
+					QSTR2UTF8(vmuuid), r.error().code());
+			WRITE_TRACE(DBG_FATAL, "VM '%s' has already updated NVRAM in config.pvs", QSTR2UTF8(vmuuid));
+			pUser->sendSimpleResponse( p, PRL_ERR_INVALID_ARG );
+			return;
+		}
+
+		if (currentCfg.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM() !=
+			pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM())
+		{
+			WRITE_TRACE(DBG_WARNING, "VM '%s' has already updated NVRAM in config.pvs but libvirt has not. Will fix it.", QSTR2UTF8(vmuuid));
+			CProtoCommandPtr pCmd = CProtoSerializer::CreateDspWsResponseCommand( p, PRL_ERR_SUCCESS );
+			pUser->sendResponse(pCmd, p );
+			return;
+		}
+	}
+
 	NvramUpdater n(pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM(),
 			static_cast<Chipset_type>(pVmConfig->getVmHardwareList()->getChipset()->getType()));
 
