@@ -43,6 +43,7 @@
 #include "CDspVmGuest.h"
 #include "CDspVmStateMachine_p.h"
 #include <boost/phoenix/core/value.hpp>
+#include <libvirt/libvirt.h>
 
 namespace Vm
 {
@@ -490,28 +491,83 @@ struct Frontend: Details::Frontend<Frontend>
 			CVmSettings *s = config_.getVmSettings();
 			if (s)
 			{
-				bool b_newState = (!f && t);
+				ClusterOptions *o = s->getClusterOptions();
+				if (o)
+					o->setRunning(!f && t);
+			}
+		}
+	};
+
+	// Action
+	struct Upgrade
+	{
+		template<class Event, class FromState, class ToState>
+		void operator()(const Event&, Frontend& fsm_, FromState& from_, ToState& to_)
+		{
+			Config::Edit::Atomic a = fsm_.getConfigEditor();
+			if (VMS_MIGRATING != CDspVm::getVmState(a.getObject()))
+			{
+				a(boost::bind(&upgrade<FromState, ToState>,
+					_1, boost::ref(from_), boost::ref(to_)));
+			}
+		}
+
+		static virDomainLifecycleAction getVirLifecycleAction(const QString &s, const QString &vm_name)
+		{
+			virDomainLifecycleAction action = VIR_DOMAIN_LIFECYCLE_ACTION_RESTART;
+			if ("destroy" == s)
+				action = VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY;
+			else if ("preserve" == s)
+				action = VIR_DOMAIN_LIFECYCLE_ACTION_PRESERVE;
+			else if ("rename-restart" == s)
+				action = VIR_DOMAIN_LIFECYCLE_ACTION_RESTART_RENAME;
+			else if ("restart" != s)
+				WRITE_TRACE(DBG_WARNING, "Upgrade::NVRAM: Vm '%s' has wrong value = '%s' of 'on_reboot' Lifecycle action, restore to 'restart' instead",
+						QSTR2UTF8(vm_name), QSTR2UTF8(s));
+			return action;
+		}
+
+		template<class FromState, class ToState>
+		static void upgrade(CVmConfiguration& config_, FromState&, ToState&)
+		{
+			bool f = boost::is_same<FromState, Running>::value;
+			bool t = boost::is_same<ToState, Running>::value;
+
+			// do upgrade only on state from running to non-running
+			if (!f || t)
+				return;
+
+			CVmSettings *s = config_.getVmSettings();
+			if (s)
+			{
+				CVmStartupBios* pBios = s->getVmStartupOptions()->getBios();
 				//update NVRAM when VM is turned off
-				if (s->getVmStartupOptions()->getBios()->isEfiEnabled() && s->getClusterOptions()->isRunning() && !b_newState)
+				if (pBios && pBios->isEfiEnabled() && !pBios->getNVRAM().endsWith(VZ_VM_NVRAM_FILE_NAME))
 				{
-					NvramUpdater n(s->getVmStartupOptions()->getBios()->getNVRAM(),
+					NvramUpdater n(pBios->getNVRAM(),
 							static_cast<Chipset_type>(config_.getVmHardwareList()->getChipset()->getType()));
 					if (n.isOldVerison() && n.updateNVRAM())
 					{
-						WRITE_TRACE(DBG_INFO, "NVRAM Updater[Cluster::configure]: successfully update NVRAM for VM '%s'", QSTR2UTF8(config_.getVmIdentification()->getVmName()));
-						config_.getVmSettings()->getVmStartupOptions()->getBios()->setNVRAM(n.getNewNvramPath());
-						Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(config_.getVmIdentification()->getVmUuid());
+						const QString vm_name = config_.getVmIdentification()->getVmName();
+						const QString vm_uuid = config_.getVmIdentification()->getVmUuid();
+						WRITE_TRACE(DBG_INFO, "Upgrade::NVRAM: successfully update NVRAM for VM '%s'", QSTR2UTF8(vm_name));
+						pBios->setNVRAM(n.getNewNvramPath());
+						Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(vm_uuid);
 						if (v.setConfig(config_).isFailed())
 						{
-							WRITE_TRACE(DBG_FATAL, "NVRAM Updater[Cluster::configure]: Failed to update runtime config for VM '%s'",
-									QSTR2UTF8(config_.getVmIdentification()->getVmName()));
+							WRITE_TRACE(DBG_FATAL, "Upgrade::NVRAM: Failed to update runtime config for VM '%s'",
+									QSTR2UTF8(vm_name));
+						}
+
+						//restore back lifecycle 'on_reboot' action
+						QString oldAction = s->getVmStartupOptions()->getOnEfiUpdateAction();
+						if (!oldAction.isEmpty())
+						{
+							v.getEditor().setOnRebootLifecycleAction(getVirLifecycleAction(oldAction, vm_name));
+							s->getVmStartupOptions()->setOnEfiUpdateAction("");
 						}
 					}
 				}
-
-				ClusterOptions *o = s->getClusterOptions();
-				if (o)
-					o->setRunning(b_newState);
 			}
 		}
 	};
@@ -641,16 +697,16 @@ struct Frontend: Details::Frontend<Frontend>
 	//        Start       Event                  Target      Action
 	//      +-----------+----------------------+-----------+--------+
 	msmf::Row<Running,    Conventional<VMS_STOPPED>,    Stopped,
-		msmf::ActionSequence_<boost::mpl::vector<RoutesDown, Unlock, Cluster, BackupDisable, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<RoutesDown, Unlock, Cluster, Upgrade, BackupDisable, Notification> > >,
 
 	msmf::Row<Running,    Conventional<VMS_SUSPENDED>,  Suspended,
-		msmf::ActionSequence_<boost::mpl::vector<RoutesDown, Unlock, Cluster, BackupDisable, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<RoutesDown, Unlock, Cluster, Upgrade, BackupDisable, Notification> > >,
 
 	msmf::Row<Running,    Conventional<VMS_PAUSED>,     Paused::Ordinary,
-		msmf::ActionSequence_<boost::mpl::vector<Cluster, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<Cluster, Upgrade, Notification> > >,
 
 	msmf::Row<Running,    Conventional<VMS_UNKNOWN>,    Unknown,
-		msmf::ActionSequence_<boost::mpl::vector<RoutesDown, Unlock, Cluster, BackupDisable, Notification> > >,
+		msmf::ActionSequence_<boost::mpl::vector<RoutesDown, Unlock, Cluster, Upgrade, BackupDisable, Notification> > >,
 
 	//      +-----------+----------------------+-----------+--------+
 	//        Start       Event                  Target      Action
