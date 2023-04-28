@@ -431,7 +431,7 @@ QString CStatesHelper::GetNVRAMFileName(const QString &strVmDir, const QString &
 */
 void CStatesHelper::SaveNVRAM(const QString &strVmDir, const QString &strStateUuid)
 {
-	QString strSourceFile = strVmDir + "/" + PRL_VM_NVRAM_FILE_NAME;
+	QString strSourceFile = strVmDir + "/" + VZ_VM_NVRAM_OLD_FILE_NAME;
 
 	QString strDestFile = GetNVRAMFileName(strVmDir, strStateUuid);
 
@@ -444,7 +444,7 @@ void CStatesHelper::SaveNVRAM(const QString &strVmDir, const QString &strStateUu
 bool CStatesHelper::RestoreNVRAM(const QString &strVmDir, const QString &strStateUuid)
 {
 	QString strSourceFile = GetNVRAMFileName(strVmDir, strStateUuid);
-	QString strDestFile = strVmDir + "/" + PRL_VM_NVRAM_FILE_NAME;
+	QString strDestFile = strVmDir + "/" + VZ_VM_NVRAM_OLD_FILE_NAME;
 	return CStatesHelper::CopyStateFile(strSourceFile, strDestFile);
 }
 
