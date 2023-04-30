@@ -1112,8 +1112,7 @@ void CDspShellHelper::updateVmNvram(SmartPtr<CDspClient> &pUser, const SmartPtr<
 		}
 	}
 
-	NvramUpdater n(pVmConfig->getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM(),
-			static_cast<Chipset_type>(pVmConfig->getVmHardwareList()->getChipset()->getType()));
+	NvramUpdater n(*pVmConfig);
 
 	if (!n.isOldVerison())
 	{

@@ -374,7 +374,7 @@ void Vm::upgrade(CVmConfiguration &config_)
 	CVmStartupBios* pBios = config_.getVmSettings()->getVmStartupOptions()->getBios();
 	if (pBios && pBios->isEfiEnabled() && !config_.getVmSettings()->getClusterOptions()->isRunning())
 	{
-		NvramUpdater n(pBios->getNVRAM(), static_cast<Chipset_type>(config_.getVmHardwareList()->getChipset()->getType()));
+		NvramUpdater n(config_);
 		if (n.isOldVerison() && n.updateNVRAM())
 		{
 			WRITE_TRACE(DBG_INFO, "NVRAM Updated successfully for VM '%s'", QSTR2UTF8(config_.getVmIdentification()->getVmName()));

@@ -42,7 +42,7 @@ class NvramUpdater
 	};
 
 public:
-	NvramUpdater(const QString &path_, const Chipset_type chip);
+	NvramUpdater(const CVmConfiguration &config_);
 	~NvramUpdater();
 	bool updateNVRAM();
 
@@ -59,13 +59,15 @@ private:
 
 	bool lock();
 	void unlock();
+	const QString findBootHDD() const;
+	const CVmHardDisk *findDiskByIndex(const QList<CVmHardDisk* >& list, unsigned int index) const;
 
 private:
-	QFileInfo		m_oldNvram;
-	Chipset_type	m_chip;
-	QFileInfo		m_tmpNvram;
-	QString			m_newNvram;
-	QString			m_storage;
+	const CVmConfiguration&		m_input;
+	QFileInfo					m_oldNvram;
+	QFileInfo					m_tmpNvram;
+	QString						m_newNvram;
+	QString						m_storage;
 
 	static QMutex s_mutexNvramList;
 	static QList<QString> s_NvramList;

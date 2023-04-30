@@ -17,7 +17,7 @@ constexpr const char OVMF_UEFI_SHELL_ISO_PATH[]	= "/usr/share/OVMF/UefiShell.iso
 constexpr const int DEFAULT_WAIT_TIMER					= 20 * 1000;
 constexpr const int DEFAULT_OUTPUT_WAIT_TIMER			= 1 * 1000;
 constexpr const int DEFAULT_STORAGE_SIZE				= 256 * 1024 * 1024;
-constexpr const int UEFISHELL_WELCOME_MESSAGE_SIZE		= 1000;
+constexpr const int UEFISHELL_WELCOME_MESSAGE_SIZE		= 2000;
 
 
 QMutex NvramUpdater::s_mutexNvramList;
@@ -36,17 +36,17 @@ QString OVMF::getFirmware(Chipset_type machine_type)
 	return machine_type == Chipset_type::Q35 ? OVMF_CODE_SECBOOT : OVMF_CODE_4M;
 }
 
-NvramUpdater::NvramUpdater(const QString &path_, const Chipset_type chip) :
-		m_oldNvram(path_), m_chip(chip)
+NvramUpdater::NvramUpdater(const CVmConfiguration &config_) :
+		m_input(config_),
+		m_oldNvram(config_.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM())
 {
 	m_tmpNvram = m_oldNvram.absolutePath() + "/NVRAM_tmp_update.dat";
 	m_newNvram = m_oldNvram.absolutePath() + "/" + VZ_VM_NVRAM_FILE_NAME;
-	m_storage = m_oldNvram.absolutePath() + "/store.img";
+	m_storage = findBootHDD();
 }
 
 NvramUpdater::~NvramUpdater()
 {
-	QFile::remove(m_storage);
 	QFile::remove(m_tmpNvram.absoluteFilePath());
 	unlock();
 }
@@ -67,11 +67,36 @@ void NvramUpdater::unlock()
 	s_NvramList.removeAll(m_newNvram);
 }
 
+const CVmHardDisk *NvramUpdater::findDiskByIndex(const QList<CVmHardDisk* >& list, unsigned int index) const
+{
+	for(const CVmHardDisk *hdd : list)
+		if (hdd->getIndex() == index)
+			return hdd;
+	return NULL;
+}
+
+const QString NvramUpdater::findBootHDD() const
+{
+	QString disk;
+	for(const CVmStartupOptions::CVmBootDevice *dev :
+			m_input.getVmSettings()->getVmStartupOptions()->getBootDeviceList())
+	{
+		if (dev->deviceType != PDE_HARD_DISK || !dev->inUseStatus)
+			continue;
+		const CVmHardDisk *hdd = findDiskByIndex(m_input.getVmHardwareList()->m_lstHardDisks, dev->deviceIndex);
+		if (!hdd)
+			continue;
+		disk = hdd->getSystemName();
+		break;
+	}
+	return disk;
+}
+
 QStringList NvramUpdater::generateQemuArgs(const QString &ovmfCode, const QString &ovmfVars, const QString &disk)
 {
 	QStringList result;
 	result <<
-			"-machine" << "q35,smm=on,accel=tcg" <<
+			"-machine" << "pc-i440fx-vz7.12.0,smm=on,accel=tcg" <<
 			"-display" << "none" << "-no-user-config" << "-nodefaults" <<
 			"-m" << "256" << "-smp" << "2,sockets=2,cores=1,threads=1" <<
 			"-chardev" << "pty,id=charserial1" <<
@@ -79,9 +104,9 @@ QStringList NvramUpdater::generateQemuArgs(const QString &ovmfCode, const QStrin
 			"-drive" << QString("file=%1,if=pflash,format=raw,unit=0,readonly=on").arg(ovmfCode) <<
 			"-drive" << QString("file=%1,if=pflash,format=qcow2,unit=1,readonly=off").arg(ovmfVars) <<
 			"-drive" << QString("file=%1,format=raw,if=none,media=cdrom,id=drive-cd1,readonly=on").arg(OVMF_UEFI_SHELL_ISO_PATH) <<
-			"-device" << "ide-cd,drive=drive-cd1,id=cd1,bus=ide.2,bootindex=1" <<
-			"-drive" << QString("file=%1,format=raw,if=none,media=disk,id=drive-hd1,readonly=off").arg(disk) <<
-			"-device" << "ide-hd,drive=drive-hd1,id=hd1,bus=ide.1,bootindex=2" <<
+			"-device" << "ide-cd,drive=drive-cd1,id=cd1,bootindex=1" <<
+			"-drive" << QString("file=%1,format=qcow2,readonly=off,if=none,media=disk,id=drive-hd2").arg(disk) <<
+			"-device" << "ide-hd,drive=drive-hd2,id=hd2,bootindex=2" <<
 			"-serial" << "stdio";
 
 	return result;
@@ -151,7 +176,7 @@ bool NvramUpdater::runUefiShell(const UEFI_TASKS task)
 	QStringList lArgs;
 	if (task == UEFI_TASKS::UEFI_DUMP_VARS)
 	{
-		lArgs = generateQemuArgs(m_chip == Chipset_type::Q35 ? OVMF_CODE_SECBOOT : OVMF_CODE_OLD, m_tmpNvram.absoluteFilePath(), m_storage);
+		lArgs = generateQemuArgs(OVMF_CODE_OLD, m_oldNvram.absoluteFilePath(), m_storage);
 	}
 	else if (task == UEFI_TASKS::UEFI_RESTORE_VARS)
 	{
@@ -177,7 +202,7 @@ bool NvramUpdater::runUefiShell(const UEFI_TASKS task)
 		return false;
 
 	//send all rest commands
-	QString shell("fs0:\r\n");
+	QString shell("fs1:\r\n");//'Q35' chipset UEFI shell uses 'fs0', for 'pc-i440f' chipset UEFI shell uses 'fs1'
 	shell.append(task == UEFI_TASKS::UEFI_DUMP_VARS ? "dmpstore -all -s allvars.dat \r\n" : "dmpstore -l allvars.dat \r\n");
 	shell.append("reset -s\r\n");
 	qint64 ret = uefiShell.write(shell.toUtf8());
@@ -216,24 +241,12 @@ bool NvramUpdater::updateNVRAM()
 	//remove artifacts if present
 	QFile::remove(m_newNvram);
 
-	QFile storage(m_storage);
-	if (!storage.open(QIODevice::WriteOnly | QIODevice::Truncate))
+	if (!QFile::exists(m_storage))
 	{
-		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: can't create storage file '%s': %s",
-				QSTR2UTF8(m_storage), QSTR2UTF8(storage.errorString()));
+		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: Storage file '%s' is absent",
+				QSTR2UTF8(m_storage));
 		return false;
 	}
-	if (!storage.resize(DEFAULT_STORAGE_SIZE))
-	{
-		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: can't truncate storage file '%s'",
-			QSTR2UTF8(m_storage));
-		return false;
-	}
-	storage.close();
-
-	QStringList cmdMkfs = QStringList() << "mkfs.fat" << "-n" << "EFIVARST" << m_storage;
-	if (!runCmd(cmdMkfs))
-		return false;
 
 	//create var from template
 	QStringList cmdQemuConvert = QStringList() << QEMU_IMG_BIN << "convert" << "-f" << "raw" << "-O" << "qcow2" << OVMF_VARS_4M << m_newNvram;
@@ -274,6 +287,13 @@ bool NvramUpdater::isOldVerison()
 	if (!m_tmpNvram.exists())
 	{
 		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: Cannot create temporary file to update NVRAM '%s'",
+					QSTR2UTF8(m_oldNvram.filePath()));
+		return false;
+	}
+
+	if (static_cast<Chipset_type>(m_input.getVmHardwareList()->getChipset()->getType()) == Chipset_type::Q35)
+	{
+		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: VM with Q35 chipset does not need update NVRAM file",
 					QSTR2UTF8(m_oldNvram.filePath()));
 		return false;
 	}
