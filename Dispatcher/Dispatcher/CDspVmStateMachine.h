@@ -544,8 +544,7 @@ struct Frontend: Details::Frontend<Frontend>
 				//update NVRAM when VM is turned off
 				if (pBios && pBios->isEfiEnabled() && !pBios->getNVRAM().endsWith(VZ_VM_NVRAM_FILE_NAME))
 				{
-					NvramUpdater n(pBios->getNVRAM(),
-							static_cast<Chipset_type>(config_.getVmHardwareList()->getChipset()->getType()));
+					NvramUpdater n(config_);
 					if (n.isOldVerison() && n.updateNVRAM())
 					{
 						const QString vm_name = config_.getVmIdentification()->getVmName();
