@@ -1355,7 +1355,7 @@ PRL_RESULT Cpu::setNode()
 	if (!m && !m->getMode())
 		return PRL_ERR_SUCCESS;
 
-	if (m->getMode().get() == Libvirt::Domain::Xml::EMode6Strict)
+	if (m->getMode().get() == Libvirt::Domain::Xml::EMode7Strict)
 	{
 		m_result->setNodeMask(boost::apply_visitor(
 			Visitor::Numatune::Memory(), m->getMemory()));

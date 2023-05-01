@@ -265,10 +265,50 @@ enum EType4
 	EType4Pflash
 };
 
+enum EStartupPolicy
+{
+	EStartupPolicyMandatory,
+	EStartupPolicyRequisite,
+	EStartupPolicyOptional
+};
+
 enum EFormat
 {
-	EFormatRaw,
-	EFormatQcow2
+	EFormatDefault,
+	EFormatQcow,
+	EFormatLuks
+};
+
+enum EProtocol
+{
+	EProtocolNbd,
+	EProtocolRbd,
+	EProtocolSheepdog,
+	EProtocolGluster,
+	EProtocolIscsi,
+	EProtocolHttp,
+	EProtocolHttps,
+	EProtocolFtp,
+	EProtocolFtps,
+	EProtocolTftp
+};
+
+enum ETransport
+{
+	ETransportTcp,
+	ETransportRdma
+};
+
+enum EMode2
+{
+	EMode2Host,
+	EMode2Direct
+};
+
+enum EFormat1
+{
+	EFormat1Raw,
+	EFormat1Qcow2
 };
 
 enum EDev
@@ -279,11 +319,11 @@ enum EDev
 	EDevNetwork
 };
 
-enum EMode2
+enum EMode3
 {
-	EMode2Emulate,
-	EMode2Host,
-	EMode2Sysinfo
+	EMode3Emulate,
+	EMode3Host,
+	EMode3Sysinfo
 };
 
 enum EArch5
@@ -333,13 +373,13 @@ enum ETickpolicy
 	ETickpolicyDiscard
 };
 
-enum EMode3
+enum EMode4
 {
-	EMode3Auto,
-	EMode3Native,
-	EMode3Emulate,
-	EMode3Paravirt,
-	EMode3Smpsafe
+	EMode4Auto,
+	EMode4Native,
+	EMode4Emulate,
+	EMode4Paravirt,
+	EMode4Smpsafe
 };
 
 enum EName1
@@ -361,16 +401,16 @@ enum EType5
 	EType5Memfd
 };
 
-enum EMode4
-{
-	EMode4Shared,
-	EMode4Private
-};
-
 enum EMode5
 {
-	EMode5Immediate,
-	EMode5Ondemand
+	EMode5Shared,
+	EMode5Private
+};
+
+enum EMode6
+{
+	EMode6Immediate,
+	EMode6Ondemand
 };
 
 enum EPlacement
@@ -398,18 +438,18 @@ enum EType6
 	EType6Data
 };
 
-enum EMode6
-{
-	EMode6Strict,
-	EMode6Preferred,
-	EMode6Interleave
-};
-
 enum EMode7
 {
 	EMode7Strict,
 	EMode7Preferred,
 	EMode7Interleave
+};
+
+enum EMode8
+{
+	EMode8Strict,
+	EMode8Preferred,
+	EMode8Interleave
 };
 
 enum EPolicy2
@@ -537,46 +577,6 @@ enum ESnapshot
 	ESnapshotNo,
 	ESnapshotInternal,
 	ESnapshotExternal
-};
-
-enum EStartupPolicy
-{
-	EStartupPolicyMandatory,
-	EStartupPolicyRequisite,
-	EStartupPolicyOptional
-};
-
-enum EFormat1
-{
-	EFormat1Default,
-	EFormat1Qcow,
-	EFormat1Luks
-};
-
-enum EProtocol
-{
-	EProtocolNbd,
-	EProtocolRbd,
-	EProtocolSheepdog,
-	EProtocolGluster,
-	EProtocolIscsi,
-	EProtocolHttp,
-	EProtocolHttps,
-	EProtocolFtp,
-	EProtocolFtps,
-	EProtocolTftp
-};
-
-enum ETransport
-{
-	ETransportTcp,
-	ETransportRdma
-};
-
-enum EMode8
-{
-	EMode8Host,
-	EMode8Direct
 };
 
 enum EType7

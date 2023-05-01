@@ -9545,7 +9545,14 @@ static QString g_text[] = {
 	QString(""),
 	QString("capscsigeneric"),
 	QString("capability9519"),
-	QString("scsi_generic")
+	QString("scsi_generic"),
+	QString(""),
+	QString("variant9522"),
+	QString("variant9523"),
+	QString("variant9524"),
+	QString("variant9525"),
+	QString("variant9526"),
+	QString("variant9527")
 };
 
 const QString& getText(quint32 index_)

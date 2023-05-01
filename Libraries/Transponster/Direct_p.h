@@ -98,6 +98,15 @@ static OsDistribution dist_map[] = {
 	{"http://libosinfo.org/linux/2016", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_OTHER}
 };
 
+static void setNvramFilePath(Libvirt::Domain::Xml::Nvram& n, const QString& path) {
+	Libvirt::Domain::Xml::Source4 z;
+	z.setFile(path);
+	mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type s;
+	s.setValue(z);
+	Libvirt::Domain::Xml::VDiskSource vds = s;
+	n.setDiskSource(vds);
+}
+
 namespace Transponster
 {
 namespace Boot
@@ -1144,8 +1153,16 @@ struct Bios: boost::static_visitor<void>
 			m_bios->setEfiEnabled(true);
 
 		const Libvirt::Domain::Xml::Nvram* n = os_.getValue().getNvram().get_ptr();
-		if (n && n->getOwnValue())
-			m_bios->setNVRAM(n->getOwnValue().get());
+		
+		if (n && n->getDiskSource().is_initialized()) {
+			using namespace Libvirt::Domain::Xml;
+
+			VDiskSource q = n->getDiskSource().get();
+			mpl::at_c<VDiskSource::types, 4>::type source_file = boost::get<mpl::at_c<VDiskSource::types, 4>::type>(q);
+			boost::optional<Source4> s4 = source_file.getValue();
+			if (s4.is_initialized() && s4.get().getFile().is_initialized())
+				m_bios->setNVRAM(s4.get().getFile().get());
+		}
 	}
 
 private:
@@ -1247,7 +1264,8 @@ struct Os: boost::static_visitor<Libvirt::Domain::Xml::VOs>
 		Libvirt::Domain::Xml::Nvram n;
 		if (os.getNvram())
 			n = os.getNvram().get();
-		n.setOwnValue(m_nvram);
+		
+		setNvramFilePath(n, m_nvram);
 		os.setNvram(n);
 		mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
 		vos.setValue(os);
