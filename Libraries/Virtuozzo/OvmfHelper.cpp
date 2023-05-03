@@ -176,7 +176,7 @@ bool NvramUpdater::runUefiShell(const UEFI_TASKS task)
 	QStringList lArgs;
 	if (task == UEFI_TASKS::UEFI_DUMP_VARS)
 	{
-		lArgs = generateQemuArgs(OVMF_CODE_OLD, m_oldNvram.absoluteFilePath(), m_storage);
+		lArgs = generateQemuArgs(OVMF_CODE_OLD, m_tmpNvram.absoluteFilePath(), m_storage);
 	}
 	else if (task == UEFI_TASKS::UEFI_RESTORE_VARS)
 	{
