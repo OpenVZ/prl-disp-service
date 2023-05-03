@@ -293,7 +293,7 @@ bool NvramUpdater::isOldVerison()
 
 	if (static_cast<Chipset_type>(m_input.getVmHardwareList()->getChipset()->getType()) == Chipset_type::Q35)
 	{
-		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: VM with Q35 chipset does not need update NVRAM file",
+		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: VM with Q35 chipset does not need update NVRAM file '%s'",
 					QSTR2UTF8(m_oldNvram.filePath()));
 		return false;
 	}
