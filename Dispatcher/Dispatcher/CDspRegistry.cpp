@@ -135,9 +135,7 @@ struct Vm: ::Vm::State::Machine
 		process_event(event_);
 	}
 
-	void upgrade(CVmConfiguration &config_);
 	void updateConfig(CVmConfiguration value_);
-
 
 	void initOnRebootState(bool destroyEnabled) { m_upgradeState = destroyEnabled ? VmOnRebootState::CONFIG_DESTROY : VmOnRebootState::NONE; };
 	bool isOnRebootDestroy() const { return m_upgradeState == VmOnRebootState::UPGRADE_TMP_DESTROY || m_upgradeState == VmOnRebootState::CONFIG_DESTROY; };
@@ -366,23 +364,6 @@ Vm::Vm(const QString& uuid_, const SmartPtr<CDspClient>& user_,
 	m_storage->addAbsolute("cpu_time");
 }
 
-void Vm::upgrade(CVmConfiguration &config_)
-{
-	//upgrade old NVRAM to new 4M only for non Chipset_type::Q35.
-	//Chipset_type::Q35 uses OVMF_CODE_SECBOOT. It is not need update
-	//do not upgrade running VM, because their NVRAM is locked
-	CVmStartupBios* pBios = config_.getVmSettings()->getVmStartupOptions()->getBios();
-	if (pBios && pBios->isEfiEnabled() && !config_.getVmSettings()->getClusterOptions()->isRunning())
-	{
-		NvramUpdater n(config_);
-		if (n.isOldVerison() && n.updateNVRAM())
-		{
-			WRITE_TRACE(DBG_INFO, "NVRAM Updated successfully for VM '%s'", QSTR2UTF8(config_.getVmIdentification()->getVmName()));
-			pBios->setNVRAM(n.getNewNvramPath());
-		}
-	}
-}
-
 void Vm::updateConfig(CVmConfiguration value_)
 {
 	QMutexLocker l(&m_mutex);
@@ -417,7 +398,7 @@ void Vm::updateConfig(CVmConfiguration value_)
 	}
 	else
 	{
-		upgrade(value_);
+		NvramUpdater::upgrade(value_);
 	}
 
 	if (should_start)
