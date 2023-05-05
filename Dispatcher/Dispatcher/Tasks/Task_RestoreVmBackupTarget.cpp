@@ -56,6 +56,7 @@
 #include "prlxmlmodel/BackupTree/VmItem.h"
 #include "Libraries/Virtuozzo/CVzHelper.h"
 #include "Libraries/Virtuozzo/CVzPloop.h"
+#include "Libraries/Virtuozzo/OvmfHelper.h"
 #include "Libraries/PrlNetworking/netconfig.h"
 #include "Libraries/CpuFeatures/CCpuHelper.h"
 #include "Legacy/VmConverter.h"
@@ -942,6 +943,20 @@ PRL_RESULT Unit::saveProductConfig(const QString& folder_)
 	{
 		WRITE_TRACE(DBG_FATAL, "save Vm config %s failed: %s",
 				qPrintable(p), PRL_RESULT_TO_STRING(output));
+	}
+
+	//stopped VM allow us make an upgrade
+	//we should do it after dispatcher fix the absolute path of NVRAM
+	//and then save upgraded nvram again
+	if (NvramUpdater::upgrade(*getConfig()))
+	{
+		output = CDspService::instance()->getVmConfigManager().saveConfig(
+			getConfig(), p, m_context->getClient(), true);
+		if (PRL_FAILED(output))
+		{
+			WRITE_TRACE(DBG_FATAL, "save upgraded NVRAM to Vm config %s failed: %s",
+					qPrintable(p), PRL_RESULT_TO_STRING(output));
+		}
 	}
 
 	return output;
