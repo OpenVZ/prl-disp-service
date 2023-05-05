@@ -36,6 +36,26 @@ QString OVMF::getFirmware(Chipset_type machine_type)
 	return machine_type == Chipset_type::CHIP_Q35 ? OVMF_CODE_SECBOOT : OVMF_CODE_4M;
 }
 
+
+bool NvramUpdater::upgrade(CVmConfiguration &config_)
+{
+	//upgrade old NVRAM to new 4M only for non Chipset_type::Q35.
+	//Chipset_type::Q35 uses OVMF_CODE_SECBOOT. It is not need update
+	//do not upgrade running VM, because their NVRAM is locked
+	CVmStartupBios* pBios = config_.getVmSettings()->getVmStartupOptions()->getBios();
+	if (pBios && pBios->isEfiEnabled() && !config_.getVmSettings()->getClusterOptions()->isRunning())
+	{
+		NvramUpdater n(config_);
+		if (n.isOldVerison() && n.updateNVRAM())
+		{
+			WRITE_TRACE(DBG_INFO, "NVRAM Updated successfully for VM '%s'", QSTR2UTF8(config_.getVmIdentification()->getVmName()));
+			pBios->setNVRAM(n.getNewNvramPath());
+			return true;
+		}
+	}
+	return false;
+}
+
 NvramUpdater::NvramUpdater(const CVmConfiguration &config_) :
 		m_input(config_),
 		m_oldNvram(config_.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM())
