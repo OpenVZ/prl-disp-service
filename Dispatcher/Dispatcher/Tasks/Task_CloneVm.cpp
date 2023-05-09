@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -347,14 +347,14 @@ PRL_RESULT Content::copyFloppyDisks(CVmHardware& hardware_)
 
 PRL_RESULT Content::copyNvram(CVmStartupBios& bios_)
 {
-	QString o = bios_.getNVRAM();
-	if (o.isEmpty())
+	QString oldNvram = bios_.getNVRAM();
+	if (oldNvram.isEmpty())
 		return PRL_ERR_SUCCESS;
 
-	QString n = m_sink.getPath(VZ_VM_NVRAM_OLD_FILE_NAME);
-	bios_.setNVRAM(n);
+	QString newNvram = m_sink.getPath(QFileInfo(oldNvram).fileName());
+	bios_.setNVRAM(newNvram);
 
-	PRL_RESULT e = addExternalFile(o, n);
+	PRL_RESULT e = addExternalFile(oldNvram, newNvram);
 	if (PRL_FAILED(e))
 		return e;
 
