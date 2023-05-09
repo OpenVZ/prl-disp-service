@@ -15,7 +15,7 @@ constexpr const char OVMF_CODE_OLD[]			= "/usr/share/OVMF/OVMF_CODE.fd";
 constexpr const char OVMF_UEFI_SHELL_ISO_PATH[]	= "/usr/share/OVMF/UefiShell.iso";
 
 constexpr const int DEFAULT_WAIT_TIMER					= 20 * 1000;
-constexpr const int DEFAULT_OUTPUT_WAIT_TIMER			= 1 * 1000;
+constexpr const int DEFAULT_OUTPUT_WAIT_TIMER			= 10;
 constexpr const int DEFAULT_STORAGE_SIZE				= 256 * 1024 * 1024;
 constexpr const int UEFISHELL_WELCOME_MESSAGE_SIZE		= 2000;
 
