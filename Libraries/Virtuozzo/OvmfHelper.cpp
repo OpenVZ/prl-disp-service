@@ -127,6 +127,7 @@ QStringList NvramUpdater::generateQemuArgs(const QString &ovmfCode, const QStrin
 			"-device" << "ide-cd,drive=drive-cd1,id=cd1,bootindex=1" <<
 			"-drive" << QString("file=%1,format=qcow2,readonly=off,if=none,media=disk,id=drive-hd2").arg(disk) <<
 			"-device" << "ide-hd,drive=drive-hd2,id=hd2,bootindex=2" <<
+			"-global" << "driver=cfi.pflash01,property=secure,value=on" <<
 			"-serial" << "stdio";
 
 	return result;
