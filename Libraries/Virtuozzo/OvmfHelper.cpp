@@ -176,9 +176,12 @@ bool NvramUpdater::sendUefiEscape(QProcess &p)
 	QByteArray out;
 	int i = 0;
 	do {
+		int bytesRead = out.size();
 		p.waitForReadyRead(DEFAULT_OUTPUT_WAIT_TIMER);
 		out.append(p.readAllStandardOutput());
-	} while ( i++ < UEFISHELL_WELCOME_MESSAGE_SIZE && out.size() < UEFISHELL_WELCOME_MESSAGE_SIZE &&
+		if (out.size() == bytesRead)
+			i++;
+	} while ( i < UEFISHELL_WELCOME_MESSAGE_SIZE && out.size() < UEFISHELL_WELCOME_MESSAGE_SIZE &&
 			  !out.contains("in 5 seconds to skip") && p.state() == QProcess::Running);
 	cleanup_output(out);
 	if (!out.contains("in 5 seconds to skip"))
