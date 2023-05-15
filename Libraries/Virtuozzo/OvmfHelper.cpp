@@ -101,7 +101,7 @@ const QString NvramUpdater::findBootHDD() const
 	for(const CVmStartupOptions::CVmBootDevice *dev :
 			m_input.getVmSettings()->getVmStartupOptions()->getBootDeviceList())
 	{
-		if (dev->deviceType != PDE_HARD_DISK || !dev->inUseStatus)
+		if (dev->deviceType != PDE_HARD_DISK)
 			continue;
 		const CVmHardDisk *hdd = findDiskByIndex(m_input.getVmHardwareList()->m_lstHardDisks, dev->deviceIndex);
 		if (!hdd)
