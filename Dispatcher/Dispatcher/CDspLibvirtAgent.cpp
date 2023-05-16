@@ -2467,6 +2467,7 @@ Result Unit::commit() const
 
 Result Unit::rebase(const QString& base_, bool compress_) const
 {
+	Q_UNUSED(compress_);
 	const char* b = NULL;
 	QByteArray z = base_.toUtf8();
 	if (!base_.isEmpty())
@@ -2474,7 +2475,7 @@ Result Unit::rebase(const QString& base_, bool compress_) const
 
 	WRITE_TRACE(DBG_DEBUG, "rebase blocks of the disk %s", qPrintable(m_disk));
 	if (0 != virDomainBlockRebase(m_domain.data(), qPrintable(m_disk), b, 0,
-		compress_ * VIR_DOMAIN_BLOCK_REBASE_X_COMPRESS))
+		0))
 	{
 		WRITE_TRACE(DBG_FATAL, "failed to rebase blocks of the disk %s",
 			qPrintable(m_disk));
