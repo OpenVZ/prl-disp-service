@@ -84,6 +84,7 @@ static OsDistribution dist_map[] = {
 	{"http://redhat.com/rhel/9", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_REDHAT_9},
 	{"http://redhat.com/rhel/8", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_REDHAT_8},
 	{"http://redhat.com/rhel/7", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_REDHAT_7},
+	{"http://redhat.com/rhel/unknown", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_RH_LEGACY},
 	{"http://redhat.com/rhel", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_REDHAT},
 	{"http://suse.com/sles/12", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_SLES12},
 	{"http://suse.com/sles/11", PVS_GUEST_TYPE_LINUX, PVS_GUEST_VER_LIN_SLES11},
