@@ -1600,6 +1600,30 @@ void Domain::insert(Registry::Access& access_, const entry_type& model_)
 void Domain::switch_(Registry::Access& access_)
 {
 	updateConfig(access_);
+
+	boost::optional<CVmConfiguration> updatedConfig = access_.getConfig();
+	if (updatedConfig)
+	{
+		CVmStartupBios* pBios = updatedConfig->getVmSettings()->getVmStartupOptions()->getBios();
+		QString vmuuid = updatedConfig->getVmIdentification()->getVmUuid();
+		if (!updatedConfig->getVmSettings()->getClusterOptions()->isRunning() && pBios->isEfiEnabled())
+		{
+			CVmConfiguration currentConfig;
+			m_agent.getConfig(currentConfig);
+			if (currentConfig.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM() !=
+				updatedConfig->getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM() &&
+				!currentConfig.getVmSettings()->getVmStartupOptions()->getBios()->getNVRAM().endsWith(VZ_VM_NVRAM_FILE_NAME))
+			{
+				Libvirt::Result e = m_agent.setConfig(updatedConfig.get());
+				if (e.isFailed())
+				{
+					WRITE_TRACE(DBG_FATAL, "Domain:Switch: Unable to redefine Bios configuration for VM '%s': %s",
+						QSTR2UTF8(vmuuid), qPrintable(e.error().convertToEvent().toString()));
+				}
+			}
+		}
+	}
+
 	m_agent.getMaintenance().emitRestored();
 }
 
