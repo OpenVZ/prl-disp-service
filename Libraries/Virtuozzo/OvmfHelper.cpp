@@ -264,25 +264,30 @@ bool NvramUpdater::updateNVRAM()
 	//remove artifacts if present
 	QFile::remove(m_newNvram);
 
-	if (!QFile::exists(m_storage))
-	{
-		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: Storage file '%s' is absent",
-				QSTR2UTF8(m_storage));
-		return false;
-	}
-
 	//create var from template
 	QStringList cmdQemuConvert = QStringList() << QEMU_IMG_BIN << "convert" << "-f" << "raw" << "-O" << "qcow2" << OVMF_VARS_4M << m_newNvram;
 	if (!runCmd(cmdQemuConvert))
 		return false;
 
-	if (!runUefiShell(UEFI_TASKS::UEFI_DUMP_VARS))
-		return false;
+	bool isOK = true;
 
-	if (!runUefiShell(UEFI_TASKS::UEFI_RESTORE_VARS))
-		return false;
+	if (!QFile::exists(m_storage))
+	{
+		WRITE_TRACE(DBG_FATAL, "NVRAM Updater: Storage file '%s' is absent",
+				QSTR2UTF8(m_storage));
+		isOK = false;
+	}
 
-	WRITE_TRACE(DBG_DEBUG, "NVRAM Updated successfully to %s", QSTR2UTF8(m_newNvram));
+	if (isOK)
+		isOK = runUefiShell(UEFI_TASKS::UEFI_DUMP_VARS);
+
+	if (isOK)
+		isOK = runUefiShell(UEFI_TASKS::UEFI_RESTORE_VARS);
+
+	if (isOK)
+		WRITE_TRACE(DBG_DEBUG, "NVRAM Updated successfully to %s", QSTR2UTF8(m_newNvram));
+	else
+		WRITE_TRACE(DBG_DEBUG, "NVRAM Update failure. Reset %s", QSTR2UTF8(m_newNvram));
 	return true;
 }
 
