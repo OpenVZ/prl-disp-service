@@ -1817,7 +1817,7 @@ PRL_RESULT Task_RegisterVm::createNVRAM()
 		return PRL_ERR_SUCCESS;
 
 	if (b->getNVRAM().isEmpty())
-		b->setNVRAM(ConvertToFullPath(VZ_VM_NVRAM_OLD_FILE_NAME));
+		b->setNVRAM(ConvertToFullPath(VZ_VM_NVRAM_FILE_NAME));
 
 	CDspTaskFailure f(*this);
 	Edit::Vm::Create::Action<CVmStartupBios>(*b, *m_pVmConfig).execute(f);
