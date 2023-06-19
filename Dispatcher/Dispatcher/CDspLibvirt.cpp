@@ -1322,6 +1322,21 @@ int wakeUp(virConnectPtr , virDomainPtr domain_, int , void* opaque_)
 int reboot(virConnectPtr , virDomainPtr domain_, void* opaque_)
 {
 	Model::Coarse* v = (Model::Coarse* )opaque_;
+
+	QString xml(virDomainGetXMLDesc(domain_, VIR_DOMAIN_XML_INACTIVE));
+	QXmlQuery cfg;
+	cfg.setFocus(xml);
+	QString nvram, on_reboot;
+	cfg.setQuery("domain/os/nvram/text()");
+	cfg.evaluateTo(&nvram);
+	cfg.setQuery("domain/on_reboot/text()");
+	cfg.evaluateTo(&on_reboot);
+
+	if (nvram.contains(VZ_VM_NVRAM_OLD_FILE_NAME) || on_reboot.contains("destroy"))
+	{
+		v->setState(domain_, VMS_STOPPED);
+	}
+
 	v->show(domain_, boost::bind(&Registry::Reactor::reboot, _1));
 	return 0;
 }
