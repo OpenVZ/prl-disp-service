@@ -399,10 +399,20 @@ void Vm::updateConfig(CVmConfiguration value_)
 	else
 	{
 		NvramUpdater::upgrade(value_);
+		if (should_start)
+		{
+			Libvirt::Result e = Libvirt::Kit.vms().at(value_.getVmIdentification()->getVmUuid()).getState().start();
+			if (e.isFailed())
+			{
+				WRITE_TRACE(DBG_FATAL, "Failed to start VM {%s} '%s' after upgrade: %d [%s] "
+									, QSTR2UTF8(value_.getVmIdentification()->getVmUuid())
+									, QSTR2UTF8(value_.getVmIdentification()->getVmName())
+									, e.error().code()
+									, QSTR2UTF8(e.error().convertToEvent().toString())
+									);
+			}
+		}
 	}
-
-	if (should_start)
-		Libvirt::Kit.vms().at(value_.getVmIdentification()->getVmUuid()).getState().start();
 
 	s.connect(boost::phoenix::placeholders::arg1 = boost::phoenix::cref(value_));
 	Update::Workbench w(*this, getUser(), Update::Workbench::base_type(getService()));
