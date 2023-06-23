@@ -181,14 +181,16 @@ bool NvramUpdater::sendUefiEscape(QProcess &p)
 		if (out.size() == bytesRead)
 			i++;
 	} while ( i < UEFISHELL_WELCOME_MESSAGE_SIZE && out.size() < UEFISHELL_WELCOME_MESSAGE_SIZE &&
-			  !out.contains("in 5 seconds to skip") && p.state() == QProcess::Running);
+			  !out.contains("in 5 seconds to skip") && p.state() != QProcess::NotRunning);
 	cleanup_output(out);
 	if (!out.contains("in 5 seconds to skip"))
 	{
-		WRITE_TRACE(DBG_FATAL, "UEFI shell utility. Waiting UefiShell load Error. Output return %d bytes after %d iteration. Output:\n%s\n", out.size(), i, out.data());
+		WRITE_TRACE(DBG_FATAL, "UEFI shell utility [%d]: Waiting UefiShell load Error. Output return %d bytes after %d iteration. Output:\n%s\n",
+				p.state(), out.size(), i, out.data());
 		return false;
 	}
-	WRITE_TRACE(DBG_DEBUG, "UEFI shell utility: Output return %d bytes after %d iteration. Output:\n%s\n", out.size(), i, out.data());
+	WRITE_TRACE(DBG_DEBUG, "UEFI shell utility [%d]: Output return %d bytes after %d iteration. Output:\n%s\n",
+			p.state(), out.size(), i, out.data());
 	p.write("\e");
 	return true;
 }
