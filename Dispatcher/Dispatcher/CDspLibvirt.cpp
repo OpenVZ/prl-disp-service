@@ -1349,6 +1349,7 @@ int reboot(virConnectPtr , virDomainPtr domain_, void* opaque_)
 
 	if (nvram.contains(VZ_VM_NVRAM_OLD_FILE_NAME) || on_reboot.contains("destroy"))
 	{
+		WRITE_TRACE(DBG_INFO, "VM '%s' will be stopped after reboot", virDomainGetName(domain_));
 		v->setState(domain_, VMS_STOPPED);
 	}
 
