@@ -268,6 +268,7 @@ struct Essence<PVE::DspCmdVmRestartGuest>: Need::Agent
 {
 	Libvirt::Result operator()()
 	{
+		getAgent().getMaintenance().emitReboot();
 		return getAgent().getState().reboot();
 	}
 };

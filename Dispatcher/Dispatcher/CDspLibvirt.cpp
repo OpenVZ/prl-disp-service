@@ -2559,6 +2559,14 @@ void Maintenance::emitQemuUpdated()
 	emitLifecycle(VIR_DOMAIN_EVENT_STARTED, -1);
 }
 
+void Maintenance::emitReboot()
+{
+	Callback::g_access.setOpaque(Callback::Mock::ID,
+		new Callback::Transport::Event(boost::bind(&Model::Coarse::show, _1,
+			boost::bind(&domainReference_type::data, getDomain()),
+			boost::protect(boost::bind(&Registry::Reactor::reboot, _1)))));
+}
+
 void Maintenance::emitAgentCorollary(PRL_VM_TOOLS_STATE state_)
 {
 	Callback::g_access.setOpaque(Callback::Mock::ID,
