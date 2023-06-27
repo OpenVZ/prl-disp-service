@@ -603,8 +603,7 @@ Offline::result_type Offline::operator()(const request_type& request_)
 		x.setAttribute(Command::Move::Attribute
 			(request_.getContext().getClient()->getAuthHelper()));
 	}
-	b.addItem(boost::bind(x, QFileInfo(s), QFileInfo(t)),
-		Command::Move::Remove(t));
+	b.addItem(boost::bind(x, QFileInfo(s), QFileInfo(t)));
 	Command::Move::Directory d(request_.getObject());
 	b.addItem(boost::bind(d, request_.getTargetConfig()),
 		boost::bind<void>(d, request_.getSourceConfig()));
@@ -783,8 +782,7 @@ Nexus::result_type Nexus::operator()(const request_type& request_)
 
 	Instrument::Command::Batch b;
 	QString t = request_.getTargetPrivate();
-	b.addItem(boost::bind(x.getRegular().value(), QDir(t)),
-		Command::Move::Remove(t));
+	b.addItem(boost::bind(x.getRegular().value(), QDir(t)));
 	b.addItem(boost::bind(&Special::Facade::prepare, x.getSpecial().value(), QDir(t)));
 	Command::Move::Directory d(request_.getObject());
 	b.addItem(boost::bind(d, request_.getTargetConfig()),
