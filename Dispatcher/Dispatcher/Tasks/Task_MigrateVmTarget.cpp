@@ -972,7 +972,11 @@ void Frontend::create(const CVmHardDisk& event_)
 	a << "create" << "-f" << "qcow2";
 	a << "-o" << "cluster_size=1M,lazy_refcounts=on,extended_l2=on";
 	a << event_.getSystemName();
-	a << QString::number(event_.getSize()).append("M");
+
+	if (event_.getSizeInBytes())
+		a << QString::number(event_.getSizeInBytes());
+	else
+		a << QString::number(event_.getSize()).append("M");
 
 	getConnector()->launch(QEMU_IMG_BIN, a);
 }
