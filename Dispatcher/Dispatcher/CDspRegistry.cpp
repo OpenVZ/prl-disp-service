@@ -378,7 +378,9 @@ void Vm::updateConfig(CVmConfiguration value_)
 					::type::do_, boost::ref(value_), _1));
 	}
 	bool should_start = isStartNeeded();
-	initOnRebootState(value_.getVmSettings()->getVmStartupOptions()->getOnRebootAction() == "destroy");
+	CVmConfiguration inactive;
+	Libvirt::Kit.vms().at(value_.getVmIdentification()->getVmUuid()).getConfig(inactive, false);
+	initOnRebootState(inactive.getVmSettings()->getVmStartupOptions()->getOnRebootAction() == "destroy");
 
 	if (is_flag_active< ::Vm::State::Running>())
 	{
@@ -391,7 +393,7 @@ void Vm::updateConfig(CVmConfiguration value_)
 				!pStartupOptions->getBios()->getNVRAM().endsWith(VZ_VM_NVRAM_FILE_NAME) &&
 				m_upgradeState != VmOnRebootState::CONFIG_DESTROY)
 		{
-			pStartupOptions->setOnEfiUpdateAction(pStartupOptions->getOnRebootAction());
+			pStartupOptions->setOnEfiUpdateAction(inactive.getVmSettings()->getVmStartupOptions()->getOnRebootAction());
 			Libvirt::Kit.vms().at(value_.getVmIdentification()->getVmUuid()).getEditor().setOnRebootLifecycleAction(VIR_DOMAIN_LIFECYCLE_ACTION_DESTROY);
 			m_upgradeState = VmOnRebootState::UPGRADE_TMP_DESTROY;
 		}
