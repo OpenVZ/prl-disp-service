@@ -552,18 +552,19 @@ struct Frontend: Details::Frontend<Frontend>
 						WRITE_TRACE(DBG_INFO, "Upgrade::NVRAM: successfully update NVRAM for VM '%s'", QSTR2UTF8(vm_name));
 						pBios->setNVRAM(n.getNewNvramPath());
 						Libvirt::Instrument::Agent::Vm::Unit v = Libvirt::Kit.vms().at(vm_uuid);
-						if (v.setConfig(config_).isFailed())
-						{
-							WRITE_TRACE(DBG_FATAL, "Upgrade::NVRAM: Failed to update runtime config for VM '%s'",
-									QSTR2UTF8(vm_name));
-						}
-
 						//restore back lifecycle 'on_reboot' action
 						QString oldAction = s->getVmStartupOptions()->getOnEfiUpdateAction();
 						if (!oldAction.isEmpty())
 						{
 							v.getEditor().setOnRebootLifecycleAction(getVirLifecycleAction(oldAction, vm_name));
+							s->getVmStartupOptions()->setOnRebootAction(oldAction);
 							s->getVmStartupOptions()->setOnEfiUpdateAction("");
+						}
+
+						if (v.setConfig(config_).isFailed())
+						{
+							WRITE_TRACE(DBG_FATAL, "Upgrade::NVRAM: Failed to update runtime config for VM '%s'",
+									QSTR2UTF8(vm_name));
 						}
 					}
 				}
