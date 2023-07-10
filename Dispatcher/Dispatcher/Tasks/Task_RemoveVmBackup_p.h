@@ -7,7 +7,7 @@
 /// @author krasnov@
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -72,7 +72,7 @@ struct Item
 	{
 		return m_lair;
 	}
-	const item_type& getData() const
+	item_type getData() const
 	{
 		return m_data;
 	}
@@ -84,20 +84,22 @@ private:
 	item_type m_data;
 };
 
+typedef QSharedPointer<Item> element_type;
+typedef QList<element_type> list_type;
+typedef boost::function<PRL_RESULT()> action_type;
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Meta
 
 struct Meta : boost::static_visitor<PRL_RESULT>
 {
-	Meta(const Item& item_, const Backup::Metadata::Sequence& sequence_):
+	Meta(const element_type item_, const Backup::Metadata::Sequence& sequence_):
 		m_item(item_), m_sequence(sequence_)
 	{
 	}
 	
-	PRL_RESULT operator()(const BackupItem& from_, const PartialBackupItem& to_) const;
-	PRL_RESULT operator()(const PartialBackupItem& from_, const PartialBackupItem& to_) const;
-	PRL_RESULT operator()(BackupItem&& from_, PartialBackupItem&& to_) const;
-	PRL_RESULT operator()(PartialBackupItem&& from_, BackupItem&& to_) const;
+	PRL_RESULT operator()(BackupItem from_, PartialBackupItem to_) const;
+	PRL_RESULT operator()(PartialBackupItem from_, PartialBackupItem to_) const;
 	template<class T, class Y>
 	PRL_RESULT operator()(const T&, const Y&) const
 	{
@@ -107,7 +109,7 @@ struct Meta : boost::static_visitor<PRL_RESULT>
 private:
 	qulonglong getSize() const;
 
-	Item m_item;
+	element_type m_item;
 	mutable Backup::Metadata::Sequence m_sequence;
 };
 
@@ -116,7 +118,6 @@ private:
 
 struct Flavor
 {
-	typedef QList<QSharedPointer<Item> > list_type;
 
 	explicit Flavor(CDspTaskHelper& context_);
 
@@ -195,44 +196,61 @@ private:
 	agent_type m_agent;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-// struct Confectioner
-
-struct Confectioner
-{
-	typedef Setup::sequence_type sequence_type;
-
-	Confectioner(CDspTaskHelper& context_, const sequence_type& sequence_):
-		m_sequence(sequence_), m_context(&context_)
-	{
-	}
-
-	Prl::Expected<batch_type, PRL_RESULT> operator()(quint32 item_);
-
-private:
-	sequence_type m_sequence;
-	CDspTaskHelper *m_context;
-};
-
 } // namespace Coalesce
 
 namespace Remove
 {
+///////////////////////////////////////////////////////////////////////////////
+// struct Remover
+
+struct Remover
+{
+	explicit Remover(CDspTaskHelper& context_) : m_context(&context_) {}
+
+	static PRL_RESULT rmdir(const QString& dir_, CDspTaskFailure fail_);
+	static PRL_RESULT unlink(const QString& file_);
+	static QList<action_type> unlinkItem(const Item& item_,
+				const CDspTaskFailure& fail_);
+	QList<action_type> operator()(const list_type& objects_, quint32 index_);
+
+private:
+	CDspTaskHelper *m_context;
+};
+
+struct Shifter
+{
+	Shifter(CDspTaskHelper& context_, const Backup::Metadata::Sequence& sequence_):
+		m_context(&context_), m_sequence(sequence_)
+	{
+	}
+
+	static PRL_RESULT rebase(const QString& file_, const QString& base_);
+	static QList<action_type> rebaseItem(const Item& item_, const Item& base_);
+	QList<action_type> operator()(quint32 item_);
+
+	void setNext(quint32 value_);
+	void setPreceding(quint32 value_);
+
+private:
+	CDspTaskHelper *m_context;
+	Backup::Metadata::Sequence m_sequence;
+	element_type m_next, m_preceding;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Confectioner
 
 struct Confectioner
 {
 	typedef Prl::Expected<batch_type, PRL_RESULT> result_type;
+	typedef Prl::Expected<QList<action_type>, PRL_RESULT> result_type2;
 
 	Confectioner(const QList<quint32>& index_, quint32 number_):
 		m_number(number_), m_index(index_)
 	{
 	}
-
 	result_type operator()
-		(Coalesce::Confectioner producer_,
-		 Prl::Expected<VmItem, PRL_RESULT> catalog_) const;
+		(Shifter producer_,Prl::Expected<VmItem, PRL_RESULT> catalog_) const;
 	result_type operator()
 		(Flavor flavor_, const Metadata::Sequence& sequence_) const;
 

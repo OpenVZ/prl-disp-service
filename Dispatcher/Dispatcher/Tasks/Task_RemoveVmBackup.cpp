@@ -7,7 +7,7 @@
 /// @author krasnov@
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -257,7 +257,7 @@ PRL_RESULT Item::load(const Backup::Metadata::Sequence& sequence_)
 ///////////////////////////////////////////////////////////////////////////////
 // struct Meta
 
-PRL_RESULT Meta::operator()(const BackupItem& from_, const PartialBackupItem& to_) const
+PRL_RESULT Meta::operator()(BackupItem from_, PartialBackupItem to_) const
 {
 	BackupItem b;
 	b.setId(to_.getId());
@@ -273,31 +273,21 @@ PRL_RESULT Meta::operator()(const BackupItem& from_, const PartialBackupItem& to
 	b.setTibFileList(to_.getTibFileList());
 	b.setFlags(from_.getFlags());
 	b.setLastNumber(from_.getLastNumber());
-	return m_sequence.save(b, m_item.getNumber());
+	return m_sequence.save(b, m_item->getNumber());
 }
 
-PRL_RESULT Meta::operator()(BackupItem&& from_, PartialBackupItem&& to_) const
-{
-	return (*this)(const_cast<const BackupItem&>(from_), const_cast<const PartialBackupItem&>(to_));
-}
-
-PRL_RESULT Meta::operator()(const PartialBackupItem& from_, const PartialBackupItem& to_) const
+PRL_RESULT Meta::operator()(PartialBackupItem from_, const PartialBackupItem to_) const
 {
 	Q_UNUSED(from_);
 	PartialBackupItem p(to_);
 	p.setSize(getSize());
-	return m_sequence.update(p, m_item.getNumber());
-}
-
-PRL_RESULT Meta::operator()(PartialBackupItem&& from_, BackupItem&& to_) const
-{
-	return (*this)(const_cast<const PartialBackupItem&>(from_), const_cast<const BackupItem&>(to_));
+	return m_sequence.update(p, m_item->getNumber());
 }
 
 qulonglong Meta::getSize() const
 {
 	qulonglong output = 0;
-	foreach (const QString& t, m_item.getFiles())
+	foreach (const QString& t, m_item->getFiles())
 		output += QFileInfo(t).size();
 
 	return output;
@@ -347,7 +337,7 @@ PRL_RESULT Flavor::unlink(const QString& file_)
 // struct Confectioner
 
 Confectioner::result_type Confectioner::operator()
-	(Coalesce::Confectioner producer_, Prl::Expected<VmItem, PRL_RESULT> catalog_) const
+	(Shifter producer_,Prl::Expected<VmItem, PRL_RESULT> catalog_) const
 {
 	if (catalog_.isFailed())
 		return PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
@@ -355,7 +345,27 @@ Confectioner::result_type Confectioner::operator()
 	if (catalog_.value().getVersion() < BACKUP_PROTO_V4)
 		return PRL_ERR_BACKUP_UNSUPPORTED_KEEP_CHAIN;
 
-	return producer_(m_number);
+	QList<quint32>::const_iterator p = std::find
+		(m_index.constBegin(), m_index.constEnd(), m_number);
+	if (m_index.constEnd() == p)
+		return PRL_ERR_BACKUP_BACKUP_NOT_FOUND;
+
+	if (m_index.constBegin() != p)
+		producer_.setPreceding(*std::prev(p));
+	if (m_number != m_index.last())
+		producer_.setNext(*std::next(p));
+
+	auto actions_ = producer_(m_number);
+
+	batch_type output;
+	foreach(Backup::Remove::action_type a, actions_) {
+		if (a.empty())
+		{
+			return PRL_ERR_BACKUP_INTERNAL_ERROR;
+		}
+		output.addItem(a);
+	}
+	return output;
 }
 
 Confectioner::result_type Confectioner::operator()
@@ -388,6 +398,137 @@ Confectioner::result_type Confectioner::operator()
 		}
 	}
 	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Remover
+
+PRL_RESULT Remover::rmdir(const QString& dir_, CDspTaskFailure fail_)
+{
+	if (!CFileHelper::ClearAndDeleteDir(dir_)) {
+		fail_(dir_);
+		WRITE_TRACE(DBG_FATAL, "Can't remove \"%s\" directory", QSTR2UTF8(dir_));
+		return PRL_ERR_BACKUP_CANNOT_REMOVE_DIRECTORY;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+PRL_RESULT Remover::unlink(const QString& file_)
+{
+	QFile f(file_);
+	if (f.remove())
+		return PRL_ERR_SUCCESS;
+	WRITE_TRACE(DBG_FATAL, "QFile(%s)::remove error: %s", QSTR2UTF8(f.fileName()),
+			QSTR2UTF8(f.errorString()));
+	return PRL_ERR_OPERATION_FAILED;
+}
+
+QList<action_type> Remover::unlinkItem(const Item& item_, const CDspTaskFailure& fail_)
+{
+	QList<action_type> a;
+	a << boost::bind(Remover::rmdir, item_.getLair(), fail_);
+	foreach(QString f, item_.getFiles())
+		a << boost::bind(Remover::unlink, f);
+
+	return a;
+}
+
+QList<action_type> Remover::operator()(const list_type& objects_, quint32 index_)
+{
+	if (!index_) {
+		return QList<action_type>() << boost::bind(Remover::rmdir,
+			QFileInfo(objects_.first()->getLair()).absolutePath(),
+			CDspTaskFailure(*m_context));
+	}
+
+	QList<action_type> a;
+	for (int i = index_; i < objects_.size(); i++)
+		a << unlinkItem(*objects_.at(i), CDspTaskFailure(*m_context));
+	return a;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Shifter
+
+PRL_RESULT Shifter::rebase(const QString& file_, const QString& base_)
+{
+	QStringList cmd;
+	//prepare command and arguments for qemu-img
+	cmd.append(QEMU_IMG_BIN);
+	cmd.append("rebase");
+	//compress is always true for rebase 
+	cmd.append("-c");
+	cmd.append("-f");
+	cmd.append("qcow2");
+	cmd.append("-b");
+	if (base_.isEmpty())
+	{
+		cmd.append("\"\"");//append empty base
+	}
+	else
+	{
+		cmd.append(base_);
+		cmd.append("-F");
+		cmd.append("qcow2");
+	}
+	cmd.append(file_);
+	WRITE_TRACE(DBG_INFO, "Run cmd: %s", QSTR2UTF8(cmd.join(" ")));
+	QProcess process;
+	DefaultExecHandler h(process, cmd.join(" "));
+	if (!HostUtils::RunCmdLineUtilityEx(cmd, process,  60*1000, NULL)(h).isSuccess())
+	{
+		WRITE_TRACE(DBG_FATAL, "Cannot rebase hdd '%s' to '%s': %s", QSTR2UTF8(file_),
+				QSTR2UTF8(base_), h.getStderr().constData());
+		return PRL_ERR_BACKUP_INTERNAL_ERROR;
+	}
+	return PRL_ERR_SUCCESS;
+}
+
+QList<action_type> Shifter::rebaseItem(const Item& item_, const Item& base_)
+{
+	QList<action_type> a;
+	for (int i = 0; i < item_.getFiles().size(); i++) {
+		QString base = (i < base_.getFiles().size()) ? base_.getFiles().at(i) : "";
+		a << boost::bind(Shifter::rebase, item_.getFiles().at(i), base);
+	}
+	return a;
+}
+
+QList<action_type> Shifter::operator()(quint32 item_)
+{
+	element_type c(new Item(item_));
+	c->load(m_sequence);
+	if (m_next.isNull())
+	{
+		return Remover::unlinkItem(*c, CDspTaskFailure(*m_context));
+	}
+
+	element_type n = m_next, p = m_preceding;
+	n->load(m_sequence);
+	if (p.isNull())
+		p = element_type(new Item());
+	else
+		p->load(m_sequence);
+
+	QList<action_type> output = rebaseItem(*n, *p);
+	QSharedPointer<Backup::Metadata::Sequence> seq_ = QSharedPointer<Backup::Metadata::Sequence>(new Backup::Metadata::Sequence(m_sequence));
+	output << ([c, n, seq_]() -> PRL_RESULT {
+			return boost::apply_visitor<Meta, item_type, item_type>(
+					Meta(n, *seq_), c->getData(), n->getData());
+	});
+
+	output << Remover::unlinkItem(*c, CDspTaskFailure(*m_context));
+	return output;
+}
+
+void Shifter::setNext(quint32 value_)
+{
+	m_next = element_type(new Item(value_));
+}
+
+void Shifter::setPreceding(quint32 value_)
+{
+	m_preceding = element_type(new Item(value_));
 }
 
 } // namespace Remove
@@ -534,59 +675,6 @@ PRL_RESULT Instrument::addBackingStores()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Confectioner
-
-Prl::Expected<batch_type, PRL_RESULT> Confectioner::operator()(quint32 item_)
-{
-	Setup s(m_sequence, item_);
-	Prl::Expected<Setup::item_type, PRL_RESULT> v = s.getVictim();
-	if (v.isFailed())
-		return v.error();
-
-	Prl::Expected<Setup::item_type, PRL_RESULT> l = s.getLeader();
-	if (l.isFailed())
-		return Remove::Flavor(*m_context)(v.value());
-
-	Instrument i(m_sequence.showLair().absolutePath(), s);
-	PRL_RESULT e = i.addImages();
-	if (PRL_FAILED(e))
-		return e;
-
-	e = i.addBackingStores();
-	if (PRL_FAILED(e))
-		return e;
-
-	::Libvirt::Instrument::Agent::Vm::Grub::result_type u =
-		Libvirt::Kit.vms().getGrub(i.getResult()).spawnPaused();
-	if (u.isFailed())
-		return u.error().code();
-
-	batch_type output;
-	output.addItem(Unit(u.value()));
-
-#define BOOST_MINOR_VERSION BOOST_VERSION / 100 % 1000
-#if BOOST_MINOR_VERSION == 53 // boost 1.53
-	PRL_RESULT (*f)(const Remove::Meta&, Remove::item_type&, Remove::item_type&) =
-		&boost::apply_visitor<Remove::Meta, Remove::item_type, Remove::item_type>;
-
-	output.addItem(boost::bind(f, Remove::Meta(l.value(), m_sequence),
-		v.value().getData(), l.value().getData()));
-#else
-	output.addItem([v, l, this]() -> PRL_RESULT {
-		auto v1 = v.value().getData();
-		auto v2 = l.value().getData();
-		return boost::apply_visitor<Remove::Meta, Remove::item_type,
-							Remove::item_type>(
-				Remove::Meta(l.value(), m_sequence),
-				std::move(v1), std::move(v2));
-	});
-#endif
-	output.addItem(Remove::Flavor(*m_context)(v.value()));
-
-	return output;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
 PRL_RESULT Unit::operator()()
@@ -664,9 +752,13 @@ Prl::Expected<Task_RemoveVmBackupTarget::batch_type, PRL_RESULT>
 	{
 		Backup::Remove::Confectioner x(i, m_nBackupNumber);
 		if (m_nFlags & PBT_KEEP_CHAIN)
-			output = x(Backup::Coalesce::Confectioner(*this, s), c.loadItem());
+		{
+			output = x(Backup::Remove::Shifter(*this, s), c.loadItem());
+		}
 		else
+		{
 			output = x(Backup::Remove::Flavor(*this), s);
+		}
 
 		if (output.isSucceed())
 			m_lstBackupUuid.append(m_sBackupUuid);
