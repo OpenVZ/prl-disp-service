@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2020 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2023 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core Libraries. Virtuozzo Core
  * Libraries is free software; you can redistribute it and/or modify it
@@ -1900,6 +1900,12 @@ QString Device<CVmHardDisk>::getTargetName(const CVmHardDisk& model_)
 {
 	Transponster::Device::Clustered::Builder::Hdd b(model_);
 	return b.getModel().getTargetName();
+}
+
+QString Device<CVmHardDisk>::getImageFile(const CVmHardDisk& model_)
+{
+	Transponster::Device::Clustered::Builder::Hdd b(model_);
+	return b.getModel().getImageFile();
 }
 
 QString Device<CVmFloppyDisk>::getUpdateXml(const CVmFloppyDisk& model_)
