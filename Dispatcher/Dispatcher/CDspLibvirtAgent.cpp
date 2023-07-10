@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2020 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2023 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core. Virtuozzo Core is free software;
  * you can redistribute it and/or modify it under the terms of the GNU
@@ -2084,7 +2084,7 @@ template Result Editor::update<CVmGenericNetworkAdapter>
 
 Result Editor::setImageSize(const CVmHardDisk& disk_, quint64 bytes_)
 {
-	return Block::Unit(getDomain(), disk_.getSystemName()).resize(bytes_);
+	return Block::Unit(getDomain(), disk_.getSystemName(), disk_.getTargetDeviceName()).resize(bytes_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2212,6 +2212,11 @@ namespace Generic
 QString Flavor::getTarget() const
 {
 	return Transponster::Vm::Reverse::Device<CVmHardDisk>::getTargetName(getXml());
+}
+
+QString Flavor::getImageFile() const
+{
+	return Transponster::Vm::Reverse::Device<CVmHardDisk>::getImageFile(getXml());
 }
 
 void Flavor::commit(signal_type& batch_) const
@@ -2398,7 +2403,7 @@ QString Rebase::getImage() const
 
 Result Rebase::launch() const
 {
-	return getAgent().rebase(getImage(), getXml().isAutoCompressEnabled());
+	return getAgent().rebase(getImage());
 }
 
 void Rebase::abort(signal_type& batch_) const
@@ -2465,17 +2470,15 @@ Result Unit::commit() const
 	return Result();
 }
 
-Result Unit::rebase(const QString& base_, bool compress_) const
+Result Unit::rebase(const QString& base_) const
 {
-	Q_UNUSED(compress_);
 	const char* b = NULL;
 	QByteArray z = base_.toUtf8();
 	if (!base_.isEmpty())
 		b = z.data();
 
 	WRITE_TRACE(DBG_DEBUG, "rebase blocks of the disk %s", qPrintable(m_disk));
-	if (0 != virDomainBlockRebase(m_domain.data(), qPrintable(m_disk), b, 0,
-		0))
+	if (0 != virDomainBlockRebase(m_domain.data(), qPrintable(m_disk), b, 0, 0))
 	{
 		WRITE_TRACE(DBG_FATAL, "failed to rebase blocks of the disk %s",
 			qPrintable(m_disk));

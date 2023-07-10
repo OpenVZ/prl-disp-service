@@ -7,7 +7,7 @@
 /// @author shrike
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2020 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -293,8 +293,8 @@ struct Unit
 	Unit()
 	{
 	}
-	Unit(const QSharedPointer<virDomain>& domain_, const QString& disk_):
-		m_domain(domain_), m_disk(disk_)
+	Unit(const QSharedPointer<virDomain>& domain_, const QString& disk_, const QString& image_):
+		m_domain(domain_), m_disk(disk_), m_imageFile(image_)
 	{
 	}
 
@@ -305,7 +305,7 @@ struct Unit
 	Prl::Expected<std::pair<quint64, quint64>, ::Error::Simple> getProgress() const;
 	Result copy(const CVmHardDisk& target_) const;
 	Result commit() const;
-	Result rebase(const QString& base_, bool compress_) const;
+	Result rebase(const QString& base_) const;
 	Result resize(quint64 bytes_) const;
 
 	Result abort() const;
@@ -316,6 +316,7 @@ private:
 
 	QSharedPointer<virDomain> m_domain;
 	QString m_disk;
+	QString m_imageFile;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
