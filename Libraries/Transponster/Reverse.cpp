@@ -47,21 +47,25 @@ void Resources::setCpu(const Libvirt::Domain::Xml::Cpu& src_)
 	if (NULL == h)
 		return;
 
+	CVmCpu* u = h->getCpu();
+	if (NULL == u)
+		return;
+
 	Vm::Reverse::CpuFeaturesMask m(*m_config);
 	m.setDisabledFeatures(src_);
 
 	if (src_.getNuma())
 	{
 		qint32 maxNumaRam = 0;
-		foreach (const Libvirt::Domain::Xml::Cell& cell, src_.getNuma().get().getCellList())
+		const QList<Libvirt::Domain::Xml::Cell>& cellList = src_.getNuma().get().getCellList();
+		foreach (const Libvirt::Domain::Xml::Cell& cell, cellList)
 			maxNumaRam += cell.getMemory()>>10;
 
 		if (maxNumaRam)
 			h->getMemory()->setMaxNumaRamSize(maxNumaRam);
+
+		u->setNumaNodes(cellList.size() > 1 ? cellList.size() : 0);
 	}
-	CVmCpu* u = h->getCpu();
-	if (NULL == u)
-		return;
 
 	boost::optional<Libvirt::Domain::Xml::Topology> f = src_.getTopology();
 	if (f)
@@ -111,6 +115,47 @@ bool Resources::getCpu(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu& dst_)
 		cells.append(cell);
 		numa.setCellList(cells);
 		dst_.setNuma(numa);
+	}
+
+	if (!m->isEnableHotplug() && !u->isEnableHotplug() && (u->getNumaNodes() > 1))
+	{
+
+		Libvirt::Domain::Xml::Numa numa;
+		QList<Libvirt::Domain::Xml::Cell> cellList;
+		unsigned int numaNodes = u->getNumaNodes();
+		unsigned int numaMemory = (m->getRamSize() << 10) / numaNodes; //libvirt uses KiB units
+		unsigned int numaCpus = (u->getNumber() * u->getSockets()) / numaNodes;
+
+		if (!numaCpus)
+		{
+			WRITE_TRACE(DBG_FATAL, "Wrong Config for VM '%s': Number of NUMA nodes [%d]"
+									" should be equal or less than number of vCPUs [%d]",
+									QSTR2UTF8(m_config->getVmIdentification()->getVmName()),
+									numaNodes, u->getNumber() * u->getSockets()
+			);
+			return false;
+		}
+
+		for (unsigned int i = 0; i < numaNodes; i++)
+		{
+			Libvirt::Domain::Xml::Cell cell;
+			if (numaCpus == 1)
+			{
+				cell.setCpus(QString("%1").arg(i));
+			}
+			else
+			{
+				cell.setCpus(QString("%1-%2").arg(i * numaCpus).arg(((i + 1) * numaCpus) - 1));
+			}
+			cell.setMemory(numaMemory);
+			cellList.append(cell);
+		}
+
+		if (!cellList.empty())
+		{
+			numa.setCellList(cellList);
+			dst_.setNuma(numa);
+		}
 	}
 	return true;
 }
