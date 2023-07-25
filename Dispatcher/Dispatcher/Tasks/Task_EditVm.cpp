@@ -1744,6 +1744,19 @@ PRL_RESULT Task_EditVm::editVm()
 					WRITE_TRACE(DBG_FATAL, ">>> User is not authorized to access this VM");
 					throw PRL_ERR_ACCESS_DENIED;
 				}
+
+				//////////////////////////////////////////////////////////////////////////
+				// check changing NUMA nodes and current VM parameters of CPU and memory
+				//////////////////////////////////////////////////////////////////////////
+				if (pVmConfigNew->getVmHardwareList()->getCpu()->getNumaNodes() != pVmConfigOld->getVmHardwareList()->getCpu()->getNumaNodes())
+				{
+					if (nState != VMS_STOPPED)
+					{
+						WRITE_TRACE(DBG_FATAL, "Unable to edit NUMA Nodes preferences for running VM %s.",
+							qPrintable(vm_uuid));
+						throw PRL_ERR_VMCONF_NUMANODES_VM_MUST_BE_STOPPED;
+					}
+				}
 			}
 
 			//https://jira.sw.ru/browse/PSBM-5219
