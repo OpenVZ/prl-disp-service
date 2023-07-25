@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// Copyright (c) 2005-2017, Parallels International GmbH
+/// Copyright (c) 2005-2023, Parallels International GmbH
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -163,6 +163,7 @@ private:
 	void CheckSharedFolders();
 	void CheckCpu();
 	void CheckMainMemory();
+	void CheckNumaNodes();
 	void CheckVideoMemory();
 	void CheckFloppyDisk();
 	void CheckCdDvdRom();

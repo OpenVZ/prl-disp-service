@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2020 Virtuozzo International GmbH. All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH. All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -504,6 +504,10 @@ bool CVmValidateConfig::HasCriticalErrors(CVmEvent& evtResult,
 		case PRL_ERR_VMCONF_NETWORK_INVALID_PORT_NUMBER:
 		case PRL_ERR_VMCONF_NETWORK_INVALID_IP_ADDRESS:
 		case PRL_ERR_VMCONF_NETWORK_PORT_NOT_USED:
+		case PRL_ERR_VMCONF_NUMANODES_CPU_HOTPLUG:
+		case PRL_ERR_VMCONF_NUMANODES_MEMORY_HOTPLUG:
+		case PRL_ERR_VMCONF_NUMANODES_NUMBER_NOT_SUPPORTED:
+		case PRL_ERR_VMCONF_NUMANODES_INCONSISTENT_WITH_CPU:
 		{
 			evtResult.setEventType(PET_DSP_EVT_ERROR_MESSAGE);
 			evtResult.setEventCode(m_lstResults[i]);
@@ -1176,6 +1180,46 @@ void CVmValidateConfig::CheckSharedFolders()
 	}
 }
 
+void CVmValidateConfig::CheckNumaNodes()
+{
+	QString vm_uuid = m_pVmConfig->getVmIdentification()->getVmUuid();
+	CVmCpu *pCpu = m_pVmConfig->getVmHardwareList()->getCpu();
+	unsigned int nNumaNodes = pCpu->getNumaNodes();
+	unsigned int nVCpus = pCpu->getNumber() * pCpu->getSockets();
+
+	//nNumaNodes 0 or 1 means that it is disabled
+	if (nNumaNodes < 2)
+	{
+		return;
+	}
+
+	if (pCpu->isEnableHotplug())
+	{
+		m_lstResults += PRL_ERR_VMCONF_NUMANODES_CPU_HOTPLUG;
+		ADD_FID(E_SET << pCpu->getNumaNodes_id() << pCpu->getEnableHotplug_id());
+	}
+
+	if (m_pVmConfig->getVmHardwareList()->getMemory()->isEnableHotplug())
+	{
+		m_lstResults += PRL_ERR_VMCONF_NUMANODES_MEMORY_HOTPLUG;
+		ADD_FID(E_SET << pCpu->getNumaNodes_id() << m_pVmConfig->getVmHardwareList()->getMemory()->getEnableHotplug_id());
+	}
+
+	if (nNumaNodes & (nNumaNodes - 1))
+	{
+		m_lstResults += PRL_ERR_VMCONF_NUMANODES_NUMBER_NOT_SUPPORTED;
+		m_mapParameters.insert(m_lstResults.size(), QStringList() << QString::number(nNumaNodes));
+		ADD_FID(E_SET << pCpu->getNumaNodes_id());
+	}
+
+	if ((nVCpus % nNumaNodes) != 0)
+	{
+		m_lstResults += PRL_ERR_VMCONF_NUMANODES_INCONSISTENT_WITH_CPU;
+		m_mapParameters.insert(m_lstResults.size(), QStringList() << QStringList() << QString::number(nVCpus) << QString::number(nNumaNodes));
+		ADD_FID(E_SET << pCpu->getNumber_id() << pCpu->getSockets_id() << pCpu->getNumaNodes_id());
+	}
+}
+
 void CVmValidateConfig::CheckCpu()
 {
 	if (!m_pVmConfig)
@@ -1263,6 +1307,8 @@ void CVmValidateConfig::CheckCpu()
 		m_lstResults += PRL_WARN_NESTED_VIRT_NOT_ENABLED;
 		ADD_FID(E_SET << pCpu->getVirtualizedHV_id());
 	}
+
+	CheckNumaNodes();
 }
 
 void CVmValidateConfig::CheckMainMemory()
