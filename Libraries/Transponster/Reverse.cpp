@@ -1840,6 +1840,9 @@ void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &
 	 #PSBM-52808 #PSBM-51001 #PSBM-52852 #PSBM-65816 */
 	features.insert("arat");
 
+	features.insert("vmx");
+	features.insert("svm");
+
 	QList<Libvirt::Domain::Xml::Feature> l;
 	CpuFeatures* u = vt_.getCpuFeatures();
 	if (NULL != u)
@@ -1848,10 +1851,7 @@ void CpuFeaturesMask::getFeatures(const VtInfo& vt_, Libvirt::Domain::Xml::Cpu &
 		QSet<QString> r = u->getRequired().toSet();
 		QString v = getNestedVtName();
 
-		if (!m_input->getVmHardwareList()->getCpu()->isVirtualizedHV())
-			features.insert(v);
-		else if (!d.contains(v))
-		{
+		if (m_input->getVmHardwareList()->getCpu()->isVirtualizedHV() && !d.contains(v)) {
 			r.insert(v);
 			features.remove(v);
 		}
