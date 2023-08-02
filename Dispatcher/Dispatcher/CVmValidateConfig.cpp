@@ -1185,7 +1185,7 @@ void CVmValidateConfig::CheckNumaNodes()
 	QString vm_uuid = m_pVmConfig->getVmIdentification()->getVmUuid();
 	CVmCpu *pCpu = m_pVmConfig->getVmHardwareList()->getCpu();
 	unsigned int nNumaNodes = pCpu->getNumaNodes();
-	unsigned int nVCpus = pCpu->getNumber() * pCpu->getSockets();
+	unsigned int nSockets = pCpu->getSockets();
 
 	//nNumaNodes 0 or 1 means that it is disabled
 	if (nNumaNodes < 2)
@@ -1212,10 +1212,10 @@ void CVmValidateConfig::CheckNumaNodes()
 		ADD_FID(E_SET << pCpu->getNumaNodes_id());
 	}
 
-	if ((nVCpus % nNumaNodes) != 0)
+	if ((nSockets % nNumaNodes) != 0)
 	{
 		m_lstResults += PRL_ERR_VMCONF_NUMANODES_INCONSISTENT_WITH_CPU;
-		m_mapParameters.insert(m_lstResults.size(), QStringList() << QStringList() << QString::number(nVCpus) << QString::number(nNumaNodes));
+		m_mapParameters.insert(m_lstResults.size(), QStringList() << QStringList() << QString::number(nSockets) << QString::number(nNumaNodes));
 		ADD_FID(E_SET << pCpu->getNumber_id() << pCpu->getSockets_id() << pCpu->getNumaNodes_id());
 	}
 }
