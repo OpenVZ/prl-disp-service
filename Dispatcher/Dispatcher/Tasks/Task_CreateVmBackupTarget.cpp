@@ -184,7 +184,7 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 	return PRL_ERR_SUCCESS;
 }
 
-PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
+PRL_RESULT Task_CreateVmBackupTarget::prepareImages(uid_t uid_, gid_t gid_)
 {
 	if (m_nRemoteVersion < BACKUP_PROTO_V4)
 		return PRL_ERR_SUCCESS;
@@ -217,8 +217,11 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareImages()
 		PRL_RESULT e = b(l.at(i).first.getDeviceSizeInBytes());
 		if (PRL_FAILED(e))
 			return e;
-		if (!CFileHelper::setOwner(a.getPath(), &getClient()->getAuthHelper(), false))
+
+		if (chown(QSTR2UTF8(a.getPath()), uid_, gid_))
+		{
 			return PRL_ERR_CANT_CHANGE_OWNER_OF_FILE;
+		}
 
 		m_lstTibFileList << f.fileName();
 
@@ -278,6 +281,19 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 
 	CFileHelper::GetDiskAvailableSpace(getBackupDirectory(), &m_nFreeDiskSpace);
 
+	//get user ID of libvirt/qemu-kvm
+	//[The directories /var/run/libvirt/qemu/, /var/lib/libvirt/qemu/ and
+	///var/cache/libvirt/qemu/ must all have their ownership set
+	//to match the user / group ID that QEMU guests will be run as]
+	//https://docs.virtuozzo.com/libvirt-docs-5.6.0/html/drvqemu.html#securitydac
+	struct stat libvirt_st;
+	if (stat("/var/lib/libvirt/qemu", &libvirt_st))
+	{
+		nRetCode = f(PRL_ERR_BACKUP_CANNOT_SET_PERMISSIONS, getBackupRoot());
+		WRITE_TRACE(DBG_FATAL, "Cannot get ownership of QEMU guests run. error [%d]: %s", errno, strerror(errno));
+		goto exit;
+	}
+
 	if (m_nFlags & PBT_FULL) {
 		Backup::Metadata::Carcass c(getBackupDirectory(), m_sVmUuid);
 		nRetCode = validateBackupDir(c.getCatalog().absolutePath());
@@ -297,6 +313,14 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 			WRITE_TRACE(DBG_FATAL, "Cannot set permissions for directory \"%s\"", QSTR2UTF8(getBackupRoot()));
 			goto exit;
 		}
+
+		//libvirt can run from another user - set correct owner
+		if (chown(QSTR2UTF8(getBackupRoot()), libvirt_st.st_uid, libvirt_st.st_gid))
+		{
+			nRetCode = f(PRL_ERR_BACKUP_CANNOT_SET_PERMISSIONS, getBackupRoot());
+			WRITE_TRACE(DBG_FATAL, "Cannot set temporary ownership of libvirt for directory \"%s\"", QSTR2UTF8(getBackupRoot()));
+			goto exit;
+		}
 	} else {
 		/* to check access before */
 		if (!CFileHelper::FileCanWrite(getBackupRoot(), &getClient()->getAuthHelper())) {
@@ -312,7 +336,7 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 		goto exit;
 	}
 
-	if (PRL_FAILED(nRetCode = prepareImages()))
+	if (PRL_FAILED(nRetCode = prepareImages(libvirt_st.st_uid, libvirt_st.st_gid)))
 		goto exit;
 
 	/*
@@ -486,6 +510,19 @@ void Task_CreateVmBackupTarget::finalizeTask()
 
 	if (PRL_SUCCEEDED(getLastErrorCode())) {
 		hJob = m_pDispConnection->sendSimpleResponse(getRequestPackage(), PRL_ERR_SUCCESS);
+		//set owner of result backup for user who started 'prlctl backup'
+		for (int i = 0; i < m_lstTibFileList.size(); ++i)
+		{
+			QString image(QString("%1/%2").arg(getBackupRoot()).arg(m_lstTibFileList.at(i)));
+			if (!CFileHelper::setOwner(image, &getClient()->getAuthHelper(), false))
+			{
+				WRITE_TRACE(DBG_WARNING, "Cannot restore owner for image file '%s'", QSTR2UTF8(image));
+			}
+		}
+		if (!CFileHelper::setOwner(QSTR2UTF8(getBackupRoot()), &getClient()->getAuthHelper(), false))
+		{
+			WRITE_TRACE(DBG_WARNING, "Cannot restore permissions for directory '%s'", QSTR2UTF8(getBackupRoot()));
+		}
 	} else {
 		/* remove all tib files of this backup */
 		for (int i = 0; i < m_lstTibFileList.size(); ++i)
