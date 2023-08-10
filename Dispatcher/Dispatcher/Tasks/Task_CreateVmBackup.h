@@ -141,7 +141,7 @@ private:
 	quint64 getBackupSize();
 	PRL_RESULT saveMetadata();
 	PRL_RESULT validateBackupDir(const QString &);
-	PRL_RESULT prepareImages();
+	PRL_RESULT prepareImages(uid_t uid_, gid_t gid_);
 	PRL_RESULT loadTibFiles();
 	PRL_RESULT wasHddListChanged(bool *pbWasChanged);
 	PRL_RESULT guessBackupType();
