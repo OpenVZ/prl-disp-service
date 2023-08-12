@@ -548,7 +548,25 @@ QStringList Vm::craftProlog(Task_BackupMixin& context_)
 				d = context_.getVmHomePath();
 
 			a << "--cached" << "--backup-dir" << d;
-			a << "--ownerid" << QString::number(context_.getTask().getClient()->getAuthHelper().GetAuth()->GetUserId());
+
+			//get user ID of libvirt/qemu-kvm
+			//[The directories /var/run/libvirt/qemu/, /var/lib/libvirt/qemu/ and
+			///var/cache/libvirt/qemu/ must all have their ownership set
+			//to match the user / group ID that QEMU guests will be run as]
+			//https://docs.virtuozzo.com/libvirt-docs-5.6.0/html/drvqemu.html#securitydac
+			//if stat command fail - use 'prlctl' userId
+			QString ownerid;
+			struct stat libvirt_st;
+			if (!stat("/var/lib/libvirt/qemu", &libvirt_st))
+			{
+				ownerid = QString::number(libvirt_st.st_uid);
+			}
+			else
+			{
+				ownerid = QString::number(context_.getTask().getClient()->getAuthHelper().GetAuth()->GetUserId());
+			}
+
+			a << "--ownerid" << ownerid;
 		}
 	}
 
