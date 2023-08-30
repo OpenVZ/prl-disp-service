@@ -3447,17 +3447,25 @@ QString Bridge::getName() const
 
 Result Bridge::stop()
 {
-	return do_(m_interface.data(), boost::bind(&virInterfaceDestroy, _1, 0));
+	return runBridgeIfcmd("ifdown");
 }
 
 Result Bridge::start()
 {
-	return do_(m_interface.data(), boost::bind(&virInterfaceCreate, _1, 0));
+	return runBridgeIfcmd("ifup");
 }
 
-Result Bridge::undefine()
+Result Bridge::runBridgeIfcmd(const QString& cmd_) const noexcept
 {
-	return do_(m_interface.data(), boost::bind(&virInterfaceUndefine, _1));
+	QString out;
+
+	if (!HostUtils::RunCmdLineUtility(QString("%1 %2").arg(cmd_).arg(getName()), out, 60 * 1000)) {
+		WRITE_TRACE(DBG_FATAL, "%s cmd for bridge network interface %s has finished with error",
+				qPrintable(cmd_), qPrintable(getName()));
+		return ::Libvirt::Agent::Failure(PRL_ERR_FAILURE);
+	}
+
+	return doResult_type();
 }
 
 namespace List
