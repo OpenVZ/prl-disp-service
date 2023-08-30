@@ -864,12 +864,13 @@ struct Bridge
 	}
 	Result stop();
 	Result start();
-	Result undefine();
 
 private:
 	CHwNetAdapter m_master;
 	QSharedPointer<virInterface> m_interface;
 	boost::optional<QString> m_name;
+
+	Result runBridgeIfcmd(const QString& cmd_) const noexcept;
 };
 
 namespace List
