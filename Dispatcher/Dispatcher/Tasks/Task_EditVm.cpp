@@ -376,6 +376,15 @@ bool Task_EditVm::atomicEditVmConfigByVm(
 				QList<void* >* l = (QList<void* >* )pVmConfig->getVmHardwareList()->m_aDeviceLists[newDevice->getDeviceType()];
 				if (l)
 				{
+					//add cd-rom as bootable device allways [#PSBM-150310]
+					if (newDevice->getDeviceType() == PDE_OPTICAL_DISK)
+					{
+						pVmConfig->getVmSettings()->getVmStartupOptions()->m_lstBootDeviceList.append(new CVmStartupOptions::CVmBootDevice(
+								PDE_OPTICAL_DISK, newDevice->getIndex(),
+								pVmConfig->getVmSettings()->getVmStartupOptions()->getBootDeviceList().size(),
+								true
+								));
+					}
 					l->push_back(newDevice);
 					flgConfigChanged = true;
 					flgApplyConfig = true;
