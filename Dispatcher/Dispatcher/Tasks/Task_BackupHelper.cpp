@@ -7,7 +7,7 @@
 /// @author krasnov@
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -458,12 +458,13 @@ QStringList ACommand::buildArgs(const ::Backup::Product::component_type& t_, con
 {
 	QStringList a(boost::apply_visitor(
 			Builder(m_activity.getSnapshot().getUuid(), t_, f_), variant_));
+	CDispBackupSourcePreferences* pPref = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()
+			->getBackupSourcePreferences();
 
-	QString b = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()
-		->getBackupSourcePreferences()->getSandbox();
+	QString b = pPref->getSandbox();
 	a << "--sandbox" << b;
 
-	if (m_context->getFlags() & PBT_UNCOMPRESSED)
+	if ((m_context->getFlags() & PBT_UNCOMPRESSED) || !pPref->isCompression())
 		a << "--uncompressed";
 	return a;
 }
@@ -501,7 +502,8 @@ QStringList Basic::craftEpilog(Task_BackupMixin& context_)
 {
 	QStringList output;
 	output << "-p" << context_.getBackupUuid();
-	if (context_.getFlags() & PBT_UNCOMPRESSED)
+	CDispBackupSourcePreferences* pPref = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getBackupSourcePreferences();
+	if ((context_.getFlags() & PBT_UNCOMPRESSED) || !pPref->isCompression())
 		output << "--uncompressed";
 
 	output << "--limit-speed" << QString::number(context_.getDegree());
@@ -1019,9 +1021,9 @@ PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 	if (HostUtils::GetFSType(imageDir.absolutePath()) == PRL_FS_NFS)
 		m_cached = true;
 
-	VirtualDisk::qcow2PolicyList_type p(1,
-				VirtualDisk::Policy::Qcow2::fd_type(s.socketDescriptor()));
-	if (!(flags_ & PBT_UNCOMPRESSED))
+	VirtualDisk::qcow2PolicyList_type p(1, VirtualDisk::Policy::Qcow2::fd_type(s.socketDescriptor()));
+	CDispBackupSourcePreferences* pPref = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getBackupSourcePreferences();
+	if (pPref->isCompression() && !(flags_ & PBT_UNCOMPRESSED))
 	{
 		p.push_back(VirtualDisk::Policy::Qcow2::compressed_type(true));
 	}
@@ -1555,6 +1557,11 @@ Factory::result_type Factory::operator()(quint32 flags_) const
 	value_type output;
 	if (flags_ & PBT_DIRECT_DATA_CONNECTION)
 		return output;
+
+	CDispBackupSourcePreferences* pPref = CDspService::instance()->getDispConfigGuard().getDispCommonPrefs()->getBackupSourcePreferences();
+	if (!pPref->isTunnel())
+			return output;
+
 	if (CDspService::instance()->getShellServiceHelper().isLocalAddress(m_target))
 		return output;
 
