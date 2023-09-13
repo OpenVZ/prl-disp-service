@@ -975,6 +975,7 @@ Builder& Builder::withCompression()
 	 * cluster size
 	 */
 	m_policyList.push_back(VirtualDisk::Policy::Qcow2::clusterSize_type(64*1024));
+	m_policyList.push_back(VirtualDisk::Policy::Qcow2::extend_l2_type(false));//disable extend_l2 for 64K clusters
 	return *this;
 }
 
