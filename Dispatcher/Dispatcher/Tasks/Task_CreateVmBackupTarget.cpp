@@ -7,7 +7,7 @@
 /// @author krasnov@
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -330,9 +330,18 @@ PRL_RESULT Task_CreateVmBackupTarget::prepareTask()
 			goto exit;
 		}
 	}
-	if (!CFileHelper::WriteDirectory(m_sTargetPath, &getClient()->getAuthHelper())) {
+
+	if (!QDir().mkpath(m_sTargetPath))
+	{
 		nRetCode = f(PRL_ERR_BACKUP_CANNOT_CREATE_DIRECTORY, m_sTargetPath);
 		WRITE_TRACE(DBG_FATAL, "Cannot create \"%s\" directory", QSTR2UTF8(m_sTargetPath));
+		goto exit;
+	}
+
+	if (!CFileHelper::setOwner(QSTR2UTF8(m_sTargetPath), &getClient()->getAuthHelper(), false))
+	{
+		nRetCode = f(PRL_ERR_CANT_CHANGE_OWNER_OF_FILE, m_sTargetPath);
+		WRITE_TRACE(DBG_WARNING, "Cannot set proper owner for directory '%s'", QSTR2UTF8(m_sTargetPath));
 		goto exit;
 	}
 
