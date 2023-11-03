@@ -3357,7 +3357,7 @@ namespace Boot
 ///////////////////////////////////////////////////////////////////////////////
 // struct Reverse
 
-Reverse::Reverse(const QList<device_type* >& list_) : m_extra_index(0)
+Reverse::Reverse(const QList<device_type* >& list_)
 {
 	unsigned o = 0;
 	std::list<device_type* > x = list_.toStdList();
@@ -3373,16 +3373,12 @@ Reverse::Reverse(const QList<device_type* >& list_) : m_extra_index(0)
 	}
 }
 
-Reverse::order_type Reverse::operator()(const CVmDevice& device_)
+Reverse::order_type Reverse::operator()(const CVmDevice& device_) const
 {
 	key_type k = qMakePair(device_.getDeviceType(), device_.getIndex());
 	map_type::const_iterator p = m_map.find(k);
 	if (m_map.end() == p)
-	{
-		if (device_.getDeviceType() == PDE_OPTICAL_DISK)
-			return m_map.size() + (++m_extra_index);
 		return order_type();
-	}
 
 	return p.value();
 }
