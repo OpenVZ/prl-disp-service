@@ -74,14 +74,13 @@ struct Reverse
 
 	explicit Reverse(const QList<device_type* >& list_);
 
-	order_type operator()(const CVmDevice& device_);
+	order_type operator()(const CVmDevice& device_) const;
 
 private:
 	typedef QPair<PRL_DEVICE_TYPE, unsigned> key_type;
 	typedef QHash<key_type, order_type::value_type> map_type;
 
 	map_type m_map;
-	int m_extra_index;
 };
 
 } // namespace Boot
