@@ -361,7 +361,8 @@ Abstract::linkReference_type Abstract::getLink() const
 
 void Abstract::setDomain(virDomainPtr value_)
 {
-	m_domain = QSharedPointer<virDomain>(value_, &virDomainFree);
+	if (NULL != value_)
+		m_domain = QSharedPointer<virDomain>(value_, &virDomainFree);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
