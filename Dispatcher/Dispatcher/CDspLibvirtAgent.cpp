@@ -383,6 +383,14 @@ Result State::kill()
 
 Result State::shutdown()
 {
+	int state = VIR_DOMAIN_NOSTATE;
+	int reason;
+	if (-1 == virDomainGetState(getDomain().data(), &state, &reason, 0))
+		return Libvirt::Result(Error::Simple(PRL_ERR_VM_GET_STATUS_FAILED));
+
+	if (VIR_DOMAIN_RUNNING != state)
+		return Libvirt::Result(Error::Simple(PRL_ERR_DISP_VM_IS_NOT_RUNNING));
+
 	return do_(getDomain().data(), boost::bind
 		(&virDomainShutdownFlags, _1, VIR_DOMAIN_SHUTDOWN_ACPI_POWER_BTN |
 			VIR_DOMAIN_SHUTDOWN_GUEST_AGENT));
