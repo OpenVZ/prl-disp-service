@@ -2095,6 +2095,42 @@ QString Traits<Domain::Xml::VName>::generate(const Domain::Xml::VName& src_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VUint32
+
+bool Traits<Domain::Xml::VUint32>::parse(const QString& src_, Domain::Xml::VUint32& dst_)
+{
+	int x;
+	mpl::at_c<Domain::Xml::VUint32::types, 0>::type a0;
+	x = Marshal<Domain::Xml::PData5719>::setString(src_, a0);
+	if (0 < x)
+	{
+		dst_ = a0;
+		return true;
+	}
+	mpl::at_c<Domain::Xml::VUint32::types, 1>::type a1;
+	x = Marshal<Domain::Xml::PData5721>::setString(src_, a1);
+	if (0 < x)
+	{
+		dst_ = a1;
+		return true;
+	}
+
+	return false;
+}
+
+QString Traits<Domain::Xml::VUint32>::generate(const Domain::Xml::VUint32& src_)
+{
+	switch (src_.which())
+	{
+	case 0:
+		return Marshal<Domain::Xml::PData5719>::getString(boost::get<mpl::at_c<Domain::Xml::VUint32::types, 0>::type>(src_));
+	case 1:
+		return Marshal<Domain::Xml::PData5721>::getString(boost::get<mpl::at_c<Domain::Xml::VUint32::types, 1>::type>(src_));
+	}
+	return QString();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct VAdjustment
 
 bool Traits<Domain::Xml::VAdjustment>::parse(const QString& src_, Domain::Xml::VAdjustment& dst_)

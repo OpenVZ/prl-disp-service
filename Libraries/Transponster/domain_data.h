@@ -3283,6 +3283,28 @@ struct Traits<Domain::Xml::VName>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct VUint32
+
+namespace Domain
+{
+namespace Xml
+{
+typedef Choice<mpl::vector<PData5719, PData5721 > > VUint32Impl;
+typedef VUint32Impl::value_type VUint32;
+
+} // namespace Xml
+} // namespace Domain
+
+template<>
+struct Traits<Domain::Xml::VUint32>
+{
+	static bool parse(const QString& src_, Domain::Xml::VUint32& dst_);
+
+	static QString generate(const Domain::Xml::VUint32& src_);
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct VAdjustment
 
 namespace Domain
