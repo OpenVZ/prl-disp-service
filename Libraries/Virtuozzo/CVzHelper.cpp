@@ -1653,11 +1653,10 @@ static int fill_env_param(vzctl_env_handle_ptr h, vzctl_env_param_ptr new_param,
 			dev.mac_ve = mac_ve.data();
 		}
 
-		QByteArray mac;
-		if (!pAdapter->getHostMacAddress().isEmpty()) {
-			mac = pAdapter->getHostMacAddress().toUtf8();
-			dev.mac = mac.data();
-		}
+		QByteArray mac = !pAdapter->getHostMacAddress().isEmpty() ?
+					pAdapter->getHostMacAddress().toUtf8():
+					HostUtils::generateMacAddress().toUpper().replace("C43772", "FE3772").toUtf8();
+		dev.mac = mac.data();
 
 		dev.allow_mac_spoof = !pAdapter->getPktFilter()->isPreventMacSpoof();
 		dev.allow_ip_spoof = !pAdapter->getPktFilter()->isPreventIpSpoof();
