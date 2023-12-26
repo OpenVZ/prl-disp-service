@@ -92,9 +92,9 @@ namespace Source
 ///////////////////////////////////////////////////////////////////////////////
 // struct Unit
 
-bool Unit<CVmHardDisk>::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 3>::type& source_) const
+bool Unit<CVmHardDisk>::operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type& source_) const
 {
-	const Libvirt::Domain::Xml::Source3* v = source_.getValue().get_ptr();
+	const Libvirt::Domain::Xml::Source4* v = source_.getValue().get_ptr();
 	if (NULL == v)
 		return false;
 
@@ -152,7 +152,7 @@ void Iotune::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice4771::types
 ///////////////////////////////////////////////////////////////////////////////
 // struct BackingChain
 
-void BackingChain::operator()(const mpl::at_c<list_type, 4>::type& image_) const
+void BackingChain::operator()(const mpl::at_c<list_type, 0>::type& image_) const
 {
 	if (!image_.getValue() || !image_.getValue().get().getFile())
 		return;
@@ -762,7 +762,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097:
 	if (serial_.getValue().getQemucdevSrcDef().getSourceList().isEmpty())
 		return PRL_ERR_SUCCESS;
 
-	Libvirt::Domain::Xml::Source15 s = serial_.getValue().getQemucdevSrcDef().getSourceList().front();
+	Libvirt::Domain::Xml::Source17 s = serial_.getValue().getQemucdevSrcDef().getSourceList().front();
 
 	QString n;
 	PVE::SerialPortEmulatedType t;
@@ -1986,14 +1986,14 @@ Vm::Vm(char* xml_)
 	if (snapshot.isNull())
 		return;
 
-	if (!snapshot->getChoice7295())
+	if (!snapshot->getChoice9528())
 		return;
 
-	if (1 == snapshot->getChoice7295()->which())
+	if (1 == snapshot->getChoice9528()->which())
 	{
 		const Libvirt::Domain::Xml::Domain& d =
-			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice7295::types, 1>::type>
-				(snapshot->getChoice7295().get()).getValue();
+			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice9528::types, 1>::type>
+				(snapshot->getChoice9528().get()).getValue();
 		m_input.reset(new Libvirt::Domain::Xml::Domain(d));
 	}
 }

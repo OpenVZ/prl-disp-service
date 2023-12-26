@@ -100,9 +100,9 @@ static OsDistribution dist_map[] = {
 };
 
 static void setNvramFilePath(Libvirt::Domain::Xml::Nvram& n, const QString& path) {
-	Libvirt::Domain::Xml::Source4 z;
+	Libvirt::Domain::Xml::Source z;
 	z.setFile(path);
-	mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type s;
+	mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type s;
 	s.setValue(z);
 	Libvirt::Domain::Xml::VDiskSource vds = s;
 	n.setDiskSource(vds);
@@ -241,9 +241,9 @@ struct Clustered: boost::static_visitor<bool>
 	{
 		return false;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type& source_) const
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type& source_) const
 	{
-		const Libvirt::Domain::Xml::Source4* v = source_.getValue().get_ptr();
+		const Libvirt::Domain::Xml::Source* v = source_.getValue().get_ptr();
 		if (NULL == v)
 			return false;
 
@@ -256,9 +256,9 @@ struct Clustered: boost::static_visitor<bool>
 
 		return true;
 	}
-	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type& source_) const
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 1>::type& source_) const
 	{
-		const Libvirt::Domain::Xml::Source* v = source_.getValue().get_ptr();
+		const Libvirt::Domain::Xml::Source1* v = source_.getValue().get_ptr();
 		if (NULL == v)
 			return false;
 
@@ -308,7 +308,7 @@ struct Unit<CVmHardDisk>: Clustered<CVmHardDisk, PVE::HardDiskImage, PVE::RealHa
 {
 	using Clustered<CVmHardDisk, PVE::HardDiskImage, PVE::RealHardDisk>::operator();
 
-	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 3>::type& source_) const;
+	bool operator()(const mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type& source_) const;
 };
 
 } // namespace Source
@@ -476,7 +476,7 @@ struct BackingChain: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<list_type, 4>::type& image_) const;
+	void operator()(const mpl::at_c<list_type, 0>::type& image_) const;
 
 private:
 	CVmHardDisk* m_disk;
@@ -1159,10 +1159,10 @@ struct Bios: boost::static_visitor<void>
 			using namespace Libvirt::Domain::Xml;
 
 			VDiskSource q = n->getDiskSource().get();
-			mpl::at_c<VDiskSource::types, 4>::type source_file = boost::get<mpl::at_c<VDiskSource::types, 4>::type>(q);
-			boost::optional<Source4> s4 = source_file.getValue();
-			if (s4.is_initialized() && s4.get().getFile().is_initialized())
-				m_bios->setNVRAM(s4.get().getFile().get());
+			mpl::at_c<VDiskSource::types, 0>::type source_file = boost::get<mpl::at_c<VDiskSource::types, 0>::type>(q);
+			boost::optional<Libvirt::Domain::Xml::Source> s0 = source_file.getValue();
+			if (s0.is_initialized() && s0.get().getFile().is_initialized())
+				m_bios->setNVRAM(s0.get().getFile().get());
 		}
 	}
 

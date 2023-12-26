@@ -634,9 +634,9 @@ void Ordinary<CVmHardDisk>::setSource()
 
 	if (PVE::BootCampHardDisk == getModel().getEmulatedType())
 	{
-		Libvirt::Domain::Xml::Source3 s;
+		Libvirt::Domain::Xml::Source4 s;
 		s.setVolume(getModel().getRealDeviceName());
-		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 3>::type x;
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type x;
 		x.setValue(s);
 		return m_result.setDiskSource(x);
 
@@ -735,10 +735,10 @@ void Hdd::setBackingChain()
 		format.setType(Libvirt::Domain::Xml::VStorageFormat(Flavor<CVmHardDisk>::getDriverFormat(false)));
 		y.setFormat(format);
 
-		Libvirt::Domain::Xml::Source4 z;
+		Libvirt::Domain::Xml::Source z;
 		z.setFile(x->getSystemName());
 		z.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
-		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 4>::type s;
+		mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type s;
 		s.setValue(z);
 		y.setDiskSource(s);
 
@@ -1238,7 +1238,7 @@ Libvirt::Domain::Xml::Interface7022 Adapter<0>::prepare(const CVmGenericNetworkA
 	else
 		a.setBridge(network_.getVirtualNetworkID());
 
-	Libvirt::Domain::Xml::Source6 s;
+	Libvirt::Domain::Xml::Source8 s;
 	s.setInterfaceBridgeAttributes(a);
 	output.setSource(s);
 
@@ -1270,7 +1270,7 @@ Libvirt::Domain::Xml::Interface7025 Adapter<3>::prepare(const CVmGenericNetworkA
 	Libvirt::Domain::Xml::Interface7025 output;
 	Libvirt::Domain::Xml::InterfaceNetworkAttributes a;
 	a.setNetwork(network_.getVirtualNetworkID());
-	Libvirt::Domain::Xml::Source8 s;
+	Libvirt::Domain::Xml::Source10 s;
 	s.setInterfaceNetworkAttributes(a);
 	output.setIpList(Ips()(network_.getNetAddresses()));
 
@@ -1287,7 +1287,7 @@ template<>
 Libvirt::Domain::Xml::Interface7026 Adapter<4>::prepare(const CVmGenericNetworkAdapter& network_)
 {
 	Libvirt::Domain::Xml::Interface7026 output;
-	Libvirt::Domain::Xml::Source9 s;
+	Libvirt::Domain::Xml::Source11 s;
 	s.setDev(network_.getSystemName());
 	output.setIpList(Ips()(network_.getNetAddresses()));
 	output.setModel(View(network_).getAdapterType());
@@ -1491,10 +1491,10 @@ void List::add(const CVmParallelPort* port_)
 	if (NULL == port_)
 		return;
 
-	Libvirt::Domain::Xml::Source15 a;
+	Libvirt::Domain::Xml::Source17 a;
 	a.setPath(port_->getUserFriendlyName());
 	Libvirt::Domain::Xml::QemucdevSrcDef b;
-	b.setSourceList(QList<Libvirt::Domain::Xml::Source15 >() << a);
+	b.setSourceList(QList<Libvirt::Domain::Xml::Source17 >() << a);
 	Libvirt::Domain::Xml::Qemucdev p;
 	p.setQemucdevSrcDef(b);
 	add<PARALLEL>(p);
@@ -1580,7 +1580,7 @@ void List::add(const CVmGenericPciDevice* pci_)
 	a.setSlot(QString("0x").append(u[1]));
 	a.setFunction(QString("0x").append(u[2]));
 
-	Libvirt::Domain::Xml::Source13 c;
+	Libvirt::Domain::Xml::Source15 c;
 	c.setAddress(a);
 
 	Libvirt::Domain::Xml::Hostdevsubsyspci d;
@@ -1995,13 +1995,13 @@ Prl::Expected<Libvirt::Domain::Xml::Qemucdev, ::Error::Simple>
 	Device<CVmSerialPort>::getLibvirtXml(const CVmSerialPort& model_)
 {
 	Libvirt::Domain::Xml::Qemucdev output;
-	Libvirt::Domain::Xml::Source15 a;
+	Libvirt::Domain::Xml::Source17 a;
 
 	QString p(model_.getUserFriendlyName());
 	if (p.isEmpty())
 		return ::Error::Simple(PRL_ERR_INVALID_ARG);
 
-	QList<Libvirt::Domain::Xml::Source15> l;
+	QList<Libvirt::Domain::Xml::Source17> l;
 	Libvirt::Domain::Xml::QemucdevSrcDef b;
 	switch (model_.getEmulatedType())
 	{
@@ -2139,7 +2139,7 @@ Libvirt::Domain::Xml::Hostdev
 	mpl::at_c<Libvirt::Domain::Xml::VSource1::types, 0>::type b;
 	b.setValue(a);
 
-	Libvirt::Domain::Xml::Source14 c;
+	Libvirt::Domain::Xml::Source16 c;
 	c.setSource(b);
 	c.setStartupPolicy(Libvirt::Domain::Xml::EStartupPolicyOptional);
 
@@ -3396,7 +3396,7 @@ Libvirt::Snapshot::Xml::Disk getAbsentee(const T* &item_)
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	a.setValue(Device::Clustered::Model<T>(*item_).getTargetName());
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 0>::type b;
-	b.setValue(Libvirt::Snapshot::Xml::Disk4374());
+	b.setValue(Libvirt::Snapshot::Xml::Disk4021());
 	Libvirt::Snapshot::Xml::Disk x;
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
@@ -3427,7 +3427,7 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> Internal::operator()(const CVmHard
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 1>::type b;
-	b.setValue(Libvirt::Snapshot::Xml::Disk4375());
+	b.setValue(Libvirt::Snapshot::Xml::Disk4022());
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(b));
 	return x;
@@ -3444,15 +3444,15 @@ boost::optional<Libvirt::Snapshot::Xml::Disk> External::operator()(const CVmHard
 	Libvirt::Snapshot::Xml::Disk x;
 	mpl::at_c<Libvirt::Snapshot::Xml::VName::types, 0>::type a;
 	Libvirt::Snapshot::Xml::Source s;
-	Libvirt::Snapshot::Xml::Variant8729 o;
-	mpl::at_c<Libvirt::Snapshot::Xml::VChoice8731::types, 0>::type p;
+	Libvirt::Snapshot::Xml::Variant4016 o;
+	mpl::at_c<Libvirt::Snapshot::Xml::VChoice4019::types, 0>::type p;
 	mpl::at_c<Libvirt::Snapshot::Xml::VDisk::types, 2>::type q;
 
 	a.setValue(Device::Clustered::Model<CVmHardDisk>(disk_).getTargetName());
 	s.setFile(disk_.getSystemName() + "." + m_snapshot);
 	o.setSource(s);
 	p.setValue(o);
-	q.setValue(Libvirt::Snapshot::Xml::VChoice8731(p));
+	q.setValue(Libvirt::Snapshot::Xml::VChoice4019(p));
 
 	x.setName(Libvirt::Snapshot::Xml::VName(a));
 	x.setDisk(Libvirt::Snapshot::Xml::VDisk(q));
@@ -3589,9 +3589,9 @@ PRL_RESULT Request::operator()(const object_type& object_)
 		n.setValue(d.get<1>());
 		y.setName(n);
 
-		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice8124::types, 1>::type c;
+		boost::mpl::at_c<Libvirt::Blockexport::Xml::VChoice8127::types, 1>::type c;
 		c.setValue(Libvirt::Blockexport::Xml::EVirYesNoYes);
-		y.setChoice8124(Libvirt::Blockexport::Xml::VChoice8124(c));
+		y.setChoice8127(Libvirt::Blockexport::Xml::VChoice8127(c));
 
 		x << y;
 	}

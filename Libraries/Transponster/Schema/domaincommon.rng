@@ -1806,11 +1806,14 @@
 
   <define name="diskSource">
     <choice>
+      <ref name="diskSourceFile"/>
       <ref name="diskSourceBlock"/>
       <ref name="diskSourceDir"/>
       <ref name="diskSourceNetwork"/>
       <ref name="diskSourceVolume"/>
-      <ref name="diskSourceFile"/>
+      <ref name="diskSourceNvme"/>
+      <ref name="diskSourceVhostUser"/>
+      <ref name="diskSourceVhostBlk"/>
     </choice>
   </define>
 
@@ -1978,6 +1981,72 @@
             <ref name='devSeclabel'/>
           </zeroOrMore>
         </interleave>
+      </element>
+    </optional>
+  </define>
+
+  <define name="diskSourceNvme">
+    <attribute name="type">
+      <value>nvme</value>
+    </attribute>
+    <optional>
+      <element name="source">
+        <interleave>
+          <attribute name="type">
+            <value>pci</value>
+          </attribute>
+          <attribute name="namespace">
+            <ref name="uint32"/>
+          </attribute>
+          <optional>
+            <attribute name="managed">
+              <ref name="virYesNo"/>
+            </attribute>
+          </optional>
+          <element name="address">
+            <ref name="pciaddress"/>
+          </element>
+          <ref name="diskSourceCommon"/>
+          <optional>
+            <ref name="storageStartupPolicy"/>
+          </optional>
+          <optional>
+            <ref name="encryption"/>
+          </optional>
+        </interleave>
+      </element>
+    </optional>
+  </define>
+
+  <define name="diskSourceVhostUser">
+    <attribute name="type">
+      <value>vhostuser</value>
+    </attribute>
+    <element name="source">
+      <attribute name="type">
+        <value>unix</value>
+      </attribute>
+      <attribute name="path">
+        <ref name="absFilePath"/>
+      </attribute>
+      <optional>
+         <ref name="reconnect"/>
+      </optional>
+      <empty/>
+    </element>
+  </define>
+
+  <define name="diskSourceVhostBlk">
+    <optional>
+      <attribute name="type">
+        <value>vhostblk</value>
+      </attribute>
+    </optional>
+    <optional>
+      <element name="source">
+        <attribute name="file">
+          <ref name="absFilePath"/>
+        </attribute>
       </element>
     </optional>
   </define>
