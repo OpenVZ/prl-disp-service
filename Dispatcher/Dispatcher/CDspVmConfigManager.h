@@ -326,6 +326,11 @@ struct Identification
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
 };
 
+struct OsInfo
+{
+	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
+};
+
 struct HardDisks
 {
 	static void do_(CVmConfiguration& new_, const CVmConfiguration& old_);
@@ -369,7 +374,7 @@ struct Reviser<N, void>
 };
 
 typedef boost::mpl::vector<LifecycleAction, Nvram, Patch::Runtime> revise_types;
-typedef boost::mpl::vector<Identification, BackupDirectory, RuntimeOptions,
+typedef boost::mpl::vector<Identification, OsInfo, BackupDirectory, RuntimeOptions,
 		Patch::Index, Cpu::Copy, NetworkDevices, HardDisks, OpticalDisks, Patch::State,
 		HighAvailability, RemoteDisplay::Pivot>
 		untranslatable_types;

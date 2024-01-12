@@ -422,6 +422,17 @@ void Identification::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct OsInfo
+
+void OsInfo::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
+{
+	new_.getVmSettings()->getVmCommonOptions()->setOsType
+		(old_.getVmSettings()->getVmCommonOptions()->getOsType());
+	new_.getVmSettings()->getVmCommonOptions()->setOsVersion
+		(old_.getVmSettings()->getVmCommonOptions()->getOsVersion());
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // struct OpticalDisks
 
 void OpticalDisks::do_(CVmConfiguration& new_, const CVmConfiguration& old_)
