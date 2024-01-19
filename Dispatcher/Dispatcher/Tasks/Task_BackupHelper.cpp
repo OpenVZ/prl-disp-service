@@ -171,6 +171,7 @@ PRL_RESULT Unit::start(QStringList args_, int version_)
 	m_program = x;
 	m_driver->moveToThread(QCoreApplication::instance()->thread());
 	m_channel = QSharedPointer<QLocalSocket>(new QLocalSocket, &QObject::deleteLater);
+	WRITE_TRACE(DBG_INFO, "Create channel for backup: %p", m_channel.data());
 	m_channel->setSocketDescriptor(p[0], QLocalSocket::ConnectedState, QIODevice::ReadOnly);
 //	m_channel->moveToThread(m_driver->thread());
 	return PRL_ERR_SUCCESS;
@@ -191,6 +192,7 @@ void Unit::reactFinish(int code_, QProcess::ExitStatus status_)
 		if (!m_callback.empty())
 			m_callback(x, code_, y);
 	}
+	WRITE_TRACE(DBG_INFO, "Channel %p in program '%s' exited with code %d", m_channel.data(), QSTR2UTF8(x), code_);
 	m_channel.clear();
 	m_event.wakeAll();
 	m_driver->disconnect(this);
@@ -253,6 +255,7 @@ void Unit::kill()
 	if (NULL != m_driver && m_driver->state() != QProcess::NotRunning)
 		m_driver->terminate();
 
+	WRITE_TRACE(DBG_INFO, "Clear channel %p", m_channel.data());
 	m_channel.clear();
 }
 
@@ -260,7 +263,10 @@ Prl::Expected<QPair<char*, qint32>, PRL_RESULT>
 	Unit::read_(const QSharedPointer<QLocalSocket>& channel_, char* buffer_, qint32 capacity_)
 {
 	if (channel_.isNull())
+	{
+		WRITE_TRACE(DBG_FATAL, "read() error: the channel is null");
 		return PRL_ERR_OPERATION_WAS_CANCELED;
+	}
 
 	if (QLocalSocket::ConnectedState != channel_->state() ||
 		channel_->error() == QLocalSocket::PeerClosedError)
