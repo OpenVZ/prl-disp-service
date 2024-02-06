@@ -276,21 +276,21 @@ bool Validatable<Capability::Xml::PData4034>::validate(const Capability::Xml::PD
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData9528
+// struct PData9707
 
-bool Traits<Capability::Xml::PData9528>::parse(const QString& src_, Capability::Xml::PData9528::value_type& dst_)
+bool Traits<Capability::Xml::PData9707>::parse(const QString& src_, Capability::Xml::PData9707::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Capability::Xml::PData9528>::generate(Capability::Xml::PData9528::value_type src_)
+QString Traits<Capability::Xml::PData9707>::generate(Capability::Xml::PData9707::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Capability::Xml::PData9528>::validate(Capability::Xml::PData9528::value_type value_)
+bool Validatable<Capability::Xml::PData9707>::validate(Capability::Xml::PData9707::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -302,9 +302,9 @@ bool Validatable<Capability::Xml::PData9528>::validate(Capability::Xml::PData952
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData95281
+// struct PData9709
 
-bool Validatable<Capability::Xml::PData95281>::validate(const Capability::Xml::PData95281::value_type& value_)
+bool Validatable<Capability::Xml::PData9709>::validate(const Capability::Xml::PData9709::value_type& value_)
 {
 	QRegExp q("(0x)?[0-9a-fA-F]{1,8}");
 	if (!q.exactMatch(value_))
@@ -314,18 +314,30 @@ bool Validatable<Capability::Xml::PData95281>::validate(const Capability::Xml::P
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData95282
+// struct PData9711
 
-bool Traits<Capability::Xml::PData95282>::parse(const QString& src_, Capability::Xml::PData95282::value_type& dst_)
+bool Traits<Capability::Xml::PData9711>::parse(const QString& src_, Capability::Xml::PData9711::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toUInt(&output);
 	return output;
 }
 
-QString Traits<Capability::Xml::PData95282>::generate(Capability::Xml::PData95282::value_type src_)
+QString Traits<Capability::Xml::PData9711>::generate(Capability::Xml::PData9711::value_type src_)
 {
 	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData9713
+
+bool Validatable<Capability::Xml::PData9713>::validate(const Capability::Xml::PData9713::value_type& value_)
+{
+	QRegExp q("[a-fA-F0-9]{32}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1008,6 +1020,51 @@ bool Traits<Capability::Xml::PMaxESGuests>::parse(const QString& src_, Capabilit
 }
 
 QString Traits<Capability::Xml::PMaxESGuests>::generate(Capability::Xml::PMaxESGuests::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PSectionSize
+
+bool Traits<Capability::Xml::PSectionSize>::parse(const QString& src_, Capability::Xml::PSectionSize::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toULong(&output);
+	return output;
+}
+
+QString Traits<Capability::Xml::PSectionSize>::generate(Capability::Xml::PSectionSize::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PNode
+
+bool Traits<Capability::Xml::PNode>::parse(const QString& src_, Capability::Xml::PNode::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toUInt(&output);
+	return output;
+}
+
+QString Traits<Capability::Xml::PNode>::generate(Capability::Xml::PNode::value_type src_)
+{
+	return QString::number(src_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PSize
+
+bool Traits<Capability::Xml::PSize>::parse(const QString& src_, Capability::Xml::PSize::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toULong(&output);
+	return output;
+}
+
+QString Traits<Capability::Xml::PSize>::generate(Capability::Xml::PSize::value_type src_)
 {
 	return QString::number(src_);
 }

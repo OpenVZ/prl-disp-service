@@ -750,7 +750,7 @@ struct Factory
 {
 	typedef Libvirt::Domain::Xml::VChoice7097 result_type;
 	Libvirt::Domain::Xml::Controller craft
-		(const Libvirt::Domain::Xml::VChoice5123& bus_, quint16 index_);
+		(const Libvirt::Domain::Xml::VChoice5126& bus_, quint16 index_);
 	result_type wrap(const Libvirt::Domain::Xml::Controller& object_);
 };
 
