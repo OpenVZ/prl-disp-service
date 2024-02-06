@@ -1106,7 +1106,7 @@ int Traits<Snapshot::Xml::Domainsnapshot>::parse(Snapshot::Xml::Domainsnapshot& 
 		dst_.setMemory(m.get<4>().getValue());
 		dst_.setDisks(m.get<5>().getValue());
 		dst_.setActive(m.get<6>().getValue());
-		dst_.setChoice9528(m.get<7>().getValue());
+		dst_.setChoice9665(m.get<7>().getValue());
 		dst_.setXPersistent(m.get<8>().getValue());
 		dst_.setInactiveDomain(m.get<9>().getValue());
 		dst_.setParent(m.get<10>().getValue());
@@ -1132,7 +1132,7 @@ int Traits<Snapshot::Xml::Domainsnapshot>::generate(const Snapshot::Xml::Domains
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getActive(), m.get<6>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice9528(), m.get<7>()))
+	if (0 > Details::Marshal::assign(src_.getChoice9665(), m.get<7>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getXPersistent(), m.get<8>()))
 		return -1;

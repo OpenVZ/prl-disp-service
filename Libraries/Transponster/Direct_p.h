@@ -100,12 +100,19 @@ static OsDistribution dist_map[] = {
 };
 
 static void setNvramFilePath(Libvirt::Domain::Xml::Nvram& n, const QString& path) {
+	using namespace Libvirt::Domain;
+
 	Libvirt::Domain::Xml::Source z;
 	z.setFile(path);
 	mpl::at_c<Libvirt::Domain::Xml::VDiskSource::types, 0>::type s;
 	s.setValue(z);
 	Libvirt::Domain::Xml::VDiskSource vds = s;
-	n.setDiskSource(vds);
+
+	mpl::at_c<Xml::VChoice5114::types, 1>::type disk_inside_vch;
+	disk_inside_vch.setValue(s);
+	Xml::VChoice5114 vc = disk_inside_vch;
+
+	n.setChoice5114(vc);
 }
 
 namespace Transponster
@@ -844,7 +851,7 @@ struct Scsi: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5123::types, 1>::type& model_) const
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5126::types, 1>::type& model_) const
 	{
 		if (!model_.getValue())
 			return;
@@ -890,7 +897,7 @@ struct Usb: boost::static_visitor<void>
 	{
 	}
 
-	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5123::types, 2>::type& usb_) const;
+	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5126::types, 2>::type& usb_) const;
 private:
 	CVmUsbController *m_settings;
 	CVmHardware *m_hardware;
@@ -1149,20 +1156,35 @@ struct Bios: boost::static_visitor<void>
 	}
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& os_) const
 	{
-		const Libvirt::Domain::Xml::Loader* l = os_.getValue().getLoader().get_ptr();
-		if (l && l->getType() && l->getType().get() == Libvirt::Domain::Xml::EType4Pflash)
+		const boost::optional<Libvirt::Domain::Xml::Loader>& l = os_.getValue().getOs().getLoader();
+
+		if (l.is_initialized() &&
+			l.get().getType().is_initialized() &&
+			l.get().getType().get() == Libvirt::Domain::Xml::EType4Pflash)
 			m_bios->setEfiEnabled(true);
 
-		const Libvirt::Domain::Xml::Nvram* n = os_.getValue().getNvram().get_ptr();
+		const boost::optional<Libvirt::Domain::Xml::Nvram>& n = os_.getValue().getOs().getNvram();
 		
-		if (n && n->getDiskSource().is_initialized()) {
-			using namespace Libvirt::Domain::Xml;
+		if (n.is_initialized() && n.get().getChoice5114().is_initialized()) {
 
-			VDiskSource q = n->getDiskSource().get();
-			mpl::at_c<VDiskSource::types, 0>::type source_file = boost::get<mpl::at_c<VDiskSource::types, 0>::type>(q);
-			boost::optional<Libvirt::Domain::Xml::Source> s0 = source_file.getValue();
-			if (s0.is_initialized() && s0.get().getFile().is_initialized())
-				m_bios->setNVRAM(s0.get().getFile().get());
+			const Libvirt::Domain::Xml::VChoice5114& vc = n.get().getChoice5114().get();
+
+			if (vc.which() == 1) {
+				using namespace Libvirt::Domain;
+				using underlyingDiskChoice = mpl::at_c<Xml::VChoice5114::types, 1>::type;
+
+				const auto& disk = boost::get<underlyingDiskChoice>(vc).getValue();
+
+				if (disk.which() == 0) {
+					mpl::at_c<Xml::VDiskSource::types, 0>::type source_file =
+							boost::get<mpl::at_c<Xml::VDiskSource::types, 0>::type>(disk);
+
+					boost::optional<Xml::Source> s0 = source_file.getValue();
+
+					if (s0.is_initialized() && s0.get().getFile().is_initialized())
+						m_bios->setNVRAM(s0.get().getFile().get());
+				}
+			}
 		}
 	}
 
@@ -1185,9 +1207,9 @@ struct Bootmenu: boost::static_visitor<void>
 	}
 	void operator()(const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& os_) const
 	{
-		const Libvirt::Domain::Xml::Bootmenu* m = os_.getValue().getBootmenu().get_ptr();
-		if (m)
-			m_opts->setAllowSelectBootDevice(m->getEnable() == Libvirt::Domain::Xml::EVirYesNoYes);
+		const boost::optional<Libvirt::Domain::Xml::Bootmenu>& menu = os_.getValue().getOs().getBootmenu();
+		if (menu.is_initialized())
+			m_opts->setAllowSelectBootDevice(menu.get().getEnable() == Libvirt::Domain::Xml::EVirYesNoYes);
 	}
 
 private:
@@ -1261,15 +1283,24 @@ struct Os: boost::static_visitor<Libvirt::Domain::Xml::VOs>
 	}
 	Libvirt::Domain::Xml::VOs operator()(const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& os_) const
 	{
-		Libvirt::Domain::Xml::Os2 os = os_.getValue();
+		Libvirt::Domain::Xml::Os2 os = os_.getValue().getOs();
 		Libvirt::Domain::Xml::Nvram n;
 		if (os.getNvram())
 			n = os.getNvram().get();
 		
 		setNvramFilePath(n, m_nvram);
 		os.setNvram(n);
-		mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type vos;
-		vos.setValue(os);
+
+		Libvirt::Domain::Xml::Oshvm res_oshvm;
+		res_oshvm.setOs(os);
+
+		// init struct Libvirt::Access<Libvirt::Domain::Xml::Oshvm, void>
+		//
+		mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type os_test;
+		os_test.setValue(res_oshvm);
+
+		Libvirt::Domain::Xml::VOs vos = os_test;
+
 		return vos;
 	}
 
@@ -1363,9 +1394,9 @@ namespace Os
 ///////////////////////////////////////////////////////////////////////////////
 // struct Type
 
-struct Type: boost::static_visitor<Libvirt::Domain::Xml::VChoice5114>
+struct Type: boost::static_visitor<Libvirt::Domain::Xml::VChoice5117>
 {
-	typedef mpl::at_c<Libvirt::Domain::Xml::VChoice5114::types, 0>::type chosen_type;
+	typedef mpl::at_c<Libvirt::Domain::Xml::VChoice5117::types, 0>::type chosen_type;
 
 	template<class T, class U>
 	result_type operator()(const T&, const U& new_) const
@@ -1396,10 +1427,10 @@ struct Unit: boost::static_visitor<Libvirt::Domain::Xml::VOs>
 	}
 	result_type operator()(const chosen_type& old_, chosen_type new_) const
 	{
-		Libvirt::Domain::Xml::Os2 a = old_.getValue();
-		Libvirt::Domain::Xml::Os2 b = new_.getValue();
+		Libvirt::Domain::Xml::Os2 a = old_.getValue().getOs();
+		Libvirt::Domain::Xml::Os2 b = new_.getValue().getOs();
 
-		typedef boost::optional<Libvirt::Domain::Xml::VChoice5114> type_type;
+		typedef boost::optional<Libvirt::Domain::Xml::VChoice5117> type_type;
 		type_type x = a.getType(), y = b.getType();
 		if (x)
 		{
@@ -1407,7 +1438,11 @@ struct Unit: boost::static_visitor<Libvirt::Domain::Xml::VOs>
 				b.setType(boost::apply_visitor(Type(), x.get(), y.get()));
 			else
 				b.setType(x);
-			new_.setValue(b);
+
+			Libvirt::Domain::Xml::Oshvm res_oshvm;
+			res_oshvm.setOs(b);
+
+			new_.setValue(res_oshvm);
 		}
 
 		return new_;
@@ -1470,13 +1505,13 @@ struct Chipset: boost::static_visitor<QString>
 	{
 		return QString();
 	}
-	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5114::types, 0>::type& hvm_) const
+	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5117::types, 0>::type& hvm_) const
 	{
 		return hvm_.getValue().getMachine() ? hvm_.getValue().getMachine().get() : QString();
 	}
 	QString operator()(const mpl::at_c<Libvirt::Domain::Xml::VOs::types, 1>::type& os_) const
 	{
-		Libvirt::Domain::Xml::Os2 a = os_.getValue();
+		Libvirt::Domain::Xml::Os2 a = os_.getValue().getOs();
 		if (!a.getType())
 			return QString();
 

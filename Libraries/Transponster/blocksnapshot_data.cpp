@@ -112,9 +112,9 @@ QString Traits<Blocksnapshot::Xml::POctalMode>::generate(Blocksnapshot::Xml::POc
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData9528
+// struct PData9770
 
-bool Validatable<Blocksnapshot::Xml::PData9528>::validate(const Blocksnapshot::Xml::PData9528::value_type& value_)
+bool Validatable<Blocksnapshot::Xml::PData9770>::validate(const Blocksnapshot::Xml::PData9770::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))

@@ -226,9 +226,9 @@ bool Validatable<Blockexport::Xml::PData7300>::validate(Blockexport::Xml::PData7
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData9528
+// struct PData9716
 
-bool Validatable<Blockexport::Xml::PData9528>::validate(const Blockexport::Xml::PData9528::value_type& value_)
+bool Validatable<Blockexport::Xml::PData9716>::validate(const Blockexport::Xml::PData9716::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
