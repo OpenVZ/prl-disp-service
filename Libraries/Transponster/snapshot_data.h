@@ -3829,13 +3829,13 @@ struct Validatable<Snapshot::Xml::PData4302>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData9528
+// struct PData9666
 
 namespace Snapshot
 {
 namespace Xml
 {
-struct PData9528
+struct PData9666
 {
 	typedef qint32 value_type;
 };
@@ -3844,18 +3844,18 @@ struct PData9528
 } // namespace Snapshot
 
 template<>
-struct Traits<Snapshot::Xml::PData9528>
+struct Traits<Snapshot::Xml::PData9666>
 {
-	static bool parse(const QString& src_, Snapshot::Xml::PData9528::value_type& dst_);
+	static bool parse(const QString& src_, Snapshot::Xml::PData9666::value_type& dst_);
 
-	static QString generate(Snapshot::Xml::PData9528::value_type src_);
+	static QString generate(Snapshot::Xml::PData9666::value_type src_);
 
 };
 
 template<>
-struct Validatable<Snapshot::Xml::PData9528>: mpl::true_
+struct Validatable<Snapshot::Xml::PData9666>: mpl::true_
 {
-	static bool validate(Snapshot::Xml::PData9528::value_type value_);
+	static bool validate(Snapshot::Xml::PData9666::value_type value_);
 
 };
 

@@ -314,13 +314,13 @@ struct Validatable<Blockexport::Xml::PData7300>: mpl::true_
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData9528
+// struct PData9716
 
 namespace Blockexport
 {
 namespace Xml
 {
-struct PData9528
+struct PData9716
 {
 	typedef QString value_type;
 };
@@ -329,9 +329,9 @@ struct PData9528
 } // namespace Blockexport
 
 template<>
-struct Validatable<Blockexport::Xml::PData9528>: mpl::true_
+struct Validatable<Blockexport::Xml::PData9716>: mpl::true_
 {
-	static bool validate(const Blockexport::Xml::PData9528::value_type& value_);
+	static bool validate(const Blockexport::Xml::PData9716::value_type& value_);
 
 };
 

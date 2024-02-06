@@ -291,6 +291,54 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Maxphysaddr
+
+namespace Capability
+{
+namespace Xml
+{
+struct Maxphysaddr
+{
+	Maxphysaddr();
+
+	EMode getMode() const
+	{
+		return m_mode;
+	}
+	void setMode(EMode value_)
+	{
+		m_mode = value_;
+	}
+	const boost::optional<PUnsignedInt::value_type >& getBits() const
+	{
+		return m_bits;
+	}
+	void setBits(const boost::optional<PUnsignedInt::value_type >& value_)
+	{
+		m_bits = value_;
+	}
+	const boost::optional<PUnsignedInt::value_type >& getLimit() const
+	{
+		return m_limit;
+	}
+	void setLimit(const boost::optional<PUnsignedInt::value_type >& value_)
+	{
+		m_limit = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EMode m_mode;
+	boost::optional<PUnsignedInt::value_type > m_bits;
+	boost::optional<PUnsignedInt::value_type > m_limit;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Feature
 
 namespace Capability
@@ -354,6 +402,14 @@ struct Anonymous4936
 	{
 		m_vendor = value_;
 	}
+	const boost::optional<Maxphysaddr >& getMaxphysaddr() const
+	{
+		return m_maxphysaddr;
+	}
+	void setMaxphysaddr(const boost::optional<Maxphysaddr >& value_)
+	{
+		m_maxphysaddr = value_;
+	}
 	const QList<Feature >& getFeatureList() const
 	{
 		return m_featureList;
@@ -368,6 +424,7 @@ struct Anonymous4936
 private:
 	Model m_model;
 	boost::optional<QString > m_vendor;
+	boost::optional<Maxphysaddr > m_maxphysaddr;
 	QList<Feature > m_featureList;
 };
 
@@ -432,13 +489,21 @@ struct Model1
 	{
 		m_usable = value_;
 	}
-	const boost::optional<EDeprecated >& getDeprecated() const
+	const boost::optional<EVirYesNo >& getDeprecated() const
 	{
 		return m_deprecated;
 	}
-	void setDeprecated(const boost::optional<EDeprecated >& value_)
+	void setDeprecated(const boost::optional<EVirYesNo >& value_)
 	{
 		m_deprecated = value_;
+	}
+	const QString& getVendor() const
+	{
+		return m_vendor;
+	}
+	void setVendor(const QString& value_)
+	{
+		m_vendor = value_;
 	}
 	const QString& getOwnValue() const
 	{
@@ -454,7 +519,8 @@ struct Model1
 
 private:
 	EUsable m_usable;
-	boost::optional<EDeprecated > m_deprecated;
+	boost::optional<EVirYesNo > m_deprecated;
+	QString m_vendor;
 	QString m_ownValue;
 };
 
@@ -868,6 +934,123 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Redirdev
+
+namespace Capability
+{
+namespace Xml
+{
+struct Redirdev
+{
+	Redirdev();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Channel
+
+namespace Capability
+{
+namespace Xml
+{
+struct Channel
+{
+	Channel();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Crypto
+
+namespace Capability
+{
+namespace Xml
+{
+struct Crypto
+{
+	Crypto();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Devices
 
 namespace Capability
@@ -932,6 +1115,30 @@ struct Devices
 	{
 		m_tpm = value_;
 	}
+	const boost::optional<Redirdev >& getRedirdev() const
+	{
+		return m_redirdev;
+	}
+	void setRedirdev(const boost::optional<Redirdev >& value_)
+	{
+		m_redirdev = value_;
+	}
+	const boost::optional<Channel >& getChannel() const
+	{
+		return m_channel;
+	}
+	void setChannel(const boost::optional<Channel >& value_)
+	{
+		m_channel = value_;
+	}
+	const boost::optional<Crypto >& getCrypto() const
+	{
+		return m_crypto;
+	}
+	void setCrypto(const boost::optional<Crypto >& value_)
+	{
+		m_crypto = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
@@ -944,6 +1151,9 @@ private:
 	boost::optional<Rng > m_rng;
 	boost::optional<Filesystem > m_filesystem;
 	boost::optional<Tpm > m_tpm;
+	boost::optional<Redirdev > m_redirdev;
+	boost::optional<Channel > m_channel;
+	boost::optional<Crypto > m_crypto;
 };
 
 } // namespace Xml
@@ -1084,6 +1294,188 @@ private:
 } // namespace Capability
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Section
+
+namespace Capability
+{
+namespace Xml
+{
+struct Section
+{
+	Section();
+
+	PNode::value_type getNode() const
+	{
+		return m_node;
+	}
+	void setNode(PNode::value_type value_)
+	{
+		m_node = value_;
+	}
+	PSize::value_type getSize() const
+	{
+		return m_size;
+	}
+	void setSize(PSize::value_type value_)
+	{
+		m_size = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	PNode::value_type m_node;
+	PSize::value_type m_size;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous5139
+
+namespace Capability
+{
+namespace Xml
+{
+struct Anonymous5139
+{
+	Anonymous5139();
+
+	EVirYesNo getFlc() const
+	{
+		return m_flc;
+	}
+	void setFlc(EVirYesNo value_)
+	{
+		m_flc = value_;
+	}
+	EVirYesNo getSgx1() const
+	{
+		return m_sgx1;
+	}
+	void setSgx1(EVirYesNo value_)
+	{
+		m_sgx1 = value_;
+	}
+	EVirYesNo getSgx2() const
+	{
+		return m_sgx2;
+	}
+	void setSgx2(EVirYesNo value_)
+	{
+		m_sgx2 = value_;
+	}
+	PSectionSize::value_type getSectionSize() const
+	{
+		return m_sectionSize;
+	}
+	void setSectionSize(PSectionSize::value_type value_)
+	{
+		m_sectionSize = value_;
+	}
+	const boost::optional<QList<Section > >& getSections() const
+	{
+		return m_sections;
+	}
+	void setSections(const boost::optional<QList<Section > >& value_)
+	{
+		m_sections = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+
+private:
+	EVirYesNo m_flc;
+	EVirYesNo m_sgx1;
+	EVirYesNo m_sgx2;
+	PSectionSize::value_type m_sectionSize;
+	boost::optional<QList<Section > > m_sections;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sgx
+
+namespace Capability
+{
+namespace Xml
+{
+struct Sgx
+{
+	Sgx();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const boost::optional<Anonymous5139 >& getAnonymous5139() const
+	{
+		return m_anonymous5139;
+	}
+	void setAnonymous5139(const boost::optional<Anonymous5139 >& value_)
+	{
+		m_anonymous5139 = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	boost::optional<Anonymous5139 > m_anonymous5139;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hyperv
+
+namespace Capability
+{
+namespace Xml
+{
+struct Hyperv
+{
+	Hyperv();
+
+	EVirYesNo getSupported() const
+	{
+		return m_supported;
+	}
+	void setSupported(EVirYesNo value_)
+	{
+		m_supported = value_;
+	}
+	const QList<Enum >& getEnumList() const
+	{
+		return m_enumList;
+	}
+	void setEnumList(const QList<Enum >& value_)
+	{
+		m_enumList = value_;
+	}
+	bool load(const QDomElement& );
+	bool save(QDomElement& ) const;
+	bool save(QDomDocument& ) const;
+
+private:
+	EVirYesNo m_supported;
+	QList<Enum > m_enumList;
+};
+
+} // namespace Xml
+} // namespace Capability
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Features
 
 namespace Capability
@@ -1132,6 +1524,14 @@ struct Features
 	{
 		m_backup = value_;
 	}
+	const boost::optional<EVirYesNo >& getAsyncTeardown() const
+	{
+		return m_asyncTeardown;
+	}
+	void setAsyncTeardown(const boost::optional<EVirYesNo >& value_)
+	{
+		m_asyncTeardown = value_;
+	}
 	const boost::optional<EVirYesNo >& getS390Pv() const
 	{
 		return m_s390Pv;
@@ -1148,6 +1548,22 @@ struct Features
 	{
 		m_sev = value_;
 	}
+	const boost::optional<Sgx >& getSgx() const
+	{
+		return m_sgx;
+	}
+	void setSgx(const boost::optional<Sgx >& value_)
+	{
+		m_sgx = value_;
+	}
+	const boost::optional<Hyperv >& getHyperv() const
+	{
+		return m_hyperv;
+	}
+	void setHyperv(const boost::optional<Hyperv >& value_)
+	{
+		m_hyperv = value_;
+	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
 	bool save(QDomDocument& ) const;
@@ -1158,8 +1574,11 @@ private:
 	boost::optional<EVirYesNo > m_genid;
 	boost::optional<EVirYesNo > m_backingStoreInput;
 	boost::optional<EVirYesNo > m_backup;
+	boost::optional<EVirYesNo > m_asyncTeardown;
 	boost::optional<EVirYesNo > m_s390Pv;
 	boost::optional<Sev > m_sev;
+	boost::optional<Sgx > m_sgx;
+	boost::optional<Hyperv > m_hyperv;
 };
 
 } // namespace Xml
@@ -1356,6 +1775,18 @@ struct Traits<Capability::Xml::Model>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Maxphysaddr traits
+
+template<>
+struct Traits<Capability::Xml::Maxphysaddr>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EMode, Name::Strict<379> >, Optional<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<9861> > >, Optional<Attribute<Capability::Xml::PUnsignedInt, Name::Strict<433> > > > > marshal_type;
+
+	static int parse(Capability::Xml::Maxphysaddr& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Maxphysaddr& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Feature traits
 
 template<>
@@ -1373,7 +1804,7 @@ struct Traits<Capability::Xml::Feature>
 template<>
 struct Traits<Capability::Xml::Anonymous4936>
 {
-	typedef Ordered<mpl::vector<Element<Capability::Xml::Model, Name::Strict<231> >, Optional<Element<Text<QString >, Name::Strict<459> > >, ZeroOrMore<Element<Capability::Xml::Feature, Name::Strict<1022> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Element<Capability::Xml::Model, Name::Strict<231> >, Optional<Element<Text<QString >, Name::Strict<459> > >, Optional<Element<Capability::Xml::Maxphysaddr, Name::Strict<9860> > >, ZeroOrMore<Element<Capability::Xml::Feature, Name::Strict<1022> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Anonymous4936& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Anonymous4936& , QDomElement& );
@@ -1397,7 +1828,7 @@ struct Traits<Capability::Xml::Mode2>
 template<>
 struct Traits<Capability::Xml::Model1>
 {
-	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EUsable, Name::Strict<1886> >, Optional<Attribute<Capability::Xml::EDeprecated, Name::Strict<6576> > >, Text<QString > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EUsable, Name::Strict<1886> >, Optional<Attribute<Capability::Xml::EVirYesNo, Name::Strict<6576> > >, Attribute<QString, Name::Strict<459> >, Text<QString > > > marshal_type;
 
 	static int parse(Capability::Xml::Model1& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Model1& , QDomElement& );
@@ -1524,12 +1955,48 @@ struct Traits<Capability::Xml::Tpm>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Redirdev traits
+
+template<>
+struct Traits<Capability::Xml::Redirdev>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1882> > > > > marshal_type;
+
+	static int parse(Capability::Xml::Redirdev& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Redirdev& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Channel traits
+
+template<>
+struct Traits<Capability::Xml::Channel>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1882> > > > > marshal_type;
+
+	static int parse(Capability::Xml::Channel& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Channel& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Crypto traits
+
+template<>
+struct Traits<Capability::Xml::Crypto>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1882> > > > > marshal_type;
+
+	static int parse(Capability::Xml::Crypto& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Crypto& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Devices traits
 
 template<>
 struct Traits<Capability::Xml::Devices>
 {
-	typedef Ordered<mpl::vector<Optional<Element<Capability::Xml::Disk, Name::Strict<472> > >, Optional<Element<Capability::Xml::Graphics, Name::Strict<712> > >, Optional<Element<Capability::Xml::Video, Name::Strict<779> > >, Optional<Element<Capability::Xml::Hostdev, Name::Strict<676> > >, Optional<Element<Capability::Xml::Rng, Name::Strict<981> > >, Optional<Element<Capability::Xml::Filesystem, Name::Strict<630> > >, Optional<Element<Capability::Xml::Tpm, Name::Strict<902> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Element<Capability::Xml::Disk, Name::Strict<472> > >, Optional<Element<Capability::Xml::Graphics, Name::Strict<712> > >, Optional<Element<Capability::Xml::Video, Name::Strict<779> > >, Optional<Element<Capability::Xml::Hostdev, Name::Strict<676> > >, Optional<Element<Capability::Xml::Rng, Name::Strict<981> > >, Optional<Element<Capability::Xml::Filesystem, Name::Strict<630> > >, Optional<Element<Capability::Xml::Tpm, Name::Strict<902> > >, Optional<Element<Capability::Xml::Redirdev, Name::Strict<912> > >, Optional<Element<Capability::Xml::Channel, Name::Strict<744> > >, Optional<Element<Capability::Xml::Crypto, Name::Strict<9864> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Devices& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Devices& , QDomElement& );
@@ -1572,12 +2039,60 @@ struct Traits<Capability::Xml::Sev>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+// struct Section traits
+
+template<>
+struct Traits<Capability::Xml::Section>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::PNode, Name::Strict<609> >, Attribute<Capability::Xml::PSize, Name::Strict<334> >, Attribute<mpl::int_<9871>, Name::Strict<66> > > > marshal_type;
+
+	static int parse(Capability::Xml::Section& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Section& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Anonymous5139 traits
+
+template<>
+struct Traits<Capability::Xml::Anonymous5139>
+{
+	typedef Ordered<mpl::vector<Element<Text<Capability::Xml::EVirYesNo >, Name::Strict<9867> >, Element<Text<Capability::Xml::EVirYesNo >, Name::Strict<9868> >, Element<Text<Capability::Xml::EVirYesNo >, Name::Strict<9869> >, Element<Ordered<mpl::vector<Attribute<mpl::int_<9871>, Name::Strict<66> >, Text<Capability::Xml::PSectionSize > > >, Name::Strict<9870> >, Optional<Element<ZeroOrMore<Element<Capability::Xml::Section, Name::Strict<9873> > >, Name::Strict<9872> > > > > marshal_type;
+
+	static int parse(Capability::Xml::Anonymous5139& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Anonymous5139& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Sgx traits
+
+template<>
+struct Traits<Capability::Xml::Sgx>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Optional<Fragment<Capability::Xml::Anonymous5139 > > > > marshal_type;
+
+	static int parse(Capability::Xml::Sgx& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Sgx& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+// struct Hyperv traits
+
+template<>
+struct Traits<Capability::Xml::Hyperv>
+{
+	typedef Ordered<mpl::vector<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, ZeroOrMore<Element<Capability::Xml::Enum, Name::Strict<1882> > > > > marshal_type;
+
+	static int parse(Capability::Xml::Hyperv& , QStack<QDomElement>& );
+	static int generate(const Capability::Xml::Hyperv& , QDomElement& );
+};
+
+///////////////////////////////////////////////////////////////////////////////
 // struct Features traits
 
 template<>
 struct Traits<Capability::Xml::Features>
 {
-	typedef Ordered<mpl::vector<Optional<Element<Capability::Xml::Gic, Name::Strict<1001> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1004> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<3563> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<5683> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1343> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<6577> > >, Optional<Element<Capability::Xml::Sev, Name::Strict<3562> > > > > marshal_type;
+	typedef Ordered<mpl::vector<Optional<Element<Capability::Xml::Gic, Name::Strict<1001> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1004> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<3563> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<5683> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<1343> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<9865> > >, Optional<Element<Attribute<Capability::Xml::EVirYesNo, Name::Strict<1881> >, Name::Strict<6577> > >, Optional<Element<Capability::Xml::Sev, Name::Strict<3562> > >, Optional<Element<Capability::Xml::Sgx, Name::Strict<9866> > >, Optional<Element<Capability::Xml::Hyperv, Name::Strict<256> > > > > marshal_type;
 
 	static int parse(Capability::Xml::Features& , QStack<QDomElement>& );
 	static int generate(const Capability::Xml::Features& , QDomElement& );

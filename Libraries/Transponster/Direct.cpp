@@ -278,7 +278,7 @@ PRL_RESULT Cdrom::operator()(const Libvirt::Domain::Xml::Disk& disk_)
 
 PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics::types, 1>::type& vnc_) const
 {
-	if (0 != vnc_.getValue().getChoice5126().which())
+	if (0 != vnc_.getValue().getChoice8004().which())
 		return PRL_ERR_UNIMPLEMENTED;
 
 	QScopedPointer<CVmRemoteDisplay> v(new CVmRemoteDisplay());
@@ -286,9 +286,9 @@ PRL_RESULT Graphics::operator()(const mpl::at_c<Libvirt::Domain::Xml::VGraphics:
 	{
 		v->setPassword(vnc_.getValue().getPasswd().get());
 	}
-	const mpl::at_c<Libvirt::Domain::Xml::VChoice5126::types, 0>::type* s =
-		boost::get<mpl::at_c<Libvirt::Domain::Xml::VChoice5126::types, 0>::type>
-			(&vnc_.getValue().getChoice5126());
+	const mpl::at_c<Libvirt::Domain::Xml::VChoice8004::types, 0>::type* s =
+		boost::get<mpl::at_c<Libvirt::Domain::Xml::VChoice8004::types, 0>::type>
+			(&vnc_.getValue().getChoice8004());
 	if (s->getValue().getListen())
 	{
 		v->setHostName(s->getValue().getListen().get());
@@ -856,7 +856,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097:
 
 PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097::types, 1>::type& controller_) const
 {
-	if (controller_.getValue().getChoice5123().which() != 2)
+	if (controller_.getValue().getChoice5126().which() != 2)
 		return PRL_ERR_SUCCESS;
 	if (m_vm->getVmSettings() == NULL)
 		return PRL_ERR_UNEXPECTED;
@@ -867,7 +867,7 @@ PRL_RESULT Device::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice7097:
 	if (NULL == h)
 		return PRL_ERR_UNEXPECTED;
 	boost::apply_visitor(Visitor::Controller::Usb(*u, *h),
-		controller_.getValue().getChoice5123());
+		controller_.getValue().getChoice5126());
 	return PRL_ERR_SUCCESS;
 }
 
@@ -942,7 +942,7 @@ namespace Controller
 ///////////////////////////////////////////////////////////////////////////////
 // struct Usb
 
-void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5123::types, 2>::type& usb_) const
+void Usb::operator()(const mpl::at_c<Libvirt::Domain::Xml::VChoice5126::types, 2>::type& usb_) const
 {
 	boost::optional<Libvirt::Domain::Xml::EModel1> m = usb_.getValue().getModel();
 	if (!m)
@@ -1125,7 +1125,7 @@ void Timer::operator()(const mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 0>::
 
 	Libvirt::Domain::Xml::Timer6996 tt;
 	tt.setTickpolicy(Libvirt::Domain::Xml::VTickpolicy(p));
-	tt.setName(Libvirt::Domain::Xml::EName1Pit);
+	tt.setName(Libvirt::Domain::Xml::EName2Pit);
 
 	mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 2>::type v;
 	v.setValue(tt);
@@ -1141,9 +1141,9 @@ void Timer::operator()(const mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 3>::
 
 	mpl::at_c<Libvirt::Domain::Xml::VTimer::types, 3>::type v;
 	if (IS_WINDOWS(os) && os >= PVS_GUEST_VER_WIN_2008)
-		v.setValue(Libvirt::Domain::Xml::EName2Hypervclock);
+		v.setValue(Libvirt::Domain::Xml::EName3Hypervclock);
 	else
-		v.setValue(Libvirt::Domain::Xml::EName2Kvmclock);
+		v.setValue(Libvirt::Domain::Xml::EName3Kvmclock);
 
 	Libvirt::Domain::Xml::Timer t;
 	t.setTimer(Libvirt::Domain::Xml::VTimer(v));
@@ -1355,7 +1355,7 @@ PRL_RESULT Cpu::setNode()
 	if (!m && !m->getMode())
 		return PRL_ERR_SUCCESS;
 
-	if (m->getMode().get() == Libvirt::Domain::Xml::EMode7Strict)
+	if (m->getMode().get() == Libvirt::Domain::Xml::EMode8Strict)
 	{
 		m_result->setNodeMask(boost::apply_visitor(
 			Visitor::Numatune::Memory(), m->getMemory()));
@@ -1986,14 +1986,14 @@ Vm::Vm(char* xml_)
 	if (snapshot.isNull())
 		return;
 
-	if (!snapshot->getChoice9528())
+	if (!snapshot->getChoice9665())
 		return;
 
-	if (1 == snapshot->getChoice9528()->which())
+	if (1 == snapshot->getChoice9665()->which())
 	{
 		const Libvirt::Domain::Xml::Domain& d =
-			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice9528::types, 1>::type>
-				(snapshot->getChoice9528().get()).getValue();
+			boost::get<mpl::at_c<Libvirt::Snapshot::Xml::VChoice9665::types, 1>::type>
+				(snapshot->getChoice9665().get()).getValue();
 		m_input.reset(new Libvirt::Domain::Xml::Domain(d));
 	}
 }
@@ -2090,7 +2090,7 @@ boost::optional<PRL_CLUSTERED_DEVICE_SUBTYPE> Clip::getControllerModel(const Lib
 		if (!c.getIndex() || a.getController().get() != QString::number(c.getIndex().get()))
 				continue;
 
-		boost::apply_visitor(Visitor::Controller::Scsi(m), c.getChoice5123());
+		boost::apply_visitor(Visitor::Controller::Scsi(m), c.getChoice5126());
 		if (m)
 			break;
 	}

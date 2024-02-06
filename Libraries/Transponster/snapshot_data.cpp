@@ -2404,21 +2404,21 @@ bool Validatable<Snapshot::Xml::PData4302>::validate(const Snapshot::Xml::PData4
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData9528
+// struct PData9666
 
-bool Traits<Snapshot::Xml::PData9528>::parse(const QString& src_, Snapshot::Xml::PData9528::value_type& dst_)
+bool Traits<Snapshot::Xml::PData9666>::parse(const QString& src_, Snapshot::Xml::PData9666::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Snapshot::Xml::PData9528>::generate(Snapshot::Xml::PData9528::value_type src_)
+QString Traits<Snapshot::Xml::PData9666>::generate(Snapshot::Xml::PData9666::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Snapshot::Xml::PData9528>::validate(Snapshot::Xml::PData9528::value_type value_)
+bool Validatable<Snapshot::Xml::PData9666>::validate(Snapshot::Xml::PData9666::value_type value_)
 {
 	if (0 > value_)
 		return false;
