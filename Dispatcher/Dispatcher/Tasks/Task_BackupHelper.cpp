@@ -1052,7 +1052,7 @@ PRL_RESULT Nbd::start(const Image& image_, quint32 flags_)
 		u.setPath(m_exportName);
 
 	m_url = u.toString();
-	WRITE_TRACE(DBG_DEBUG, "NBD server is started at %s", QSTR2UTF8(m_url));
+	WRITE_TRACE(DBG_INFO, "NBD server is started at %s", QSTR2UTF8(m_url));
 	return PRL_ERR_SUCCESS;
 }
 
@@ -1060,7 +1060,7 @@ void Nbd::stop()
 {
 	if (m_url.isEmpty())
 		return;
-	WRITE_TRACE(DBG_DEBUG, "NBD server at %s is stopped", QSTR2UTF8(m_url));
+	WRITE_TRACE(DBG_INFO, "NBD server at %s is stopped", QSTR2UTF8(m_url));
 	m_url.clear();
 	m_nbd.close();
 }
