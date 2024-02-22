@@ -1391,6 +1391,17 @@ void Connector::reactReceive(const SmartPtr<IOPackage>& package_)
 	case Virtuozzo::VmMigrateQemuDiskTunnelChunk:
 		return handle(Migrate::Vm::Pump::Event
 			<Virtuozzo::VmMigrateQemuDiskTunnelChunk>(package_));
+	case Virtuozzo::DispToDispResponseCmd:
+	{
+		CDispToDispCommandPtr pDspReply = CDispToDispProtoSerializer::ParseCommand(
+			DispToDispResponseCmd, UTF8_2QSTR(package_->buffers[0].getImpl()));
+			CDispToDispResponseCommand *pResponseCmd =
+				CDispToDispProtoSerializer::CastToDispToDispCommand<CDispToDispResponseCommand>(pDspReply);
+			WRITE_TRACE(DBG_FATAL, "Backup ERROR: target sent error response: %x [%s]",
+					pResponseCmd->GetRetCode(), PRL_RESULT_TO_STRING(pResponseCmd->GetRetCode()));
+			handle(Migrate::Vm::Flop::Event(pResponseCmd->GetRetCode()));
+			return;
+	}
 	default:
 		WRITE_TRACE(DBG_DEBUG, "Unknown package type: %d.", package_->header.type);
 	}
