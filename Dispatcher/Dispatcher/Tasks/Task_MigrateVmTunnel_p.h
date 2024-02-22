@@ -405,7 +405,6 @@ struct Haul: vsd::Frontend<U>, Vm::Connector::Mixin<typename Socket<T>::function
 		}
 	};
 
-protected:
 	T* getSocket() const
 	{
 		return m_socket.data();
@@ -544,7 +543,25 @@ struct Hub: Vm::Tunnel::Hub::Unit<Hub<T>, Traits<T> >
 			if (!state_.start(boost::phoenix::ref(*state_.m_service), s))
 				return (void)fsm_.process_event(Flop::Event(PRL_ERR_INVALID_ARG));
 
+			WRITE_TRACE(DBG_INFO, "MigrateVmTunnel: start connect socket %p to localhost",
+					state_.match(s)->getSocket());
+
 			state_.match(s)->process_event(event_);
+
+			WRITE_TRACE(DBG_DEBUG, "MigrateVmTunnel: socket %p to localhost - state %d",
+					state_.match(s)->getSocket(), state_.match(s)->getSocket()->state());
+
+			if (!state_.match(s)->getSocket()->waitForConnected(30*1000))
+			{
+				WRITE_TRACE(DBG_FATAL, "MigrateVmTunnel: can't connect socket %p to localhost",
+						state_.match(s)->getSocket());
+				return (void)fsm_.process_event(Flop::Event(PRL_ERR_IO_NO_CONNECTION));
+			}
+
+			WRITE_TRACE(DBG_INFO, "MigrateVmTunnel: socket %p to localhost - state %d; %s ",
+					state_.match(s)->getSocket(), state_.match(s)->getSocket()->state(),
+					state_.match(s)->isConnected() ? "CONNECTED" : "ERROR"
+					);
 		}
 		template<class M>
 		void operator()(Vm::Pump::Launch_type const& event_, M&, Hub& state_, Hub&)
