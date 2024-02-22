@@ -236,6 +236,14 @@ struct Basic: T, Vm::Connector::Base<M>
 			t = this->objectName();
 			d->setObjectName(t.get());
 		}
+		QAbstractSocket* s = dynamic_cast<QAbstractSocket*>(this->sender());
+		if (s)
+		{
+			WRITE_TRACE(DBG_DEBUG, "MigrateVmTunnel: socket %p was connected: state = %d; from port = %d -> %d",
+				s, s->state(),
+				s->localPort(),s->peerPort()
+			);
+		}
 		this->handle(Vm::Pump::Launch_type(this->getService(), d, t));
 	}
 
@@ -257,13 +265,25 @@ struct Tcp: Basic<Tcp_, M>
 {
 	void reactError(QAbstractSocket::SocketError value_)
 	{
-		WRITE_TRACE(DBG_DEBUG, "tunnel's socket emited SocketError with code %d", value_);
+		WRITE_TRACE(DBG_DEBUG, "MigrateVmTunnel: tunnel's socket emited SocketError with code %d", value_);
 		switch (value_)
 		{
 		case QAbstractSocket::RemoteHostClosedError:
 			return;
 		default:
 			this->handle(Flop::Event(PRL_ERR_FILE_READ_ERROR));
+		}
+	}
+
+	void reactChangedState(QAbstractSocket::SocketState value_)
+	{
+		QAbstractSocket* s = dynamic_cast<QAbstractSocket*>(this->sender());
+		if (s)
+		{
+			WRITE_TRACE(DBG_DEBUG, "MigrateVmTunnel: socket %p change state = %d[%d]; ports = %d -> %d",
+				s, value_, s->state(),
+				s->localPort(), s->peerPort()
+			);
 		}
 	}
 };
@@ -298,15 +318,19 @@ struct Socket<QTcpSocket>
 		x = connector_.connect(output.data(), SIGNAL(connected()),
 			SLOT(reactConnected()), Qt::QueuedConnection);
 		if (!x)
-			WRITE_TRACE(DBG_FATAL, "can't connect socket connect");
+			WRITE_TRACE(DBG_FATAL, "MigrateVmTunnel: can't connect socket connect");
 		x = connector_.connect(output.data(), SIGNAL(disconnected()),
 			SLOT(reactDisconnected()), Qt::QueuedConnection);
 		if (!x)
-			WRITE_TRACE(DBG_FATAL, "can't connect socket disconnect");
+			WRITE_TRACE(DBG_FATAL, "MigrateVmTunnel: can't connect socket disconnect");
 		x = connector_.connect(output.data(), SIGNAL(error(QAbstractSocket::SocketError)),
 			SLOT(reactError(QAbstractSocket::SocketError)));
 		if (!x)
-			WRITE_TRACE(DBG_FATAL, "can't connect socket errors");
+			WRITE_TRACE(DBG_FATAL, "MigrateVmTunnel: can't connect socket errors");
+		x = connector_.connect(output.data(), SIGNAL(stateChanged(QAbstractSocket::SocketState)),
+			SLOT(reactChangedState(QAbstractSocket::SocketState)));
+		if (!x)
+			WRITE_TRACE(DBG_FATAL, "MigrateVmTunnel: can't connect changed state");
 
 		return output;
 	}
@@ -439,7 +463,11 @@ struct Channel: Shortcut<Channel<T>, T>::type
 		if (s)
 			this->getConnector()->setObjectName(s.get());
 
-		this->getSocket()->connectToHost(QHostAddress::LocalHost, *(quint16*)b.getImpl());
+		quint16 port = *(quint16*)b.getImpl();
+		WRITE_TRACE(DBG_INFO, "MigrateVmTunnel: connect socket %p to localhost:%d",
+				this->getSocket(), port);
+
+		this->getSocket()->connectToHost(QHostAddress::LocalHost, port);
 	}
 
 	struct transition_table : boost::mpl::vector<
