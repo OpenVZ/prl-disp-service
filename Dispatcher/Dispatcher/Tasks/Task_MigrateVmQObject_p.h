@@ -391,6 +391,7 @@ struct Tcp_: Basic_
 {
 public slots:
 	virtual void reactError(QAbstractSocket::SocketError) = 0;
+	virtual void reactChangedState(QAbstractSocket::SocketState) = 0;
 
 private:
 	Q_OBJECT
