@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2020 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2024 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core. Virtuozzo Core is free software;
  * you can redistribute it and/or modify it under the terms of the GNU
@@ -395,6 +395,11 @@ Result State::start_(unsigned int flags_)
 
 	if (s == VIR_DOMAIN_CRASHED)
 		kill();
+
+	if (s == VIR_DOMAIN_RUNNING)
+	{
+		return Libvirt::Result(Error::Simple(PRL_ERR_VM_ALREADY_RUNNING));
+	}
 
 	return do_(getDomain().data(), boost::bind(&virDomainCreateWithFlags, _1, flags_));
 }
