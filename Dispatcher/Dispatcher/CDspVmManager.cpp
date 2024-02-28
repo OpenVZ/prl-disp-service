@@ -8,7 +8,7 @@
 /// @author romanp, sandro
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2024 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -862,7 +862,16 @@ struct Essence<PVE::DspCmdVmStart>: Need::Agent, Need::Config, Need::Context
 {
 	Libvirt::Result operator()()
 	{
-		return Vm::Start::Combine()(Vm::Start::request_type(getContext(), getConfig()));
+		Libvirt::Result result = Vm::Start::Combine()(Vm::Start::request_type(getContext(), getConfig()));
+
+		if (result.isFailed() && result.error().code() == PRL_ERR_VM_ALREADY_RUNNING)
+		{
+			WRITE_TRACE(DBG_WARNING, "Strat VM '%s': Vm is already running",
+					QSTR2UTF8(getConfig()->getVmIdentification()->getVmName()));
+			getAgent().getMaintenance().emitAlreadyStarted();
+			return Libvirt::Result(Error::Simple(PRL_ERR_SUCCESS));
+		}
+		return result;
 	}
 };
 
