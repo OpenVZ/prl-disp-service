@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2017, Parallels International GmbH
- * Copyright (c) 2017-2019 Virtuozzo International GmbH. All rights reserved.
+ * Copyright (c) 2017-2024 Virtuozzo International GmbH. All rights reserved.
  *
  * This file is part of Virtuozzo Core. Virtuozzo Core is free software;
  * you can redistribute it and/or modify it under the terms of the GNU
@@ -1208,6 +1208,9 @@ int State::react(virConnectPtr, virDomainPtr domain_, int event_,
 		case -1:
 			v->show(domain_, boost::bind(&Registry::Reactor::upgrade, _1));
 			break;
+		case -2:
+			v->emulateStart(domain_);
+			break;
 		default:
 			v->reactStart(domain_);
 		case VIR_DOMAIN_EVENT_STARTED_MIGRATED:
@@ -1902,6 +1905,16 @@ bool Coarse::show(virDomainPtr domain_, const reaction_type& reaction_)
 	return true;
 }
 
+void Coarse::emulateStart(virDomainPtr domain_)
+{
+	QString u = getUuid(domain_);
+	QSharedPointer<System::entry_type> d = m_fine->find(u);
+	if (d.isNull())
+		return;
+
+	d->setState(VMS_RUNNING);
+}
+
 void Coarse::reactStart(virDomainPtr domain_)
 {
 	QString u = getUuid(domain_);
@@ -2542,6 +2555,11 @@ void Maintenance::emitRestored()
 void Maintenance::emitQemuUpdated()
 {
 	emitLifecycle(VIR_DOMAIN_EVENT_STARTED, -1);
+}
+
+void Maintenance::emitAlreadyStarted()
+{
+	emitLifecycle(VIR_DOMAIN_EVENT_STARTED, -2);
 }
 
 void Maintenance::emitReboot()

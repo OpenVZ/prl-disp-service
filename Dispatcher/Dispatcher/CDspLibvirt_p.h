@@ -7,7 +7,7 @@
 /// @author shrike
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2023 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2024 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -631,6 +631,7 @@ struct Coarse
 	{
 	}
 
+	void emulateStart(virDomainPtr domain_);
 	void reactStart(virDomainPtr domain_);
 	void setState(virDomainPtr domain_, VIRTUAL_MACHINE_STATE value_);
 	void prepareToSwitch(virDomainPtr domain_);
