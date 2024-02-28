@@ -9024,6 +9024,7 @@ namespace Domain
 {
 namespace Xml
 {
+
 const VDiskBackingChainBin* BackingStore::getDiskBackingChain() const
 {
 	if (m_diskBackingChain.empty())
@@ -9457,9 +9458,9 @@ int Traits<Domain::Xml::Variant8003>::parse(Domain::Xml::Variant8003& dst_, QSta
 	int output = m.consume(stack_);
 	if (0 <= output)
 	{
-		dst_.setModel(m.get<1>().getValue());
-		dst_.setTarget(m.get<2>().getValue());
-		dst_.setChoice2355(m.get<3>().getValue());
+		dst_.setModel(m.get<1>().get<0>().getValue());
+		dst_.setTarget(m.get<1>().get<1>().getValue());
+		dst_.setChoice2355(m.get<1>().get<2>().getValue());
 	}
 	return output;
 }
@@ -9467,11 +9468,11 @@ int Traits<Domain::Xml::Variant8003>::parse(Domain::Xml::Variant8003& dst_, QSta
 int Traits<Domain::Xml::Variant8003>::generate(const Domain::Xml::Variant8003& src_, QDomElement& dst_)
 {
 	marshal_type m;
-	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>()))
+	if (0 > Details::Marshal::assign(src_.getModel(), m.get<1>().get<0>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getTarget(), m.get<1>().get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getChoice2355(), m.get<3>()))
+	if (0 > Details::Marshal::assign(src_.getChoice2355(), m.get<1>().get<2>()))
 		return -1;
 
 	return m.produce(dst_);
@@ -17681,7 +17682,7 @@ int Traits<Domain::Xml::Devices>::parse(Domain::Xml::Devices& dst_, QStack<QDomE
 	{
 		dst_.setEmulator(m.get<0>().getValue());
 		dst_.setChoice7097List(m.get<1>().getValue());
-		dst_.setWatchdog(m.get<2>().getValue());
+		dst_.setWatchdogList(m.get<2>().getValue());
 		dst_.setMemballoon(m.get<3>().getValue());
 		dst_.setNvram(m.get<4>().getValue());
 		dst_.setPanicList(m.get<5>().getValue());
@@ -17699,7 +17700,7 @@ int Traits<Domain::Xml::Devices>::generate(const Domain::Xml::Devices& src_, QDo
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getChoice7097List(), m.get<1>()))
 		return -1;
-	if (0 > Details::Marshal::assign(src_.getWatchdog(), m.get<2>()))
+	if (0 > Details::Marshal::assign(src_.getWatchdogList(), m.get<2>()))
 		return -1;
 	if (0 > Details::Marshal::assign(src_.getMemballoon(), m.get<3>()))
 		return -1;

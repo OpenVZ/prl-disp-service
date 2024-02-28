@@ -1436,7 +1436,9 @@ Enum<Domain::Xml::EModel12>::data_type Enum<Domain::Xml::EModel12>::getData()
 {
 	return ba::list_of<data_type::relation>
 			(data_type::value_type(Domain::Xml::EModel12I6300esb, "i6300esb"))
-			(data_type::value_type(Domain::Xml::EModel12Ib700, "ib700"));
+			(data_type::value_type(Domain::Xml::EModel12Ib700, "ib700"))
+			(data_type::value_type(Domain::Xml::EModel12Diag288, "diag288"))
+			(data_type::value_type(Domain::Xml::EModel12Itco, "itco"));
 }
 
 template<>

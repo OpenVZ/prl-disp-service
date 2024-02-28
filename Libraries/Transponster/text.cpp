@@ -9912,7 +9912,9 @@ static QString g_text[] = {
 	QString("anonymous9884"),
 	QString("data9885"),
 	QString("data9886"),
-	QString("")
+	QString(""),
+	QString("diag288"),
+	QString("itco")
 };
 
 const QString& getText(quint32 index_)
