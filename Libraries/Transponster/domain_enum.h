@@ -1146,7 +1146,9 @@ enum EAccess
 enum EModel12
 {
 	EModel12I6300esb,
-	EModel12Ib700
+	EModel12Ib700,
+	EModel12Diag288,
+	EModel12Itco
 };
 
 enum EAction
