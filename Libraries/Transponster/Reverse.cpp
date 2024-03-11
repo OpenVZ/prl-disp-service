@@ -2473,6 +2473,17 @@ PRL_RESULT Builder::setDevices()
 			<< t.getAttachment().getControllers()
 			<< u.getDevices());
 
+	// Currently we dont have apropriate device in libprlxmlmodel
+	// Here we just add default  value for Watchdog from libvirt
+
+	using namespace Libvirt::Domain::Xml;
+	Watchdog w;
+	w.setAction(EAction::EActionReset);
+	w.setModel(EModel12::EModel12Itco);
+	QList<Watchdog> res;
+	res.push_back(w);
+	x.setWatchdogList(res);
+
 	m_result->setDevices(x);
 //	m_result->setIothreads(qMax(t.getAttachment().getControllers().size(), 1));
 	return PRL_ERR_SUCCESS;
