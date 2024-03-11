@@ -1812,6 +1812,7 @@ typedef struct _CPUID_INFO
 		};
 	} PowerManagement;
 	UINT	EXT_00000007_EBX;
+	UINT	EXT_00000007_ECX;
 	UINT	EXT_00000007_EDX;
 	UINT	EXT_0000000D_EAX;
 
@@ -1841,6 +1842,7 @@ typedef struct _CPU_FEATURES_MASKS
 	EXT_80000008_EAX_T	EXT_80000008_EAX;
 
 	UINT	EXT_00000007_EBX_MASK;
+	UINT	EXT_00000007_ECX_MASK;
 	UINT	EXT_00000007_EDX_MASK;
 	UINT	EXT_0000000D_EAX_MASK;
 }CPU_FEATURES_MASKS;
@@ -2077,6 +2079,34 @@ typedef struct _CPU_FEATURES_MASKS
 * Structured Extended Feature Flags Enumeration Leaf
 */
 #define F_SAVEOPT	(1u << 0)	// XSAVEOPT supported
+
+
+/*
+ * CPUID 0x00000007 ECX flags
+ */
+#define F_AVX512VBMI             (1u << 1) // AVX-512 Vector Byte Manipulation Instruction
+#define F_UMIP                   (1u << 2) // User-Mode Instruction Prevention
+#define F_PKU                    (1u << 3) // Protection Keys for User-mode Pages
+#define F_OSPKE                  (1u << 4) // OS Enable Protection Keys
+#define F_WAITPKG                (1u << 5) // UMONITOR/UMWAIT/TPAUSE Instructions
+#define F_AVX512_VBMI2           (1u << 6) // Additional AVX-512 Vector Byte Manipulation Instruction
+#define F_SHSTK                  (1u << 7) // Shadow-Stack instructions
+#define F_GFNI                   (1u << 8) // Galois Field New Instructions
+#define F_VAES                   (1u << 9) // Vector AES Instructions
+#define F_VPCLMULQDQ             (1u << 10) // Carry-Less Multiplication Quadword
+#define F_AVX512_VNNI            (1u << 11) // Vector Neural Network Instructions
+#define F_AVX512_BITALG          (1u << 12) // Support for VPOPCNT[B,W] and VPSHUFBITQMB
+#define F_TME                    (1u << 13) // Total Memory Encryption
+#define F_AVX512_VPOPCNTDQ       (1u << 14) // POPCNT for vectors of DW/QW
+#define F_LA57                   (1u << 16) // 5-level Page Tables
+#define F_RDPID                  (1u << 22) // Read Processor ID
+#define F_BUS_LOCK_DETECT        (1u << 24) // Bus Lock Debug Exception
+#define F_CLDEMOTE               (1u << 25) // Cache Line Demote Instruction
+#define F_MOVDIRI                (1u << 27) // Move Doubleword as Direct Store Instruction
+#define F_MOVDIR64B              (1u << 28) // Move 64 Bytes as Direct Store Instruction
+#define F_ENQCMD                 (1u << 29) // Enqueue Command
+#define F_SGX_LC                 (1u << 30) // Support SGX Launch Control
+#define F_PKS                    (1u << 31) // Protection Keys for Supervisor-mode Pages
 
 /*
  * CPUID 0x00000007 EDX flags

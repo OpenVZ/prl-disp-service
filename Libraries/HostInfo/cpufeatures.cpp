@@ -117,6 +117,7 @@ int GetHostCpuFeatures(CPUID_INFO* cpu_info)
 		uECX = 0;
 		CpuId(uEAX, uEBX, uECX, uEDX);
 		cpu_info->EXT_00000007_EBX = uEBX;
+		cpu_info->EXT_00000007_ECX = uECX;
 		cpu_info->EXT_00000007_EDX = uEDX;
 	}else{
 		cpu_info->EXT_00000007_EBX = 0;
@@ -361,6 +362,11 @@ int
 	if(res_mask.EXT_00000007_EBX_MASK)
 		bIsCompatible = false;
 
+	res_mask.EXT_00000007_ECX_MASK =
+		(src_mask->EXT_00000007_ECX_MASK ^ dst_mask->EXT_00000007_ECX_MASK) & src_mask->EXT_00000007_ECX_MASK;
+	if(res_mask.EXT_00000007_ECX_MASK)
+		bIsCompatible = false;
+
 	res_mask.EXT_00000007_EDX_MASK =
 		(src_mask->EXT_00000007_EDX_MASK ^ dst_mask->EXT_00000007_EDX_MASK) & src_mask->EXT_00000007_EDX_MASK;
 	if(res_mask.EXT_00000007_EDX_MASK)
@@ -407,6 +413,7 @@ void
 	dst_mask->EXT_80000001_EDX_MASK = (src_cpu_info->EXT_80000001_EDX & src_mask->EXT_80000001_EDX_MASK) | syscall_bit;
 	dst_mask->EXT_80000007_EDX_MASK = src_cpu_info->EXT_80000007_EDX & src_mask->EXT_80000007_EDX_MASK;
 	dst_mask->EXT_00000007_EBX_MASK = src_cpu_info->EXT_00000007_EBX & src_mask->EXT_00000007_EBX_MASK;
+	dst_mask->EXT_00000007_ECX_MASK = src_cpu_info->EXT_00000007_ECX & src_mask->EXT_00000007_ECX_MASK;
 	dst_mask->EXT_00000007_EDX_MASK = src_cpu_info->EXT_00000007_EDX & src_mask->EXT_00000007_EDX_MASK;
 	dst_mask->EXT_0000000D_EAX_MASK = src_cpu_info->EXT_0000000D_EAX & src_mask->EXT_0000000D_EAX_MASK;
 
@@ -431,6 +438,7 @@ void
 	dst_mask->EXT_80000001_EDX_MASK &= src_mask->EXT_80000001_EDX_MASK;
 	dst_mask->EXT_80000007_EDX_MASK &= src_mask->EXT_80000007_EDX_MASK;
 	dst_mask->EXT_00000007_EBX_MASK &= src_mask->EXT_00000007_EBX_MASK;
+	dst_mask->EXT_00000007_ECX_MASK &= src_mask->EXT_00000007_ECX_MASK;
 	dst_mask->EXT_00000007_EDX_MASK &= src_mask->EXT_00000007_EDX_MASK;
 	dst_mask->EXT_0000000D_EAX_MASK &= src_mask->EXT_0000000D_EAX_MASK;
 
@@ -598,6 +606,9 @@ void GetDefaultVMCpuFeaturesMask(
 	}
 	if (cpu_info->uVendorId == CPU_VENDOR_INTEL) {
 		features_mask->EXT_00000007_EDX_MASK = F_SPEC_CTRL | F_STIBP | F_ARCH_CAPABILITIES;
+		features_mask->EXT_00000007_ECX_MASK = F_AVX512VBMI | F_UMIP | F_PKU | F_OSPKE | F_WAITPKG | F_AVX512_VBMI2 |
+				F_SHSTK | F_GFNI | F_VAES | F_VPCLMULQDQ | F_AVX512_VNNI | F_AVX512_BITALG | F_TME | F_AVX512_VPOPCNTDQ |
+				F_LA57 | F_RDPID | F_BUS_LOCK_DETECT | F_CLDEMOTE | F_MOVDIRI | F_MOVDIR64B | F_ENQCMD | F_SGX_LC;
 	}
 }
 
@@ -760,6 +771,41 @@ static const char *StrName00000007_EBX(UINT bit)
 	return "";
 }
 
+static const char *StrName00000007_ECX(UINT bit)
+{
+	switch(1<<bit){
+	BIT_NAME(AVX512VBMI);
+	BIT_NAME(UMIP);
+	BIT_NAME(PKU);
+	BIT_NAME(OSPKE);
+
+	BIT_NAME(WAITPKG);
+	BIT_NAME(AVX512_VBMI2);
+	BIT_NAME(SHSTK);
+	BIT_NAME(GFNI);
+
+	BIT_NAME(VAES);
+	BIT_NAME(VPCLMULQDQ);
+	BIT_NAME(AVX512_VNNI);
+	BIT_NAME(AVX512_BITALG);
+
+	BIT_NAME(TME);
+	BIT_NAME(AVX512_VPOPCNTDQ);
+	BIT_NAME(LA57);
+	BIT_NAME(RDPID);
+
+	BIT_NAME(BUS_LOCK_DETECT);
+	BIT_NAME(CLDEMOTE);
+	BIT_NAME(MOVDIRI);
+	BIT_NAME(MOVDIR64B);
+	BIT_NAME(ENQCMD);
+	BIT_NAME(SGX_LC);
+	default:
+		return "UNK";
+	}
+	return "";
+}
+
 static const char *StrName00000007_EDX(UINT bit)
 {
 	switch(1<<bit){
@@ -821,7 +867,7 @@ static void PrintCpuFeaturesDetailsCommon(UINT v, char *pStr, int strSize, StrNa
 void PrintCpuInfo(CPUID_INFO *cpu, char *pStr, int strSize)
 {
 	snprintf(pStr, strSize, "%s %02X%X%X [%s] (id=%u) max(%u, 0x%x)"
-			" 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x",
+			" 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x",
 			cpu->szVendor,
 			cpu->Family, cpu->Model, cpu->Version.Stepping,
 			cpu->BrandString[0] ? (char*)cpu->BrandString : "no brand string",
@@ -833,6 +879,7 @@ void PrintCpuInfo(CPUID_INFO *cpu, char *pStr, int strSize)
 			cpu->EXT_80000007_EDX,
 			cpu->EXT_80000008_EAX.uCell,
 			cpu->EXT_00000007_EBX,
+			cpu->EXT_00000007_ECX,
 			cpu->EXT_00000007_EDX,
 			cpu->PowerManagement.uCell
 			);
@@ -848,6 +895,7 @@ void PrintCpuFeaturesDetails(CPUID_INFO *cpu, char *pStr, int strSize)
 	PrintCpuFeaturesDetailsCommon(cpu->EXT_80000001_EDX,  pStr, strSize, StrName80000001_EDX);
 	PrintCpuFeaturesDetailsCommon(cpu->EXT_80000007_EDX, pStr, strSize, StrName80000007_EDX);
 	PrintCpuFeaturesDetailsCommon(cpu->EXT_00000007_EBX, pStr, strSize, StrName00000007_EBX);
+	PrintCpuFeaturesDetailsCommon(cpu->EXT_00000007_ECX, pStr, strSize, StrName00000007_ECX);
 	PrintCpuFeaturesDetailsCommon(cpu->EXT_00000007_EDX, pStr, strSize, StrName00000007_EDX);
 	PrintCpuFeaturesDetailsCommon(cpu->PowerManagement.uCell, pStr, strSize, StrNamePowerManagement_ECX);
 	PrintCpuFeaturesDetailsCommon(cpu->EXT_0000000D_EAX, pStr, strSize, StrName0000000D_EAX);
@@ -856,7 +904,7 @@ void PrintCpuFeaturesDetails(CPUID_INFO *cpu, char *pStr, int strSize)
 void PrintCpuFeaturesMask(CPU_FEATURES_MASKS *f, char *pStr, int strSize)
 {
 	snprintf(pStr, strSize,
-		"0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x",
+		"0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x",
 		f->FEATURES_MASK,
 		f->EXT_FEATURES_MASK,
 		f->EXT_80000001_ECX_MASK,
@@ -864,6 +912,7 @@ void PrintCpuFeaturesMask(CPU_FEATURES_MASKS *f, char *pStr, int strSize)
 		f->EXT_80000007_EDX_MASK,
 		f->EXT_80000008_EAX.uCell,
 		f->EXT_00000007_EBX_MASK,
+		f->EXT_00000007_ECX_MASK,
 		f->EXT_00000007_EDX_MASK,
 		f->EXT_0000000D_EAX_MASK
 		);
@@ -878,6 +927,7 @@ void PrintCpuFeaturesMaskDetails(CPU_FEATURES_MASKS *f, char *pStr, int strSize)
 	PrintCpuFeaturesDetailsCommon(f->EXT_80000001_EDX_MASK, pStr, strSize, StrName80000001_EDX);
 	PrintCpuFeaturesDetailsCommon(f->EXT_80000007_EDX_MASK, pStr, strSize, StrName80000007_EDX);
 	PrintCpuFeaturesDetailsCommon(f->EXT_00000007_EBX_MASK, pStr, strSize, StrName00000007_EBX);
+	PrintCpuFeaturesDetailsCommon(f->EXT_00000007_ECX_MASK, pStr, strSize, StrName00000007_ECX);
 	PrintCpuFeaturesDetailsCommon(f->EXT_00000007_EDX_MASK, pStr, strSize, StrName00000007_EDX);
 	PrintCpuFeaturesDetailsCommon(f->EXT_0000000D_EAX_MASK, pStr, strSize, StrName0000000D_EAX);
 }
