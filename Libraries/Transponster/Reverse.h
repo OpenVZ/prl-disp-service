@@ -220,6 +220,9 @@ struct Builder
 	void setDns();
 	QString getResult();
 
+	// get config without reset m_result ptr
+	std::string getConfigString() const;
+
 protected:
 	PRL_RESULT setIdentification();
 

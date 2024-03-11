@@ -2640,6 +2640,15 @@ QString Builder::getResult()
 	return x.toString();
 }
 
+std::string Builder::getConfigString() const {
+	if (m_result.isNull())
+		return {};
+
+	QDomDocument target;
+	m_result->save(target);
+	return target.toString().toStdString();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // struct Vm
 
