@@ -2898,14 +2898,14 @@ private:
 } // namespace Filter
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct VChoice8178
+// struct VChoice9242
 
 namespace Filter
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Element<Filter::Xml::FilterrefNodeAttributes, Name::Strict<706> >, Element<Filter::Xml::Rule, Name::Strict<5252> > > > VChoice8178Impl;
-typedef VChoice8178Impl::value_type VChoice8178;
+typedef Choice<mpl::vector<Element<Filter::Xml::FilterrefNodeAttributes, Name::Strict<706> >, Element<Filter::Xml::Rule, Name::Strict<5252> > > > VChoice9242Impl;
+typedef VChoice9242Impl::value_type VChoice9242;
 
 } // namespace Xml
 } // namespace Filter
@@ -2935,13 +2935,13 @@ struct Filter
 	{
 		m_uuid = value_;
 	}
-	const QList<VChoice8178 >& getChoice8178List() const
+	const QList<VChoice9242 >& getChoice9242List() const
 	{
-		return m_choice8178List;
+		return m_choice9242List;
 	}
-	void setChoice8178List(const QList<VChoice8178 >& value_)
+	void setChoice9242List(const QList<VChoice9242 >& value_)
 	{
-		m_choice8178List = value_;
+		m_choice9242List = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -2950,7 +2950,7 @@ struct Filter
 private:
 	FilterNodeAttributes m_filterNodeAttributes;
 	boost::optional<VUUID > m_uuid;
-	QList<VChoice8178 > m_choice8178List;
+	QList<VChoice9242 > m_choice9242List;
 };
 
 } // namespace Xml
@@ -3454,7 +3454,7 @@ struct Traits<Filter::Xml::Rule>
 template<>
 struct Traits<Filter::Xml::Filter>
 {
-	typedef Ordered<mpl::vector<Fragment<Filter::Xml::FilterNodeAttributes >, Optional<Element<Text<Filter::Xml::VUUID >, Name::Strict<151> > >, ZeroOrMore<Filter::Xml::VChoice8178Impl > > > marshal_type;
+	typedef Ordered<mpl::vector<Fragment<Filter::Xml::FilterNodeAttributes >, Optional<Element<Text<Filter::Xml::VUUID >, Name::Strict<151> > >, ZeroOrMore<Filter::Xml::VChoice9242Impl > > > marshal_type;
 
 	static int parse(Filter::Xml::Filter& , QStack<QDomElement>& );
 	static int generate(const Filter::Xml::Filter& , QDomElement& );

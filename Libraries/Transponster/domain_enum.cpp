@@ -174,6 +174,14 @@ Enum<Domain::Xml::EMode1>::data_type Enum<Domain::Xml::EMode1>::getData()
 }
 
 template<>
+Enum<Domain::Xml::EMode2>::data_type Enum<Domain::Xml::EMode2>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EMode2Emulate, "emulate"))
+			(data_type::value_type(Domain::Xml::EMode2Passthrough, "passthrough"));
+}
+
+template<>
 Enum<Domain::Xml::ESysinfoBiosName>::data_type Enum<Domain::Xml::ESysinfoBiosName>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -245,6 +253,14 @@ Enum<Domain::Xml::EType3>::data_type Enum<Domain::Xml::EType3>::getData()
 }
 
 template<>
+Enum<Domain::Xml::EFirmware>::data_type Enum<Domain::Xml::EFirmware>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EFirmwareBios, "bios"))
+			(data_type::value_type(Domain::Xml::EFirmwareEfi, "efi"));
+}
+
+template<>
 Enum<Domain::Xml::EArch1>::data_type Enum<Domain::Xml::EArch1>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -302,19 +318,11 @@ Enum<Domain::Xml::EArch4>::data_type Enum<Domain::Xml::EArch4>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EReadonly>::data_type Enum<Domain::Xml::EReadonly>::getData()
+Enum<Domain::Xml::EName>::data_type Enum<Domain::Xml::EName>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EReadonlyYes, "yes"))
-			(data_type::value_type(Domain::Xml::EReadonlyNo, "no"));
-}
-
-template<>
-Enum<Domain::Xml::ESecure>::data_type Enum<Domain::Xml::ESecure>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::ESecureYes, "yes"))
-			(data_type::value_type(Domain::Xml::ESecureNo, "no"));
+			(data_type::value_type(Domain::Xml::ENameEnrolledKeys, "enrolled-keys"))
+			(data_type::value_type(Domain::Xml::ENameSecureBoot, "secure-boot"));
 }
 
 template<>
@@ -323,6 +331,14 @@ Enum<Domain::Xml::EType4>::data_type Enum<Domain::Xml::EType4>::getData()
 	return ba::list_of<data_type::relation>
 			(data_type::value_type(Domain::Xml::EType4Rom, "rom"))
 			(data_type::value_type(Domain::Xml::EType4Pflash, "pflash"));
+}
+
+template<>
+Enum<Domain::Xml::EFormat>::data_type Enum<Domain::Xml::EFormat>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EFormatRaw, "raw"))
+			(data_type::value_type(Domain::Xml::EFormatQcow2, "qcow2"));
 }
 
 template<>
@@ -335,12 +351,12 @@ Enum<Domain::Xml::EStartupPolicy>::data_type Enum<Domain::Xml::EStartupPolicy>::
 }
 
 template<>
-Enum<Domain::Xml::EFormat>::data_type Enum<Domain::Xml::EFormat>::getData()
+Enum<Domain::Xml::EFormat1>::data_type Enum<Domain::Xml::EFormat1>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EFormatDefault, "default"))
-			(data_type::value_type(Domain::Xml::EFormatQcow, "qcow"))
-			(data_type::value_type(Domain::Xml::EFormatLuks, "luks"));
+			(data_type::value_type(Domain::Xml::EFormat1Default, "default"))
+			(data_type::value_type(Domain::Xml::EFormat1Qcow, "qcow"))
+			(data_type::value_type(Domain::Xml::EFormat1Luks, "luks"));
 }
 
 template<>
@@ -368,19 +384,11 @@ Enum<Domain::Xml::ETransport>::data_type Enum<Domain::Xml::ETransport>::getData(
 }
 
 template<>
-Enum<Domain::Xml::EMode2>::data_type Enum<Domain::Xml::EMode2>::getData()
+Enum<Domain::Xml::EMode3>::data_type Enum<Domain::Xml::EMode3>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMode2Host, "host"))
-			(data_type::value_type(Domain::Xml::EMode2Direct, "direct"));
-}
-
-template<>
-Enum<Domain::Xml::EFormat1>::data_type Enum<Domain::Xml::EFormat1>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EFormat1Raw, "raw"))
-			(data_type::value_type(Domain::Xml::EFormat1Qcow2, "qcow2"));
+			(data_type::value_type(Domain::Xml::EMode3Host, "host"))
+			(data_type::value_type(Domain::Xml::EMode3Direct, "direct"));
 }
 
 template<>
@@ -394,12 +402,12 @@ Enum<Domain::Xml::EDev>::data_type Enum<Domain::Xml::EDev>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EMode3>::data_type Enum<Domain::Xml::EMode3>::getData()
+Enum<Domain::Xml::EMode4>::data_type Enum<Domain::Xml::EMode4>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMode3Emulate, "emulate"))
-			(data_type::value_type(Domain::Xml::EMode3Host, "host"))
-			(data_type::value_type(Domain::Xml::EMode3Sysinfo, "sysinfo"));
+			(data_type::value_type(Domain::Xml::EMode4Emulate, "emulate"))
+			(data_type::value_type(Domain::Xml::EMode4Host, "host"))
+			(data_type::value_type(Domain::Xml::EMode4Sysinfo, "sysinfo"));
 }
 
 template<>
@@ -438,11 +446,11 @@ Enum<Domain::Xml::EBasis>::data_type Enum<Domain::Xml::EBasis>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EName>::data_type Enum<Domain::Xml::EName>::getData()
+Enum<Domain::Xml::EName1>::data_type Enum<Domain::Xml::EName1>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::ENamePlatform, "platform"))
-			(data_type::value_type(Domain::Xml::ENameRtc, "rtc"));
+			(data_type::value_type(Domain::Xml::EName1Platform, "platform"))
+			(data_type::value_type(Domain::Xml::EName1Rtc, "rtc"));
 }
 
 template<>
@@ -464,30 +472,30 @@ Enum<Domain::Xml::ETickpolicy>::data_type Enum<Domain::Xml::ETickpolicy>::getDat
 }
 
 template<>
-Enum<Domain::Xml::EMode4>::data_type Enum<Domain::Xml::EMode4>::getData()
+Enum<Domain::Xml::EMode5>::data_type Enum<Domain::Xml::EMode5>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMode4Auto, "auto"))
-			(data_type::value_type(Domain::Xml::EMode4Native, "native"))
-			(data_type::value_type(Domain::Xml::EMode4Emulate, "emulate"))
-			(data_type::value_type(Domain::Xml::EMode4Paravirt, "paravirt"))
-			(data_type::value_type(Domain::Xml::EMode4Smpsafe, "smpsafe"));
-}
-
-template<>
-Enum<Domain::Xml::EName1>::data_type Enum<Domain::Xml::EName1>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName1Hpet, "hpet"))
-			(data_type::value_type(Domain::Xml::EName1Pit, "pit"));
+			(data_type::value_type(Domain::Xml::EMode5Auto, "auto"))
+			(data_type::value_type(Domain::Xml::EMode5Native, "native"))
+			(data_type::value_type(Domain::Xml::EMode5Emulate, "emulate"))
+			(data_type::value_type(Domain::Xml::EMode5Paravirt, "paravirt"))
+			(data_type::value_type(Domain::Xml::EMode5Smpsafe, "smpsafe"));
 }
 
 template<>
 Enum<Domain::Xml::EName2>::data_type Enum<Domain::Xml::EName2>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName2Kvmclock, "kvmclock"))
-			(data_type::value_type(Domain::Xml::EName2Hypervclock, "hypervclock"));
+			(data_type::value_type(Domain::Xml::EName2Hpet, "hpet"))
+			(data_type::value_type(Domain::Xml::EName2Pit, "pit"));
+}
+
+template<>
+Enum<Domain::Xml::EName3>::data_type Enum<Domain::Xml::EName3>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EName3Kvmclock, "kvmclock"))
+			(data_type::value_type(Domain::Xml::EName3Hypervclock, "hypervclock"));
 }
 
 template<>
@@ -500,19 +508,19 @@ Enum<Domain::Xml::EType5>::data_type Enum<Domain::Xml::EType5>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EMode5>::data_type Enum<Domain::Xml::EMode5>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMode5Shared, "shared"))
-			(data_type::value_type(Domain::Xml::EMode5Private, "private"));
-}
-
-template<>
 Enum<Domain::Xml::EMode6>::data_type Enum<Domain::Xml::EMode6>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMode6Immediate, "immediate"))
-			(data_type::value_type(Domain::Xml::EMode6Ondemand, "ondemand"));
+			(data_type::value_type(Domain::Xml::EMode6Shared, "shared"))
+			(data_type::value_type(Domain::Xml::EMode6Private, "private"));
+}
+
+template<>
+Enum<Domain::Xml::EMode7>::data_type Enum<Domain::Xml::EMode7>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EMode7Immediate, "immediate"))
+			(data_type::value_type(Domain::Xml::EMode7Ondemand, "ondemand"));
 }
 
 template<>
@@ -549,21 +557,21 @@ Enum<Domain::Xml::EType6>::data_type Enum<Domain::Xml::EType6>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EMode7>::data_type Enum<Domain::Xml::EMode7>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMode7Strict, "strict"))
-			(data_type::value_type(Domain::Xml::EMode7Preferred, "preferred"))
-			(data_type::value_type(Domain::Xml::EMode7Interleave, "interleave"));
-}
-
-template<>
 Enum<Domain::Xml::EMode8>::data_type Enum<Domain::Xml::EMode8>::getData()
 {
 	return ba::list_of<data_type::relation>
 			(data_type::value_type(Domain::Xml::EMode8Strict, "strict"))
 			(data_type::value_type(Domain::Xml::EMode8Preferred, "preferred"))
 			(data_type::value_type(Domain::Xml::EMode8Interleave, "interleave"));
+}
+
+template<>
+Enum<Domain::Xml::EMode9>::data_type Enum<Domain::Xml::EMode9>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EMode9Strict, "strict"))
+			(data_type::value_type(Domain::Xml::EMode9Preferred, "preferred"))
+			(data_type::value_type(Domain::Xml::EMode9Interleave, "interleave"));
 }
 
 template<>
@@ -662,31 +670,31 @@ Enum<Domain::Xml::ELockfailureOptions>::data_type Enum<Domain::Xml::ELockfailure
 }
 
 template<>
-Enum<Domain::Xml::EName3>::data_type Enum<Domain::Xml::EName3>::getData()
+Enum<Domain::Xml::EName4>::data_type Enum<Domain::Xml::EName4>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName3Cmt, "cmt"))
-			(data_type::value_type(Domain::Xml::EName3Mbmt, "mbmt"))
-			(data_type::value_type(Domain::Xml::EName3Mbml, "mbml"))
-			(data_type::value_type(Domain::Xml::EName3CpuCycles, "cpu_cycles"))
-			(data_type::value_type(Domain::Xml::EName3Instructions, "instructions"))
-			(data_type::value_type(Domain::Xml::EName3CacheReferences, "cache_references"))
-			(data_type::value_type(Domain::Xml::EName3CacheMisses, "cache_misses"))
-			(data_type::value_type(Domain::Xml::EName3BranchInstructions, "branch_instructions"))
-			(data_type::value_type(Domain::Xml::EName3BranchMisses, "branch_misses"))
-			(data_type::value_type(Domain::Xml::EName3BusCycles, "bus_cycles"))
-			(data_type::value_type(Domain::Xml::EName3StalledCyclesFrontend, "stalled_cycles_frontend"))
-			(data_type::value_type(Domain::Xml::EName3StalledCyclesBackend, "stalled_cycles_backend"))
-			(data_type::value_type(Domain::Xml::EName3RefCpuCycles, "ref_cpu_cycles"))
-			(data_type::value_type(Domain::Xml::EName3CpuClock, "cpu_clock"))
-			(data_type::value_type(Domain::Xml::EName3TaskClock, "task_clock"))
-			(data_type::value_type(Domain::Xml::EName3PageFaults, "page_faults"))
-			(data_type::value_type(Domain::Xml::EName3ContextSwitches, "context_switches"))
-			(data_type::value_type(Domain::Xml::EName3CpuMigrations, "cpu_migrations"))
-			(data_type::value_type(Domain::Xml::EName3PageFaultsMin, "page_faults_min"))
-			(data_type::value_type(Domain::Xml::EName3PageFaultsMaj, "page_faults_maj"))
-			(data_type::value_type(Domain::Xml::EName3AlignmentFaults, "alignment_faults"))
-			(data_type::value_type(Domain::Xml::EName3EmulationFaults, "emulation_faults"));
+			(data_type::value_type(Domain::Xml::EName4Cmt, "cmt"))
+			(data_type::value_type(Domain::Xml::EName4Mbmt, "mbmt"))
+			(data_type::value_type(Domain::Xml::EName4Mbml, "mbml"))
+			(data_type::value_type(Domain::Xml::EName4CpuCycles, "cpu_cycles"))
+			(data_type::value_type(Domain::Xml::EName4Instructions, "instructions"))
+			(data_type::value_type(Domain::Xml::EName4CacheReferences, "cache_references"))
+			(data_type::value_type(Domain::Xml::EName4CacheMisses, "cache_misses"))
+			(data_type::value_type(Domain::Xml::EName4BranchInstructions, "branch_instructions"))
+			(data_type::value_type(Domain::Xml::EName4BranchMisses, "branch_misses"))
+			(data_type::value_type(Domain::Xml::EName4BusCycles, "bus_cycles"))
+			(data_type::value_type(Domain::Xml::EName4StalledCyclesFrontend, "stalled_cycles_frontend"))
+			(data_type::value_type(Domain::Xml::EName4StalledCyclesBackend, "stalled_cycles_backend"))
+			(data_type::value_type(Domain::Xml::EName4RefCpuCycles, "ref_cpu_cycles"))
+			(data_type::value_type(Domain::Xml::EName4CpuClock, "cpu_clock"))
+			(data_type::value_type(Domain::Xml::EName4TaskClock, "task_clock"))
+			(data_type::value_type(Domain::Xml::EName4PageFaults, "page_faults"))
+			(data_type::value_type(Domain::Xml::EName4ContextSwitches, "context_switches"))
+			(data_type::value_type(Domain::Xml::EName4CpuMigrations, "cpu_migrations"))
+			(data_type::value_type(Domain::Xml::EName4PageFaultsMin, "page_faults_min"))
+			(data_type::value_type(Domain::Xml::EName4PageFaultsMaj, "page_faults_maj"))
+			(data_type::value_type(Domain::Xml::EName4AlignmentFaults, "alignment_faults"))
+			(data_type::value_type(Domain::Xml::EName4EmulationFaults, "emulation_faults"));
 }
 
 template<>
@@ -938,19 +946,19 @@ Enum<Domain::Xml::EModel2>::data_type Enum<Domain::Xml::EModel2>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EName4>::data_type Enum<Domain::Xml::EName4>::getData()
+Enum<Domain::Xml::EName5>::data_type Enum<Domain::Xml::EName5>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName4SpaprPciHostBridge, "spapr-pci-host-bridge"))
-			(data_type::value_type(Domain::Xml::EName4PciBridge, "pci-bridge"))
-			(data_type::value_type(Domain::Xml::EName4I82801b11Bridge, "i82801b11-bridge"))
-			(data_type::value_type(Domain::Xml::EName4PciePciBridge, "pcie-pci-bridge"))
-			(data_type::value_type(Domain::Xml::EName4Ioh3420, "ioh3420"))
-			(data_type::value_type(Domain::Xml::EName4PcieRootPort, "pcie-root-port"))
-			(data_type::value_type(Domain::Xml::EName4X3130Upstream, "x3130-upstream"))
-			(data_type::value_type(Domain::Xml::EName4Xio3130Downstream, "xio3130-downstream"))
-			(data_type::value_type(Domain::Xml::EName4Pxb, "pxb"))
-			(data_type::value_type(Domain::Xml::EName4PxbPcie, "pxb-pcie"));
+			(data_type::value_type(Domain::Xml::EName5SpaprPciHostBridge, "spapr-pci-host-bridge"))
+			(data_type::value_type(Domain::Xml::EName5PciBridge, "pci-bridge"))
+			(data_type::value_type(Domain::Xml::EName5I82801b11Bridge, "i82801b11-bridge"))
+			(data_type::value_type(Domain::Xml::EName5PciePciBridge, "pcie-pci-bridge"))
+			(data_type::value_type(Domain::Xml::EName5Ioh3420, "ioh3420"))
+			(data_type::value_type(Domain::Xml::EName5PcieRootPort, "pcie-root-port"))
+			(data_type::value_type(Domain::Xml::EName5X3130Upstream, "x3130-upstream"))
+			(data_type::value_type(Domain::Xml::EName5Xio3130Downstream, "xio3130-downstream"))
+			(data_type::value_type(Domain::Xml::EName5Pxb, "pxb"))
+			(data_type::value_type(Domain::Xml::EName5PxbPcie, "pxb-pcie"));
 }
 
 template<>
@@ -1040,19 +1048,19 @@ Enum<Domain::Xml::EState>::data_type Enum<Domain::Xml::EState>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EName5>::data_type Enum<Domain::Xml::EName5>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName5Kvm, "kvm"))
-			(data_type::value_type(Domain::Xml::EName5Vfio, "vfio"));
-}
-
-template<>
 Enum<Domain::Xml::EName6>::data_type Enum<Domain::Xml::EName6>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName6Qemu, "qemu"))
-			(data_type::value_type(Domain::Xml::EName6Vhost, "vhost"));
+			(data_type::value_type(Domain::Xml::EName6Kvm, "kvm"))
+			(data_type::value_type(Domain::Xml::EName6Vfio, "vfio"));
+}
+
+template<>
+Enum<Domain::Xml::EName7>::data_type Enum<Domain::Xml::EName7>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EName7Qemu, "qemu"))
+			(data_type::value_type(Domain::Xml::EName7Vhost, "vhost"));
 }
 
 template<>
@@ -1079,11 +1087,11 @@ Enum<Domain::Xml::EType11>::data_type Enum<Domain::Xml::EType11>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EMode9>::data_type Enum<Domain::Xml::EMode9>::getData()
+Enum<Domain::Xml::EMode10>::data_type Enum<Domain::Xml::EMode10>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMode9Server, "server"))
-			(data_type::value_type(Domain::Xml::EMode9Client, "client"));
+			(data_type::value_type(Domain::Xml::EMode10Server, "server"))
+			(data_type::value_type(Domain::Xml::EMode10Client, "client"));
 }
 
 template<>
@@ -1143,12 +1151,12 @@ Enum<Domain::Xml::EType14>::data_type Enum<Domain::Xml::EType14>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EName7>::data_type Enum<Domain::Xml::EName7>::getData()
+Enum<Domain::Xml::EName8>::data_type Enum<Domain::Xml::EName8>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName7Kvm, "kvm"))
-			(data_type::value_type(Domain::Xml::EName7Vfio, "vfio"))
-			(data_type::value_type(Domain::Xml::EName7Xen, "xen"));
+			(data_type::value_type(Domain::Xml::EName8Kvm, "kvm"))
+			(data_type::value_type(Domain::Xml::EName8Vfio, "vfio"))
+			(data_type::value_type(Domain::Xml::EName8Xen, "xen"));
 }
 
 template<>
@@ -1208,26 +1216,26 @@ Enum<Domain::Xml::EDefaultMode>::data_type Enum<Domain::Xml::EDefaultMode>::getD
 }
 
 template<>
-Enum<Domain::Xml::EName8>::data_type Enum<Domain::Xml::EName8>::getData()
+Enum<Domain::Xml::EName9>::data_type Enum<Domain::Xml::EName9>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName8Main, "main"))
-			(data_type::value_type(Domain::Xml::EName8Display, "display"))
-			(data_type::value_type(Domain::Xml::EName8Inputs, "inputs"))
-			(data_type::value_type(Domain::Xml::EName8Cursor, "cursor"))
-			(data_type::value_type(Domain::Xml::EName8Playback, "playback"))
-			(data_type::value_type(Domain::Xml::EName8Record, "record"))
-			(data_type::value_type(Domain::Xml::EName8Smartcard, "smartcard"))
-			(data_type::value_type(Domain::Xml::EName8Usbredir, "usbredir"));
+			(data_type::value_type(Domain::Xml::EName9Main, "main"))
+			(data_type::value_type(Domain::Xml::EName9Display, "display"))
+			(data_type::value_type(Domain::Xml::EName9Inputs, "inputs"))
+			(data_type::value_type(Domain::Xml::EName9Cursor, "cursor"))
+			(data_type::value_type(Domain::Xml::EName9Playback, "playback"))
+			(data_type::value_type(Domain::Xml::EName9Record, "record"))
+			(data_type::value_type(Domain::Xml::EName9Smartcard, "smartcard"))
+			(data_type::value_type(Domain::Xml::EName9Usbredir, "usbredir"));
 }
 
 template<>
-Enum<Domain::Xml::EMode10>::data_type Enum<Domain::Xml::EMode10>::getData()
+Enum<Domain::Xml::EMode11>::data_type Enum<Domain::Xml::EMode11>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMode10Any, "any"))
-			(data_type::value_type(Domain::Xml::EMode10Secure, "secure"))
-			(data_type::value_type(Domain::Xml::EMode10Insecure, "insecure"));
+			(data_type::value_type(Domain::Xml::EMode11Any, "any"))
+			(data_type::value_type(Domain::Xml::EMode11Secure, "secure"))
+			(data_type::value_type(Domain::Xml::EMode11Insecure, "insecure"));
 }
 
 template<>
@@ -1261,28 +1269,28 @@ Enum<Domain::Xml::ECompression2>::data_type Enum<Domain::Xml::ECompression2>::ge
 }
 
 template<>
-Enum<Domain::Xml::EMode11>::data_type Enum<Domain::Xml::EMode11>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMode11Filter, "filter"))
-			(data_type::value_type(Domain::Xml::EMode11All, "all"))
-			(data_type::value_type(Domain::Xml::EMode11Off, "off"));
-}
-
-template<>
 Enum<Domain::Xml::EMode12>::data_type Enum<Domain::Xml::EMode12>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EMode12Server, "server"))
-			(data_type::value_type(Domain::Xml::EMode12Client, "client"));
+			(data_type::value_type(Domain::Xml::EMode12Filter, "filter"))
+			(data_type::value_type(Domain::Xml::EMode12All, "all"))
+			(data_type::value_type(Domain::Xml::EMode12Off, "off"));
 }
 
 template<>
-Enum<Domain::Xml::EName9>::data_type Enum<Domain::Xml::EName9>::getData()
+Enum<Domain::Xml::EMode13>::data_type Enum<Domain::Xml::EMode13>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName9Qemu, "qemu"))
-			(data_type::value_type(Domain::Xml::EName9Vhostuser, "vhostuser"));
+			(data_type::value_type(Domain::Xml::EMode13Server, "server"))
+			(data_type::value_type(Domain::Xml::EMode13Client, "client"));
+}
+
+template<>
+Enum<Domain::Xml::EName10>::data_type Enum<Domain::Xml::EName10>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Domain::Xml::EName10Qemu, "qemu"))
+			(data_type::value_type(Domain::Xml::EName10Vhostuser, "vhostuser"));
 }
 
 template<>
@@ -1363,16 +1371,16 @@ Enum<Domain::Xml::EType18>::data_type Enum<Domain::Xml::EType18>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EName10>::data_type Enum<Domain::Xml::EName10>::getData()
+Enum<Domain::Xml::EName11>::data_type Enum<Domain::Xml::EName11>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName10IsaSerial, "isa-serial"))
-			(data_type::value_type(Domain::Xml::EName10UsbSerial, "usb-serial"))
-			(data_type::value_type(Domain::Xml::EName10PciSerial, "pci-serial"))
-			(data_type::value_type(Domain::Xml::EName10SpaprVty, "spapr-vty"))
-			(data_type::value_type(Domain::Xml::EName10Pl011, "pl011"))
-			(data_type::value_type(Domain::Xml::EName10Sclpconsole, "sclpconsole"))
-			(data_type::value_type(Domain::Xml::EName10Sclplmconsole, "sclplmconsole"));
+			(data_type::value_type(Domain::Xml::EName11IsaSerial, "isa-serial"))
+			(data_type::value_type(Domain::Xml::EName11UsbSerial, "usb-serial"))
+			(data_type::value_type(Domain::Xml::EName11PciSerial, "pci-serial"))
+			(data_type::value_type(Domain::Xml::EName11SpaprVty, "spapr-vty"))
+			(data_type::value_type(Domain::Xml::EName11Pl011, "pl011"))
+			(data_type::value_type(Domain::Xml::EName11Sclpconsole, "sclpconsole"))
+			(data_type::value_type(Domain::Xml::EName11Sclplmconsole, "sclplmconsole"));
 }
 
 template<>
@@ -1428,7 +1436,9 @@ Enum<Domain::Xml::EModel12>::data_type Enum<Domain::Xml::EModel12>::getData()
 {
 	return ba::list_of<data_type::relation>
 			(data_type::value_type(Domain::Xml::EModel12I6300esb, "i6300esb"))
-			(data_type::value_type(Domain::Xml::EModel12Ib700, "ib700"));
+			(data_type::value_type(Domain::Xml::EModel12Ib700, "ib700"))
+			(data_type::value_type(Domain::Xml::EModel12Diag288, "diag288"))
+			(data_type::value_type(Domain::Xml::EModel12Itco, "itco"));
 }
 
 template<>
@@ -1464,11 +1474,11 @@ Enum<Domain::Xml::EModel14>::data_type Enum<Domain::Xml::EModel14>::getData()
 }
 
 template<>
-Enum<Domain::Xml::EName11>::data_type Enum<Domain::Xml::EName11>::getData()
+Enum<Domain::Xml::EName12>::data_type Enum<Domain::Xml::EName12>::getData()
 {
 	return ba::list_of<data_type::relation>
-			(data_type::value_type(Domain::Xml::EName11Aes, "aes"))
-			(data_type::value_type(Domain::Xml::EName11Dea, "dea"));
+			(data_type::value_type(Domain::Xml::EName12Aes, "aes"))
+			(data_type::value_type(Domain::Xml::EName12Dea, "dea"));
 }
 
 } // namespace Libvirt

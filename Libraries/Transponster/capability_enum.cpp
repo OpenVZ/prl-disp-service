@@ -45,6 +45,14 @@ Enum<Capability::Xml::EFallback>::data_type Enum<Capability::Xml::EFallback>::ge
 }
 
 template<>
+Enum<Capability::Xml::EMode>::data_type Enum<Capability::Xml::EMode>::getData()
+{
+	return ba::list_of<data_type::relation>
+			(data_type::value_type(Capability::Xml::EModeEmulate, "emulate"))
+			(data_type::value_type(Capability::Xml::EModePassthrough, "passthrough"));
+}
+
+template<>
 Enum<Capability::Xml::EPolicy>::data_type Enum<Capability::Xml::EPolicy>::getData()
 {
 	return ba::list_of<data_type::relation>
@@ -62,14 +70,6 @@ Enum<Capability::Xml::EUsable>::data_type Enum<Capability::Xml::EUsable>::getDat
 			(data_type::value_type(Capability::Xml::EUsableYes, "yes"))
 			(data_type::value_type(Capability::Xml::EUsableNo, "no"))
 			(data_type::value_type(Capability::Xml::EUsableUnknown, "unknown"));
-}
-
-template<>
-Enum<Capability::Xml::EDeprecated>::data_type Enum<Capability::Xml::EDeprecated>::getData()
-{
-	return ba::list_of<data_type::relation>
-			(data_type::value_type(Capability::Xml::EDeprecatedYes, "yes"))
-			(data_type::value_type(Capability::Xml::EDeprecatedNo, "no"));
 }
 
 } // namespace Libvirt

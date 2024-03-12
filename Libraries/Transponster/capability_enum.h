@@ -44,6 +44,12 @@ enum EFallback
 	EFallbackForbid
 };
 
+enum EMode
+{
+	EModeEmulate,
+	EModePassthrough
+};
+
 enum EPolicy
 {
 	EPolicyForce,
@@ -58,12 +64,6 @@ enum EUsable
 	EUsableYes,
 	EUsableNo,
 	EUsableUnknown
-};
-
-enum EDeprecated
-{
-	EDeprecatedYes,
-	EDeprecatedNo
 };
 
 

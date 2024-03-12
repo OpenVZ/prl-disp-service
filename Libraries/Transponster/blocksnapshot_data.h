@@ -155,13 +155,13 @@ struct Traits<Blocksnapshot::Xml::POctalMode>
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData9528
+// struct PData9770
 
 namespace Blocksnapshot
 {
 namespace Xml
 {
-struct PData9528
+struct PData9770
 {
 	typedef QString value_type;
 };
@@ -170,9 +170,9 @@ struct PData9528
 } // namespace Blocksnapshot
 
 template<>
-struct Validatable<Blocksnapshot::Xml::PData9528>: mpl::true_
+struct Validatable<Blocksnapshot::Xml::PData9770>: mpl::true_
 {
-	static bool validate(const Blocksnapshot::Xml::PData9528::value_type& value_);
+	static bool validate(const Blocksnapshot::Xml::PData9770::value_type& value_);
 
 };
 

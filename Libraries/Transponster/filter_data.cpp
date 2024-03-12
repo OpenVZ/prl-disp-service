@@ -112,9 +112,9 @@ QString Traits<Filter::Xml::POctalMode>::generate(Filter::Xml::POctalMode::value
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData9528
+// struct PData9843
 
-bool Validatable<Filter::Xml::PData9528>::validate(const Filter::Xml::PData9528::value_type& value_)
+bool Validatable<Filter::Xml::PData9843>::validate(const Filter::Xml::PData9843::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
@@ -124,21 +124,21 @@ bool Validatable<Filter::Xml::PData9528>::validate(const Filter::Xml::PData9528:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData5141
+// struct PData9885
 
-bool Traits<Filter::Xml::PData5141>::parse(const QString& src_, Filter::Xml::PData5141::value_type& dst_)
+bool Traits<Filter::Xml::PData9885>::parse(const QString& src_, Filter::Xml::PData9885::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Filter::Xml::PData5141>::generate(Filter::Xml::PData5141::value_type src_)
+QString Traits<Filter::Xml::PData9885>::generate(Filter::Xml::PData9885::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Filter::Xml::PData5141>::validate(Filter::Xml::PData5141::value_type value_)
+bool Validatable<Filter::Xml::PData9885>::validate(Filter::Xml::PData9885::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -150,9 +150,9 @@ bool Validatable<Filter::Xml::PData5141>::validate(Filter::Xml::PData5141::value
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData5143
+// struct PData8134
 
-bool Validatable<Filter::Xml::PData5143>::validate(const Filter::Xml::PData5143::value_type& value_)
+bool Validatable<Filter::Xml::PData8134>::validate(const Filter::Xml::PData8134::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,2}");
 	if (!q.exactMatch(value_))
@@ -162,21 +162,21 @@ bool Validatable<Filter::Xml::PData5143>::validate(const Filter::Xml::PData5143:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData5145
+// struct PData8136
 
-bool Traits<Filter::Xml::PData5145>::parse(const QString& src_, Filter::Xml::PData5145::value_type& dst_)
+bool Traits<Filter::Xml::PData8136>::parse(const QString& src_, Filter::Xml::PData8136::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Filter::Xml::PData5145>::generate(Filter::Xml::PData5145::value_type src_)
+QString Traits<Filter::Xml::PData8136>::generate(Filter::Xml::PData8136::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Filter::Xml::PData5145>::validate(Filter::Xml::PData5145::value_type value_)
+bool Validatable<Filter::Xml::PData8136>::validate(Filter::Xml::PData8136::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -188,9 +188,9 @@ bool Validatable<Filter::Xml::PData5145>::validate(Filter::Xml::PData5145::value
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData5147
+// struct PData8138
 
-bool Validatable<Filter::Xml::PData5147>::validate(const Filter::Xml::PData5147::value_type& value_)
+bool Validatable<Filter::Xml::PData8138>::validate(const Filter::Xml::PData8138::value_type& value_)
 {
 	QRegExp q("(0x)?[0-9a-fA-F]{1,4}");
 	if (!q.exactMatch(value_))
@@ -200,21 +200,21 @@ bool Validatable<Filter::Xml::PData5147>::validate(const Filter::Xml::PData5147:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData95281
+// struct PData8140
 
-bool Traits<Filter::Xml::PData95281>::parse(const QString& src_, Filter::Xml::PData95281::value_type& dst_)
+bool Traits<Filter::Xml::PData8140>::parse(const QString& src_, Filter::Xml::PData8140::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Filter::Xml::PData95281>::generate(Filter::Xml::PData95281::value_type src_)
+QString Traits<Filter::Xml::PData8140>::generate(Filter::Xml::PData8140::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Filter::Xml::PData95281>::validate(Filter::Xml::PData95281::value_type value_)
+bool Validatable<Filter::Xml::PData8140>::validate(Filter::Xml::PData8140::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -226,21 +226,33 @@ bool Validatable<Filter::Xml::PData95281>::validate(Filter::Xml::PData95281::val
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData5149
+// struct PData8142
 
-bool Traits<Filter::Xml::PData5149>::parse(const QString& src_, Filter::Xml::PData5149::value_type& dst_)
+bool Validatable<Filter::Xml::PData8142>::validate(const Filter::Xml::PData8142::value_type& value_)
+{
+	QRegExp q("0x[0-9a-fA-F]{1,6}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8144
+
+bool Traits<Filter::Xml::PData8144>::parse(const QString& src_, Filter::Xml::PData8144::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toInt(&output);
 	return output;
 }
 
-QString Traits<Filter::Xml::PData5149>::generate(Filter::Xml::PData5149::value_type src_)
+QString Traits<Filter::Xml::PData8144>::generate(Filter::Xml::PData8144::value_type src_)
 {
 	return QString::number(src_);
 }
 
-bool Validatable<Filter::Xml::PData5149>::validate(Filter::Xml::PData5149::value_type value_)
+bool Validatable<Filter::Xml::PData8144>::validate(Filter::Xml::PData8144::value_type value_)
 {
 	if (0 > value_)
 		return false;
@@ -252,9 +264,9 @@ bool Validatable<Filter::Xml::PData5149>::validate(Filter::Xml::PData5149::value
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData5151
+// struct PData8146
 
-bool Validatable<Filter::Xml::PData5151>::validate(const Filter::Xml::PData5151::value_type& value_)
+bool Validatable<Filter::Xml::PData8146>::validate(const Filter::Xml::PData8146::value_type& value_)
 {
 	QRegExp q("0x[0-9a-fA-F]{1,6}");
 	if (!q.exactMatch(value_))
@@ -264,24 +276,74 @@ bool Validatable<Filter::Xml::PData5151>::validate(const Filter::Xml::PData5151:
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData95282
+// struct PData8148
 
-bool Traits<Filter::Xml::PData95282>::parse(const QString& src_, Filter::Xml::PData95282::value_type& dst_)
+bool Traits<Filter::Xml::PData8148>::parse(const QString& src_, Filter::Xml::PData8148::value_type& dst_)
+{
+	bool output = false;
+	dst_ = src_.toInt(&output);
+	return output;
+}
+
+QString Traits<Filter::Xml::PData8148>::generate(Filter::Xml::PData8148::value_type src_)
+{
+	return QString::number(src_);
+}
+
+bool Validatable<Filter::Xml::PData8148>::validate(Filter::Xml::PData8148::value_type value_)
+{
+	if (0 > value_)
+		return false;
+
+	if (16777215 < value_)
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8150
+
+bool Validatable<Filter::Xml::PData8150>::validate(const Filter::Xml::PData8150::value_type& value_)
+{
+	QRegExp q("(0x)?[0-9a-fA-F]{1,8}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8152
+
+bool Traits<Filter::Xml::PData8152>::parse(const QString& src_, Filter::Xml::PData8152::value_type& dst_)
 {
 	bool output = false;
 	dst_ = src_.toUInt(&output);
 	return output;
 }
 
-QString Traits<Filter::Xml::PData95282>::generate(Filter::Xml::PData95282::value_type src_)
+QString Traits<Filter::Xml::PData8152>::generate(Filter::Xml::PData8152::value_type src_)
 {
 	return QString::number(src_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData5153
+// struct PData8154
 
-bool Validatable<Filter::Xml::PData5153>::validate(const Filter::Xml::PData5153::value_type& value_)
+bool Validatable<Filter::Xml::PData8154>::validate(const Filter::Xml::PData8154::value_type& value_)
+{
+	QRegExp q("[a-fA-F0-9]{32}");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData8156
+
+bool Validatable<Filter::Xml::PData8156>::validate(const Filter::Xml::PData8156::value_type& value_)
 {
 	QRegExp q("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 	if (!q.exactMatch(value_))
@@ -675,9 +737,9 @@ bool Validatable<Filter::Xml::PWwn>::validate(const Filter::Xml::PWwn::value_typ
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct PData5163
+// struct PData8166
 
-bool Validatable<Filter::Xml::PData5163>::validate(const Filter::Xml::PData5163::value_type& value_)
+bool Validatable<Filter::Xml::PData8166>::validate(const Filter::Xml::PData8166::value_type& value_)
 {
 	QRegExp q("0x[0-9a-eA-E][0-9a-fA-F]?");
 	if (!q.exactMatch(value_))
@@ -869,6 +931,18 @@ bool Validatable<Filter::Xml::PFilterParamName>::validate(const Filter::Xml::PFi
 bool Validatable<Filter::Xml::PFilterParamValue>::validate(const Filter::Xml::PFilterParamValue::value_type& value_)
 {
 	QRegExp q("[a-zA-Z0-9_\\.:]+");
+	if (!q.exactMatch(value_))
+		return false;
+
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// struct PData9886
+
+bool Validatable<Filter::Xml::PData9886>::validate(const Filter::Xml::PData9886::value_type& value_)
+{
+	QRegExp q("mac[a-zA-Z0-9_\\.:\\-]{0,9}");
 	if (!q.exactMatch(value_))
 		return false;
 
@@ -1426,7 +1500,7 @@ bool Traits<Filter::Xml::VChain>::parse(const QString& src_, Filter::Xml::VChain
 		return true;
 	}
 	mpl::at_c<Filter::Xml::VChain::types, 1>::type a1;
-	x = Marshal<Filter::Xml::PData9528>::setString(src_, a1);
+	x = Marshal<Filter::Xml::PData9886>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -1485,7 +1559,7 @@ QString Traits<Filter::Xml::VChain>::generate(const Filter::Xml::VChain& src_)
 	case 0:
 		return Marshal<Filter::Xml::EChain>::getString(boost::get<mpl::at_c<Filter::Xml::VChain::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Filter::Xml::PData9528>::getString(boost::get<mpl::at_c<Filter::Xml::VChain::types, 1>::type>(src_));
+		return Marshal<Filter::Xml::PData9886>::getString(boost::get<mpl::at_c<Filter::Xml::VChain::types, 1>::type>(src_));
 	case 2:
 		return Marshal<Filter::Xml::PData5606>::getString(boost::get<mpl::at_c<Filter::Xml::VChain::types, 2>::type>(src_));
 	case 3:
@@ -1509,14 +1583,14 @@ bool Traits<Filter::Xml::VUUID>::parse(const QString& src_, Filter::Xml::VUUID& 
 {
 	int x;
 	mpl::at_c<Filter::Xml::VUUID::types, 0>::type a0;
-	x = Marshal<Filter::Xml::PData9528>::setString(src_, a0);
+	x = Marshal<Filter::Xml::PData8154>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Filter::Xml::VUUID::types, 1>::type a1;
-	x = Marshal<Filter::Xml::PData5153>::setString(src_, a1);
+	x = Marshal<Filter::Xml::PData8156>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -1531,9 +1605,9 @@ QString Traits<Filter::Xml::VUUID>::generate(const Filter::Xml::VUUID& src_)
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Filter::Xml::PData9528>::getString(boost::get<mpl::at_c<Filter::Xml::VUUID::types, 0>::type>(src_));
+		return Marshal<Filter::Xml::PData8154>::getString(boost::get<mpl::at_c<Filter::Xml::VUUID::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Filter::Xml::PData5153>::getString(boost::get<mpl::at_c<Filter::Xml::VUUID::types, 1>::type>(src_));
+		return Marshal<Filter::Xml::PData8156>::getString(boost::get<mpl::at_c<Filter::Xml::VUUID::types, 1>::type>(src_));
 	}
 	return QString();
 }
@@ -1680,14 +1754,14 @@ bool Traits<Filter::Xml::VUint8>::parse(const QString& src_, Filter::Xml::VUint8
 {
 	int x;
 	mpl::at_c<Filter::Xml::VUint8::types, 0>::type a0;
-	x = Marshal<Filter::Xml::PData9528>::setString(src_, a0);
+	x = Marshal<Filter::Xml::PData9843>::setString(src_, a0);
 	if (0 < x)
 	{
 		dst_ = a0;
 		return true;
 	}
 	mpl::at_c<Filter::Xml::VUint8::types, 1>::type a1;
-	x = Marshal<Filter::Xml::PData5141>::setString(src_, a1);
+	x = Marshal<Filter::Xml::PData9885>::setString(src_, a1);
 	if (0 < x)
 	{
 		dst_ = a1;
@@ -1702,9 +1776,9 @@ QString Traits<Filter::Xml::VUint8>::generate(const Filter::Xml::VUint8& src_)
 	switch (src_.which())
 	{
 	case 0:
-		return Marshal<Filter::Xml::PData9528>::getString(boost::get<mpl::at_c<Filter::Xml::VUint8::types, 0>::type>(src_));
+		return Marshal<Filter::Xml::PData9843>::getString(boost::get<mpl::at_c<Filter::Xml::VUint8::types, 0>::type>(src_));
 	case 1:
-		return Marshal<Filter::Xml::PData5141>::getString(boost::get<mpl::at_c<Filter::Xml::VUint8::types, 1>::type>(src_));
+		return Marshal<Filter::Xml::PData9885>::getString(boost::get<mpl::at_c<Filter::Xml::VUint8::types, 1>::type>(src_));
 	}
 	return QString();
 }

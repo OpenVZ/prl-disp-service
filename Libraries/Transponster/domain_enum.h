@@ -147,6 +147,12 @@ enum EMode1
 	EMode1Disable
 };
 
+enum EMode2
+{
+	EMode2Emulate,
+	EMode2Passthrough
+};
+
 enum ESysinfoBiosName
 {
 	ESysinfoBiosNameVendor,
@@ -204,6 +210,12 @@ enum EType3
 	EType3Linux
 };
 
+enum EFirmware
+{
+	EFirmwareBios,
+	EFirmwareEfi
+};
+
 enum EArch1
 {
 	EArch1I686,
@@ -247,22 +259,22 @@ enum EArch4
 	EArch4Aarch64
 };
 
-enum EReadonly
+enum EName
 {
-	EReadonlyYes,
-	EReadonlyNo
-};
-
-enum ESecure
-{
-	ESecureYes,
-	ESecureNo
+	ENameEnrolledKeys,
+	ENameSecureBoot
 };
 
 enum EType4
 {
 	EType4Rom,
 	EType4Pflash
+};
+
+enum EFormat
+{
+	EFormatRaw,
+	EFormatQcow2
 };
 
 enum EStartupPolicy
@@ -272,11 +284,11 @@ enum EStartupPolicy
 	EStartupPolicyOptional
 };
 
-enum EFormat
+enum EFormat1
 {
-	EFormatDefault,
-	EFormatQcow,
-	EFormatLuks
+	EFormat1Default,
+	EFormat1Qcow,
+	EFormat1Luks
 };
 
 enum EProtocol
@@ -299,16 +311,10 @@ enum ETransport
 	ETransportRdma
 };
 
-enum EMode2
+enum EMode3
 {
-	EMode2Host,
-	EMode2Direct
-};
-
-enum EFormat1
-{
-	EFormat1Raw,
-	EFormat1Qcow2
+	EMode3Host,
+	EMode3Direct
 };
 
 enum EDev
@@ -319,11 +325,11 @@ enum EDev
 	EDevNetwork
 };
 
-enum EMode3
+enum EMode4
 {
-	EMode3Emulate,
-	EMode3Host,
-	EMode3Sysinfo
+	EMode4Emulate,
+	EMode4Host,
+	EMode4Sysinfo
 };
 
 enum EArch5
@@ -353,10 +359,10 @@ enum EBasis
 	EBasisLocaltime
 };
 
-enum EName
+enum EName1
 {
-	ENamePlatform,
-	ENameRtc
+	EName1Platform,
+	EName1Rtc
 };
 
 enum ETrack
@@ -373,25 +379,25 @@ enum ETickpolicy
 	ETickpolicyDiscard
 };
 
-enum EMode4
+enum EMode5
 {
-	EMode4Auto,
-	EMode4Native,
-	EMode4Emulate,
-	EMode4Paravirt,
-	EMode4Smpsafe
-};
-
-enum EName1
-{
-	EName1Hpet,
-	EName1Pit
+	EMode5Auto,
+	EMode5Native,
+	EMode5Emulate,
+	EMode5Paravirt,
+	EMode5Smpsafe
 };
 
 enum EName2
 {
-	EName2Kvmclock,
-	EName2Hypervclock
+	EName2Hpet,
+	EName2Pit
+};
+
+enum EName3
+{
+	EName3Kvmclock,
+	EName3Hypervclock
 };
 
 enum EType5
@@ -401,16 +407,16 @@ enum EType5
 	EType5Memfd
 };
 
-enum EMode5
-{
-	EMode5Shared,
-	EMode5Private
-};
-
 enum EMode6
 {
-	EMode6Immediate,
-	EMode6Ondemand
+	EMode6Shared,
+	EMode6Private
+};
+
+enum EMode7
+{
+	EMode7Immediate,
+	EMode7Ondemand
 };
 
 enum EPlacement
@@ -438,18 +444,18 @@ enum EType6
 	EType6Data
 };
 
-enum EMode7
-{
-	EMode7Strict,
-	EMode7Preferred,
-	EMode7Interleave
-};
-
 enum EMode8
 {
 	EMode8Strict,
 	EMode8Preferred,
 	EMode8Interleave
+};
+
+enum EMode9
+{
+	EMode9Strict,
+	EMode9Preferred,
+	EMode9Interleave
 };
 
 enum EPolicy2
@@ -527,30 +533,30 @@ enum ELockfailureOptions
 	ELockfailureOptionsIgnore
 };
 
-enum EName3
+enum EName4
 {
-	EName3Cmt,
-	EName3Mbmt,
-	EName3Mbml,
-	EName3CpuCycles,
-	EName3Instructions,
-	EName3CacheReferences,
-	EName3CacheMisses,
-	EName3BranchInstructions,
-	EName3BranchMisses,
-	EName3BusCycles,
-	EName3StalledCyclesFrontend,
-	EName3StalledCyclesBackend,
-	EName3RefCpuCycles,
-	EName3CpuClock,
-	EName3TaskClock,
-	EName3PageFaults,
-	EName3ContextSwitches,
-	EName3CpuMigrations,
-	EName3PageFaultsMin,
-	EName3PageFaultsMaj,
-	EName3AlignmentFaults,
-	EName3EmulationFaults
+	EName4Cmt,
+	EName4Mbmt,
+	EName4Mbml,
+	EName4CpuCycles,
+	EName4Instructions,
+	EName4CacheReferences,
+	EName4CacheMisses,
+	EName4BranchInstructions,
+	EName4BranchMisses,
+	EName4BusCycles,
+	EName4StalledCyclesFrontend,
+	EName4StalledCyclesBackend,
+	EName4RefCpuCycles,
+	EName4CpuClock,
+	EName4TaskClock,
+	EName4PageFaults,
+	EName4ContextSwitches,
+	EName4CpuMigrations,
+	EName4PageFaultsMin,
+	EName4PageFaultsMaj,
+	EName4AlignmentFaults,
+	EName4EmulationFaults
 };
 
 enum EDevice
@@ -753,18 +759,18 @@ enum EModel2
 	EModel2Ich6
 };
 
-enum EName4
+enum EName5
 {
-	EName4SpaprPciHostBridge,
-	EName4PciBridge,
-	EName4I82801b11Bridge,
-	EName4PciePciBridge,
-	EName4Ioh3420,
-	EName4PcieRootPort,
-	EName4X3130Upstream,
-	EName4Xio3130Downstream,
-	EName4Pxb,
-	EName4PxbPcie
+	EName5SpaprPciHostBridge,
+	EName5PciBridge,
+	EName5I82801b11Bridge,
+	EName5PciePciBridge,
+	EName5Ioh3420,
+	EName5PcieRootPort,
+	EName5X3130Upstream,
+	EName5Xio3130Downstream,
+	EName5Pxb,
+	EName5PxbPcie
 };
 
 enum EModel3
@@ -835,16 +841,16 @@ enum EState
 	EStateDown
 };
 
-enum EName5
-{
-	EName5Kvm,
-	EName5Vfio
-};
-
 enum EName6
 {
-	EName6Qemu,
-	EName6Vhost
+	EName6Kvm,
+	EName6Vfio
+};
+
+enum EName7
+{
+	EName7Qemu,
+	EName7Vhost
 };
 
 enum ETxmode
@@ -864,10 +870,10 @@ enum EType11
 	EType11Unix
 };
 
-enum EMode9
+enum EMode10
 {
-	EMode9Server,
-	EMode9Client
+	EMode10Server,
+	EMode10Client
 };
 
 enum EType12
@@ -914,11 +920,11 @@ enum EType14
 	EType14Micro
 };
 
-enum EName7
+enum EName8
 {
-	EName7Kvm,
-	EName7Vfio,
-	EName7Xen
+	EName8Kvm,
+	EName8Vfio,
+	EName8Xen
 };
 
 enum ESgio1
@@ -963,23 +969,23 @@ enum EDefaultMode
 	EDefaultModeInsecure
 };
 
-enum EName8
+enum EName9
 {
-	EName8Main,
-	EName8Display,
-	EName8Inputs,
-	EName8Cursor,
-	EName8Playback,
-	EName8Record,
-	EName8Smartcard,
-	EName8Usbredir
+	EName9Main,
+	EName9Display,
+	EName9Inputs,
+	EName9Cursor,
+	EName9Playback,
+	EName9Record,
+	EName9Smartcard,
+	EName9Usbredir
 };
 
-enum EMode10
+enum EMode11
 {
-	EMode10Any,
-	EMode10Secure,
-	EMode10Insecure
+	EMode11Any,
+	EMode11Secure,
+	EMode11Insecure
 };
 
 enum ECompression
@@ -1006,23 +1012,23 @@ enum ECompression2
 	ECompression2Always
 };
 
-enum EMode11
-{
-	EMode11Filter,
-	EMode11All,
-	EMode11Off
-};
-
 enum EMode12
 {
-	EMode12Server,
-	EMode12Client
+	EMode12Filter,
+	EMode12All,
+	EMode12Off
 };
 
-enum EName9
+enum EMode13
 {
-	EName9Qemu,
-	EName9Vhostuser
+	EMode13Server,
+	EMode13Client
+};
+
+enum EName10
+{
+	EName10Qemu,
+	EName10Vhostuser
 };
 
 enum EVgaconf
@@ -1090,15 +1096,15 @@ enum EType18
 	EType18UsbSerial
 };
 
-enum EName10
+enum EName11
 {
-	EName10IsaSerial,
-	EName10UsbSerial,
-	EName10PciSerial,
-	EName10SpaprVty,
-	EName10Pl011,
-	EName10Sclpconsole,
-	EName10Sclplmconsole
+	EName11IsaSerial,
+	EName11UsbSerial,
+	EName11PciSerial,
+	EName11SpaprVty,
+	EName11Pl011,
+	EName11Sclpconsole,
+	EName11Sclplmconsole
 };
 
 enum EState1
@@ -1140,7 +1146,9 @@ enum EAccess
 enum EModel12
 {
 	EModel12I6300esb,
-	EModel12Ib700
+	EModel12Ib700,
+	EModel12Diag288,
+	EModel12Itco
 };
 
 enum EAction
@@ -1169,10 +1177,10 @@ enum EModel14
 	EModel14Hyperv
 };
 
-enum EName11
+enum EName12
 {
-	EName11Aes,
-	EName11Dea
+	EName12Aes,
+	EName12Dea
 };
 
 

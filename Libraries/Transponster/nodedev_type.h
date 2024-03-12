@@ -34,13 +34,13 @@ namespace Libvirt
 {
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Parent9528
+// struct Parent9807
 
 namespace Nodedev
 {
 namespace Xml
 {
-struct Parent9528
+struct Parent9807
 {
 	const PWwn::value_type& getWwnn() const
 	{
@@ -74,7 +74,7 @@ namespace Nodedev
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Parent9528, Attribute<Nodedev::Xml::PWwn, Name::Strict<3469> >, Text<QString > > > VParentImpl;
+typedef Choice<mpl::vector<Parent9807, Attribute<Nodedev::Xml::PWwn, Name::Strict<3469> >, Text<QString > > > VParentImpl;
 typedef VParentImpl::value_type VParent;
 
 } // namespace Xml
@@ -1220,13 +1220,13 @@ private:
 } // namespace Nodedev
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability9528
+// struct Capability9841
 
 namespace Nodedev
 {
 namespace Xml
 {
-struct Capability9528
+struct Capability9841
 {
 };
 
@@ -1234,13 +1234,13 @@ struct Capability9528
 } // namespace Nodedev
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability95281
+// struct Capability9842
 
 namespace Nodedev
 {
 namespace Xml
 {
-struct Capability95281
+struct Capability9842
 {
 };
 
@@ -1254,7 +1254,7 @@ namespace Nodedev
 {
 namespace Xml
 {
-typedef Choice<mpl::vector<Capability9528, Capability95281 > > VCapability1Impl;
+typedef Choice<mpl::vector<Capability9841, Capability9842 > > VCapability1Impl;
 typedef VCapability1Impl::value_type VCapability1;
 
 } // namespace Xml
@@ -1593,15 +1593,15 @@ private:
 } // namespace Nodedev
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous5139
+// struct Anonymous9884
 
 namespace Nodedev
 {
 namespace Xml
 {
-struct Anonymous5139
+struct Anonymous9884
 {
-	Anonymous5139();
+	Anonymous9884();
 
 	PUnsignedLong::value_type getLogicalBlockSize() const
 	{
@@ -1665,13 +1665,13 @@ struct Capability2
 	{
 		m_mediaLabel = value_;
 	}
-	const boost::optional<Anonymous5139 >& getAnonymous5139() const
+	const boost::optional<Anonymous9884 >& getAnonymous9884() const
 	{
-		return m_anonymous5139;
+		return m_anonymous9884;
 	}
-	void setAnonymous5139(const boost::optional<Anonymous5139 >& value_)
+	void setAnonymous9884(const boost::optional<Anonymous9884 >& value_)
 	{
-		m_anonymous5139 = value_;
+		m_anonymous9884 = value_;
 	}
 	bool load(const QDomElement& );
 	bool save(QDomElement& ) const;
@@ -1681,7 +1681,7 @@ private:
 	EMediaAvailable m_mediaAvailable;
 	PUnsignedLong::value_type m_mediaSize;
 	boost::optional<QString > m_mediaLabel;
-	boost::optional<Anonymous5139 > m_anonymous5139;
+	boost::optional<Anonymous9884 > m_anonymous9884;
 };
 
 } // namespace Xml
@@ -1706,18 +1706,18 @@ struct Capstoragefixed
 	{
 		m_size = value_;
 	}
-	const boost::optional<Anonymous5139 >& getAnonymous5139() const
+	const boost::optional<Anonymous9884 >& getAnonymous9884() const
 	{
-		return m_anonymous5139;
+		return m_anonymous9884;
 	}
-	void setAnonymous5139(const boost::optional<Anonymous5139 >& value_)
+	void setAnonymous9884(const boost::optional<Anonymous9884 >& value_)
 	{
-		m_anonymous5139 = value_;
+		m_anonymous9884 = value_;
 	}
 
 private:
 	PUnsignedLong::value_type m_size;
-	boost::optional<Anonymous5139 > m_anonymous5139;
+	boost::optional<Anonymous9884 > m_anonymous9884;
 };
 
 } // namespace Xml
@@ -2129,15 +2129,15 @@ private:
 } // namespace Nodedev
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Parent9528 traits
+// struct Parent9807 traits
 
 template<>
-struct Traits<Nodedev::Xml::Parent9528>
+struct Traits<Nodedev::Xml::Parent9807>
 {
 	typedef Ordered<mpl::vector<Attribute<Nodedev::Xml::PWwn, Name::Strict<117> >, Attribute<Nodedev::Xml::PWwn, Name::Strict<118> > > > marshal_type;
 
-	static int parse(Nodedev::Xml::Parent9528& , QStack<QDomElement>& );
-	static int generate(const Nodedev::Xml::Parent9528& , QDomElement& );
+	static int parse(Nodedev::Xml::Parent9807& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Parent9807& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2417,27 +2417,27 @@ struct Traits<Nodedev::Xml::Link1>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability9528 traits
+// struct Capability9841 traits
 
 template<>
-struct Traits<Nodedev::Xml::Capability9528>
+struct Traits<Nodedev::Xml::Capability9841>
 {
 	typedef Attribute<mpl::int_<3526>, Name::Strict<105> > marshal_type;
 
-	static int parse(Nodedev::Xml::Capability9528& , QStack<QDomElement>& );
-	static int generate(const Nodedev::Xml::Capability9528& , QDomElement& );
+	static int parse(Nodedev::Xml::Capability9841& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Capability9841& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Capability95281 traits
+// struct Capability9842 traits
 
 template<>
-struct Traits<Nodedev::Xml::Capability95281>
+struct Traits<Nodedev::Xml::Capability9842>
 {
 	typedef Attribute<mpl::int_<3527>, Name::Strict<105> > marshal_type;
 
-	static int parse(Nodedev::Xml::Capability95281& , QStack<QDomElement>& );
-	static int generate(const Nodedev::Xml::Capability95281& , QDomElement& );
+	static int parse(Nodedev::Xml::Capability9842& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Capability9842& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2525,15 +2525,15 @@ struct Traits<Nodedev::Xml::Capscsi>
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// struct Anonymous5139 traits
+// struct Anonymous9884 traits
 
 template<>
-struct Traits<Nodedev::Xml::Anonymous5139>
+struct Traits<Nodedev::Xml::Anonymous9884>
 {
 	typedef Ordered<mpl::vector<Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<544> >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<6883> > > > marshal_type;
 
-	static int parse(Nodedev::Xml::Anonymous5139& , QStack<QDomElement>& );
-	static int generate(const Nodedev::Xml::Anonymous5139& , QDomElement& );
+	static int parse(Nodedev::Xml::Anonymous9884& , QStack<QDomElement>& );
+	static int generate(const Nodedev::Xml::Anonymous9884& , QDomElement& );
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2542,7 +2542,7 @@ struct Traits<Nodedev::Xml::Anonymous5139>
 template<>
 struct Traits<Nodedev::Xml::Capability2>
 {
-	typedef Ordered<mpl::vector<Attribute<mpl::int_<537>, Name::Strict<105> >, Element<Text<Nodedev::Xml::EMediaAvailable >, Name::Strict<3544> >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<3545> >, Optional<Element<Text<QString >, Name::Strict<3546> > >, Optional<Fragment<Nodedev::Xml::Anonymous5139 > > > > marshal_type;
+	typedef Ordered<mpl::vector<Attribute<mpl::int_<537>, Name::Strict<105> >, Element<Text<Nodedev::Xml::EMediaAvailable >, Name::Strict<3544> >, Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<3545> >, Optional<Element<Text<QString >, Name::Strict<3546> > >, Optional<Fragment<Nodedev::Xml::Anonymous9884 > > > > marshal_type;
 
 	static int parse(Nodedev::Xml::Capability2& , QStack<QDomElement>& );
 	static int generate(const Nodedev::Xml::Capability2& , QDomElement& );
@@ -2554,7 +2554,7 @@ struct Traits<Nodedev::Xml::Capability2>
 template<>
 struct Traits<Nodedev::Xml::Capstoragefixed>
 {
-	typedef Ordered<mpl::vector<Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<334> >, Optional<Fragment<Nodedev::Xml::Anonymous5139 > > > > marshal_type;
+	typedef Ordered<mpl::vector<Element<Text<Nodedev::Xml::PUnsignedLong >, Name::Strict<334> >, Optional<Fragment<Nodedev::Xml::Anonymous9884 > > > > marshal_type;
 
 	static int parse(Nodedev::Xml::Capstoragefixed& , QStack<QDomElement>& );
 	static int generate(const Nodedev::Xml::Capstoragefixed& , QDomElement& );
