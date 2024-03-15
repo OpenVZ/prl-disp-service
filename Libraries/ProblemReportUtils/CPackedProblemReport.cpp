@@ -819,24 +819,23 @@ QStringList CPackedProblemReport::createReportFilesList()
 	QString strPath;
 	// get screenshot files
 	if( getUserDefinedData() && getUserDefinedData()->getScreenShots() )
-	foreach( CRepScreenShot * pScr, getUserDefinedData()->getScreenShots()->m_lstScreenShot )
-		lstFiles += getArchivePathFromTopLevelObject( pScr, pScr->getName() );
+		for( CRepScreenShot * pScr : getUserDefinedData()->getScreenShots()->m_lstScreenShot )
+			lstFiles += getArchivePathFromTopLevelObject( pScr, pScr->getName() );
 
 	// get log files
 	if( getSystemLogs() )
-	foreach( CRepSystemLog * pLog, getSystemLogs()->m_lstSystemLog )
-		lstFiles += getArchivePathFromTopLevelObject( pLog, pLog ? pLog->getName() : "" );
-
+		for( CRepSystemLog * pLog : getSystemLogs()->m_lstSystemLog )
+			lstFiles += getArchivePathFromTopLevelObject( pLog, pLog ? pLog->getName() : "" );
 	// get crash dumps
-	foreach( CRepCrashDump * pDump , m_lstCrashDumps )
+	for (CRepCrashDump * pDump : m_lstCrashDumps)
 		lstFiles += getArchivePathFromTopLevelObject( pDump, pDump ? pDump->getNameInArchive() : "" );
 
 	//get memory dumps
-	foreach( CRepMemoryDump * pDump , m_lstMemoryDumps )
+	for (CRepMemoryDump * pDump : m_lstMemoryDumps)
 		lstFiles += getArchivePathFromTopLevelObject( pDump, pDump ? pDump->getNameInArchive() : "" );
 
 	// get vz report
-	foreach ( CRepVzReport * pVzRep, m_lstVzReport)
+	for ( CRepVzReport * pVzRep : m_lstVzReport)
 		lstFiles += getArchivePathFromTopLevelObject( pVzRep, pVzRep ? pVzRep->getNameInArchive() : "" );
 
 	lstFiles += getArchivePathFromTopLevelObject( getClientInfo(),
@@ -1304,7 +1303,7 @@ int CPackedProblemReport::fromBaseReport( const QString & strBaseReport )
 
 	// screenshot processing
 	if( getUserDefinedData() && getUserDefinedData()->getScreenShots() )
-		foreach( CRepScreenShot * pScr, getUserDefinedData()->getScreenShots()->m_lstScreenShot )
+		for( CRepScreenShot * pScr : getUserDefinedData()->getScreenShots()->m_lstScreenShot )
 		{
 			if( pScr )
 			{
@@ -1328,7 +1327,7 @@ int CPackedProblemReport::fromBaseReport( const QString & strBaseReport )
 
 	// log files
 	if( getSystemLogs() )
-		foreach( CRepSystemLog * pLog, getSystemLogs()->m_lstSystemLog )
+		for ( CRepSystemLog * pLog : getSystemLogs()->m_lstSystemLog )
 		{
 			if( pLog )
 			{
