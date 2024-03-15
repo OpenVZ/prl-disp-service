@@ -87,7 +87,7 @@ linux-*:DEFINES   += "_LIN_=1"
 linux-*:QMAKE_CXXFLAGS += -fno-strict-aliasing
 
 # Add C++14 support
-QMAKE_CXXFLAGS += -std=c++14
+QMAKE_CXXFLAGS += -std=c++17 -Wdeprecated-declarations
 
 # Release/Debug detection defines
 CONFIG(debug, debug|release) {
