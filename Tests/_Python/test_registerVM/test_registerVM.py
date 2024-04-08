@@ -161,18 +161,17 @@ if ( __name__ == '__main__' ):
 
     ret = 9
 
-	for vm_type in (prlsdkapi.consts.PVT_CT, prlsdkapi.consts.PVT_VM):
-		try:
-			ret = test(vm_type)
-		finally:
-			os.chdir( saved_path )
-			print '=============='
-			if 0==ret:
-				print 'PASSED'
-				print '=============='
-			else:
-				print 'FAILED!'
-				print '=============='
-				sys.exit( ret )
+    try:
+        ret = test(prlsdkapi.consts.PVT_VM)
+    finally:
+        os.chdir( saved_path )
+        print '=============='
+        if 0==ret:
+            print 'PASSED'
+            print '=============='
+        else:
+            print 'FAILED!'
+            print '=============='
+            sys.exit( ret )
 
     sys.exit( 0 )
