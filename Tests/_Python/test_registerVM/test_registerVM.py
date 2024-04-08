@@ -93,19 +93,19 @@ def test(vm_type):
         vm.refresh_config()
         vm.set_vm_type( vm_type )
         vm.set_uuid ( new_vm_uuid )
-		vm.set_name ( "reg" + vm_type_str[vm_type] + "_" + vm.get_uuid().strip('{}')[:20] )
-		print "Create " + vm_type_str[vm_type] + " done."
+        vm.set_name ( "reg" + vm_type_str[vm_type] + "_" + vm.get_uuid().strip('{}')[:20] )
+        print "Create " + vm_type_str[vm_type] + " done."
 
         # raw_input ("press any key")
 
         job = vm.reg('')
         job.wait( max_wait_timeout )
-		print "Reg " + vm_type_str[vm_type] + " done."
+        print "Reg " + vm_type_str[vm_type] + " done."
 
         try:
             # 2. Get Vm Path
             vm.refresh_config().wait( max_wait_timeout )
-			print "GetConfig done."
+            print "GetConfig done."
 
             # path_to_config_pvs = vm.get_home_path()
             # vm_dir = os.path.dirname( path_to_config_pvs )
@@ -113,18 +113,31 @@ def test(vm_type):
 
             print "vm_dir = [%s]" % vm_dir
 
+            print("Check VM type")
+            new_vm_type = vm.get_vm_type( )
+            if (vm_type != new_vm_type) :
+                print("Wrong vm type = [%d]" % (new_vm_type))
+                return res
+
+            print("Check VM new uuid")
+            vm_uuid = vm.get_uuid( )
+            if (new_vm_uuid != vm_uuid) :
+                print("Wrong vm uuid = [%s]" % (vm_uuid))
+                return res
+
+            print("New param vm  = [%s] [%d]" % (vm_uuid, new_vm_type))
             # 3. Unreg
             job = vm.unreg()
             job.wait( max_wait_timeout )
-			print "Unreg done"
+            print "Unreg done"
 
         except:
 
             job = vm.delete()
             job.wait( max_wait_timeout )
-			print "Delete done"
+            print "Delete done"
 
-		# print "vm_dir = [%s]" % vm_dir
+            # print "vm_dir = [%s]" % vm_dir
 
         # raw_input ("press any key")
 
@@ -132,19 +145,19 @@ def test(vm_type):
         job = server.register_vm( vm_dir, True )
         job.wait( max_wait_timeout )
         result = job.get_result()
-		vm = result.get_param()
-		print "Register " + vm_type_str[vm_type] + " done."
+        vm = result.get_param()
+        print "Register " + vm_type_str[vm_type] + " done."
 
-		# 5. Clean test space - remove temorally VM
+        # 5. Clean test space - remove temorally VM
         job = vm.delete()
         job.wait( max_wait_timeout )
-		print vm_type_str[vm_type] + " Delete2 done."
+        print vm_type_str[vm_type] + " Delete2 done."
 
         try:
             job = server.logoff()
             job.wait( max_wait_timeout )
             res = 0
- 			print "Logoff done"
+            print "Logoff done"
         except:
             res = 2
 
