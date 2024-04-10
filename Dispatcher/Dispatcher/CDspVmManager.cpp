@@ -780,7 +780,7 @@ private:
 			!= PVS_GUEST_TYPE_WINDOWS)
 			return vm::Exec::Request("prl_nettool", QList<QString>());
 
-		vm::Exec::Request output("%programfiles%\\Qemu-ga\\prl_nettool.exe",
+		vm::Exec::Request output("prl_nettool.exe",
 				QList<QString>());
 		output.setRunInShell();
 		return output;
