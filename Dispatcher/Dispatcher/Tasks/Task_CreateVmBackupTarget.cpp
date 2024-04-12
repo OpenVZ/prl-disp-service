@@ -168,7 +168,7 @@ PRL_RESULT Task_CreateVmBackupTarget::guessBackupType()
 			if ((f = !m_bitmaps.contains(m_sBackupUuid)))
 				WRITE_TRACE(DBG_FATAL, "Unable to find full backup uuid %s in the active bitmap: [%s]"
 						", will create a full backup instead of incremental",
-						qPrintable(m_sBackupUuid), QSTR2UTF8(m_bitmaps.join(" "));
+						qPrintable(m_sBackupUuid), QSTR2UTF8(m_bitmaps.join(" ")));
 		}
 	} while(false);
 	if (f) {
