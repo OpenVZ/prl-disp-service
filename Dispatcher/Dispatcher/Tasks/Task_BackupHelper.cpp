@@ -1738,6 +1738,10 @@ BackupItem* Task_BackupMixin::getLastBaseBackup(const QString &sVmUuid,
 			a.reset(new BackupItem(b.value()));
 		}
 	}
+
+	WRITE_TRACE(DBG_FATAL, "getLastBaseBackup [%s]; for vm '%s' from list: [%s]",
+			QSTR2UTF8(a->getUuid()), QSTR2UTF8(sVmUuid), QSTR2UTF8(lstBackupUuid.join("; ")));
+
 	return a.release();
 }
 
