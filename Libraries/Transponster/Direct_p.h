@@ -554,7 +554,7 @@ struct Builder
 
 	void setModel(const boost::optional<QString>& value_);
 	void setMac(const boost::optional<QString>& value_);
-	void setTarget(const boost::optional<QString>& value_);
+	void setTarget(const boost::optional<Libvirt::Domain::Xml::Target3 >& value_);
 	void setFilter(const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes>& value_);
 	void setIps(const QList<Libvirt::Domain::Xml::Ip>& value_);
 	void setConnected(const boost::optional<Libvirt::Domain::Xml::EState >& value_);

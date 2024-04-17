@@ -348,14 +348,26 @@ void Builder::setModel(const boost::optional<QString>& value_)
 
 void Builder::setMac(const boost::optional<QString>& value_)
 {
-	if (value_)
-		m_result.setMacAddress(HostUtils::parseMacAddress(value_.get()));
+	QString currentMacAddr;
+
+	if (value_.is_initialized())
+		currentMacAddr = value_.get();
+	else
+		currentMacAddr = HostUtils::generateMacAddress();
+
+	m_result.setMacAddress(HostUtils::parseMacAddress(currentMacAddr));
 }
 
-void Builder::setTarget(const boost::optional<QString>& value_)
+void Builder::setTarget(const boost::optional<Libvirt::Domain::Xml::Target3 >& value_)
 {
-	if (value_)
-		m_result.setHostInterfaceName(value_.get());
+	QString currentHostInterfaceName;
+
+	if (value_.is_initialized())
+		currentHostInterfaceName = value_.get().getDev();
+	else
+		currentHostInterfaceName = HostUtils::generateHostInterfaceName(m_result.getMacAddress());
+
+	m_result.setHostInterfaceName(std::move(currentHostInterfaceName));
 }
 
 void Builder::setFilter(const boost::optional<Libvirt::Domain::Xml::FilterrefNodeAttributes>& value_)
@@ -558,8 +570,7 @@ CVmGenericNetworkAdapter& Unit::prepare(const T& variant_) const
 	b.setModel(variant_.getModel());
 	b.setMac(variant_.getMac());
 
-	if (variant_.getTarget().is_initialized())
-		b.setTarget(variant_.getTarget().get().getDev());
+	b.setTarget(variant_.getTarget());
 
 	b.setFilter(variant_.getFilterref());
 	b.setIps(variant_.getIpList());
