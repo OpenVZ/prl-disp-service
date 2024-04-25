@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////(
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2024 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -87,6 +87,7 @@
 #include "Tasks/Task_DiskImageResizer.h"
 #include "Tasks/Task_MigrateVm.h"
 #include "Tasks/Task_UpdateVm.h"
+#include "Tasks/Task_ConvertCt.h"
 #include "Tasks/Task_ConvertDisks.h"
 #include "Tasks/Task_EditVm.h"
 #include "Tasks/Task_CopyImage.h"
@@ -770,6 +771,7 @@ PRL_RESULT	CDspVmDirHelper::ExclusiveVmOperations::registerOp(
 	case PVE::DspCmdCtlVmCommitDiskUnfinished:
 	case PVE::DspCmdVmResume:
 	case PVE::DspCmdCtlApplyVmConfig:
+	case PVE::DspCmdCtConvert:
 		break;
 	default:
 		WRITE_TRACE(DBG_FATAL, "internal error: unsupported incomming cmd %#x", cmd );
@@ -2142,6 +2144,45 @@ void CDspVmDirHelper::migrateVm ( const IOSender::Handle&,
 			.schedule(new Task_MigrateVmSource(m_registry,
 						pUserSession, cmd, pkg));
 	}
+}
+
+void CDspVmDirHelper::convertCt ( const IOSender::Handle&,
+								 SmartPtr<CDspClient> pUserSession,
+								 const SmartPtr<IOPackage> &pkg )
+{
+	CProtoCommandPtr cmd = CProtoSerializer::ParseCommand( pkg );
+	if (!cmd->IsValid())
+	{
+		pUserSession->sendSimpleResponse( pkg, PRL_ERR_UNRECOGNIZED_REQUEST );
+		return;
+	}
+
+	CProtoBasicVmCommand *pVmCmd = CProtoSerializer::CastToProtoCommand<CProtoBasicVmCommand>(cmd);
+	QString strVmUuid = pVmCmd->GetVmUuid();
+	QString strVmDirUuid = pUserSession->getVmDirectoryUuid();
+
+	PRL_RESULT ret = PRL_ERR_SUCCESS;
+	SmartPtr<CVmConfiguration>
+		pCtConfig = CDspService::instance()->getVmDirHelper().getVmConfigByUuid(pUserSession, strVmUuid, ret);
+	if( !pCtConfig )
+	{
+		PRL_ASSERT( PRL_FAILED(ret) );
+		if( !PRL_FAILED( ret ) )
+			ret = PRL_ERR_FAILURE;
+
+		WRITE_TRACE(DBG_FATAL, "Can't extract VM config for UUID '%s'", QSTR2UTF8(cmd->GetVmUuid()));
+		pUserSession->sendSimpleResponse( pkg, ret );
+		return;
+	}
+
+	if( pCtConfig->getVmType() != PVT_CT )
+	{
+		WRITE_TRACE(DBG_FATAL, "VE '%s' is not Container", QSTR2UTF8(cmd->GetVmUuid()));
+		pUserSession->sendSimpleResponse( pkg, PRL_ERR_ACTION_NOT_SUPPORTED_FOR_VM );
+		return;
+	}
+
+	CDspService::instance()->getTaskManager().schedule(new Task_ConvertCt(pUserSession, cmd, pkg, pCtConfig, m_registry));
 }
 
 void CDspVmDirHelper::lockVm( SmartPtr<CDspClient> pUserSession, const SmartPtr<IOPackage> &p )
