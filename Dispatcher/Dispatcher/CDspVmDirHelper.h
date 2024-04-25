@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// Copyright (c) 2005-2017, Parallels International GmbH
-/// Copyright (c) 2017-2019 Virtuozzo International GmbH, All rights reserved.
+/// Copyright (c) 2017-2024 Virtuozzo International GmbH, All rights reserved.
 ///
 /// This file is part of Virtuozzo Core. Virtuozzo Core is free
 /// software; you can redistribute it and/or modify it under the terms
@@ -168,6 +168,11 @@ public:
 		const SmartPtr<IOPackage>& );
 
 	void editVm ( const IOSender::Handle& sender,
+		SmartPtr<CDspClient> pUserSession,
+		const SmartPtr<IOPackage>& );
+
+	// Initiates CT converting into VM
+	void convertCt ( const IOSender::Handle& sender,
 		SmartPtr<CDspClient> pUserSession,
 		const SmartPtr<IOPackage>& );
 
